@@ -131,13 +131,18 @@ export class RAGEngine {
     onQueryProgressChange?.({ type: 'querying' })
 
     const performQuery = async () => {
-        const response = await fetch("http://localhost:9621/query", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
-                query: query, mode: "hybrid", stream: false, only_need_context: false
-            })
-        });
+      const response = await fetch("http://localhost:9621/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+            query: query, 
+            // --- AQUÍ USAMOS EL MODO SELECCIONADO ---
+            mode: this.settings.lightRagQueryMode, 
+            // ----------------------------------------
+            stream: false,
+            only_need_context: false
+        })
+      });
         if (!response.ok) throw new Error(`Status ${response.status}`);
         return await response.json();
     };

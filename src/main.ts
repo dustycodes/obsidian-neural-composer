@@ -329,6 +329,18 @@ async onload() {
         envContent += `PORT=9621\n`;
         envContent += `SUMMARY_LANGUAGE=${this.settings.lightRagSummaryLanguage || 'English'}\n\n`;
 
+        // --- ONTOLOGY CONFIGURATION ---
+        // Solo escribimos esto si el usuario activó el modo Custom
+        if (this.settings.useCustomEntityTypes) {
+            const rawTypes = this.settings.lightRagEntityTypes;
+            if (rawTypes && rawTypes.trim().length > 0) {
+                const typeList = rawTypes.split(',').map(t => t.trim()).filter(t => t.length > 0);
+                const jsonString = JSON.stringify(typeList);
+                envContent += `ENTITY_TYPES='${jsonString}'\n`;
+            }
+        }
+        // ------------------------------
+
         if (llmModelObj && llmProvider) {
             envContent += `# LLM Configuration\n`;
             envContent += `LLM_BINDING=${llmProvider.id}\n`;
@@ -345,6 +357,30 @@ async onload() {
             envContent += `MAX_TOKEN_SIZE=8192\n`;
         }
 
+        // --- Configuración Rerank (Cora Mod) ---
+        const rerankBinding = this.settings.lightRagRerankBinding;
+        
+        if (rerankBinding && rerankBinding !== '') {
+            envContent += `\n# Reranking Configuration\n`;
+            envContent += `RERANK_BINDING=${rerankBinding}\n`;
+            envContent += `RERANK_MODEL=${this.settings.lightRagRerankModel}\n`;
+            
+            // Hosts por defecto según documentación
+            if (rerankBinding === 'jina') {
+                envContent += `RERANK_BINDING_HOST=https://api.jina.ai/v1/rerank\n`;
+            } else if (rerankBinding === 'cohere') {
+                envContent += `RERANK_BINDING_HOST=https://api.cohere.com/v2/rerank\n`;
+            }
+            
+            if (this.settings.lightRagRerankApiKey) {
+                envContent += `RERANK_BINDING_API_KEY=${this.settings.lightRagRerankApiKey}\n`;
+            }
+        } else {
+             envContent += `\n# Reranking Disabled\n`;
+             envContent += `RERANK_BINDING=null\n`;
+        }
+        // ---------------------------------------
+
         const providersNeeded = new Set([llmProvider, embedProvider]);
         envContent += `\n# API Keys\n`;
         providersNeeded.forEach(p => {
@@ -358,7 +394,7 @@ async onload() {
 
         const envPath = path.join(workDir, '.env');
         fs.writeFileSync(envPath, envContent);
-        console.log(`📝 .env updated pn: ${envPath}`);
+        console.log(`📝 .env updated at: ${envPath}`);
     } catch (err) { console.error("❌ Error updating .env:", err); }
   }
 
@@ -388,14 +424,28 @@ async onload() {
     new Notice("🚀 Starting LightRAG...");
 
     try {
-        this.serverProcess = spawn(command, ['--port', '9621', '--working-dir', workDir], {
+        this.serverProcess = spawn(command, ['--port', '9621', '--working-dir', workDir,'--workers', '1'], {
             cwd: workDir,
             shell: true,
             env: { ...process.env, PYTHONIOENCODING: 'utf-8', FORCE_COLOR: '1' }
         });
 
         this.serverProcess.stdout?.on('data', (data) => console.log(`[LightRAG]: ${data}`));
-        this.serverProcess.stderr?.on('data', (data) => console.error(`[LightRAG Err]: ${data}`));
+// --- CORA MOD: FILTRO INTELIGENTE DE LOGS ---
+        this.serverProcess.stderr?.on('data', (data) => {
+            const message = data.toString();
+            
+            // Uvicorn y LightRAG mandan INFO/WARNING por stderr.
+            // Solo pintamos de rojo si parece un error real.
+            if (message.includes('INFO:') || message.includes('WARNING:')) {
+                // Lo tratamos como log normal (gris/blanco)
+                console.log(`[LightRAG Log]: ${message}`);
+            } else {
+                // Si no es info, asumimos que es un error real o un Traceback -> Rojo
+                console.error(`[LightRAG Error]: ${message}`);
+            }
+        });
+        // --------------------------------------------
         
         this.serverProcess.on('close', (code) => {
             console.log(`[LightRAG] Finished (Code ${code})`);
@@ -514,4 +564,143 @@ async onload() {
     const timeoutId = setTimeout(callback, timeout)
     this.timeoutIds.push(timeoutId)
   }
+
+// --- CORA MOD: ONTÓLOGO AUTOMÁTICO ---
+  
+  // Función auxiliar para obtener archivos de muestra
+  private getRandomNotes(count: number): string {
+    const allFiles = this.app.vault.getMarkdownFiles();
+    // Barajar y tomar 'count'
+    const shuffled = allFiles.sort(() => 0.5 - Math.random());
+    const selected = shuffled.slice(0, count);
+    
+    let contentSample = "";
+    selected.forEach(f => {
+        // Leemos solo los primeros 500 caracteres de cada nota para no saturar contexto
+        // (Esto es síncrono en caché de Obsidian metadata, o asíncrono si leemos full)
+        // Para simplificar, usaremos el cache si es posible, o lectura rápida.
+        // Haremos lectura real asíncrona:
+    });
+    return "MUESTRA PENDIENTE"; // Ver implementación abajo completa
+  }
+
+  
+// Cambiamos la firma para que prometa devolver un string o null
+public async generateEntityTypes(): Promise<string | null> {
+    const sourcePath = this.settings.lightRagOntologyFolder;
+    
+    if (!sourcePath) {
+        new Notice("⚠️ Please define an 'Ontology Source Folder' first.");
+        return null;
+    }
+
+    const folder = this.app.vault.getAbstractFileByPath(sourcePath);
+    if (!folder || !(folder instanceof TFolder)) {
+        new Notice(`❌ Folder not found: "${sourcePath}"`);
+        return null;
+    }
+
+    new Notice(`🧠 Analyzing notes in "${sourcePath}"...`);
+
+    try {
+        const allFiles = this.getAllSupportedFiles(folder);
+        if (allFiles.length === 0) throw new Error("Folder is empty.");
+        
+        const sampleSize = Math.min(allFiles.length, 5);
+        const sampleFiles = allFiles.sort(() => 0.5 - Math.random()).slice(0, sampleSize);
+        
+        let sampleText = "";
+        for (const file of sampleFiles) {
+            const content = await this.app.vault.read(file);
+            sampleText += `--- NOTE: ${file.basename} ---\n${content.substring(0, 1000)}\n...\n\n`;
+        }
+
+        const targetLang = this.settings.lightRagSummaryLanguage || 'English';
+
+        const prompt = `
+        ACT AS: Senior Data Ontologist & Knowledge Graph Architect.
+        TASK: Analyze the provided user's "${sourcePath}" folder to extract the fundamental ontology.
+        GOAL: Define a concise list of high-level "Entity Types" that cover the majority of the concepts in the text without being overly granular.
+        
+        GUIDELINES FOR ENTITY TYPES:
+        - **Abstraction:** Prefer broad categories (e.g., use "Organization" instead of "Company", "Startup", "NGO").
+        - **Relevance:** Include types for abstract concepts (e.g., "Concept", "Methodology", "Goal") as LightRAG relies on conceptual connections.
+        - **Coverage:** The list should allow classifying at least 90% of the key nouns in the text.
+        
+        RULES:
+        1. Output ONLY a comma-separated list of types. NO preamble, NO markdown, NO explanations.
+        2. Types must be singular and PascalCase (e.g., ResearchPaper, SoftwareTool).
+        3. Limit the list to the top 8-15 most relevant types.
+        4. CRITICAL: The output types MUST be in ${targetLang}.
+
+        SAMPLE CONTENT:
+        ${sampleText}
+
+        YOUR OUTPUT:
+        `;
+
+        const generatedTypes = await this.simpleLLMCall(prompt);
+        
+        if (generatedTypes) {
+            const cleanTypes = generatedTypes.replace(/Here are...|Output:|\[|\]/gi, '').trim();
+            
+            // Guardamos en settings
+            await this.setSettings({
+                ...this.settings,
+                lightRagEntityTypes: cleanTypes
+            });
+            
+            new Notice("✅ Ontology Generated!");
+            await this.updateEnvFile();
+            
+            // --- CORA MOD: DEVOLVEMOS EL VALOR PARA LA UI ---
+            return cleanTypes; 
+        }
+
+    } catch (e) {
+        console.error(e);
+        new Notice("❌ Error generating ontology.");
+    }
+    return null;
+  }
+
+  // Pequeño ayudante para llamar al LLM sin toda la maquinaria del ChatView
+  async simpleLLMCall(prompt: string): Promise<string> {
+      // Identificar proveedor actual
+      const chatModelId = this.settings.chatModelId;
+      const modelObj = this.settings.chatModels.find(m => m.id === chatModelId);
+      const provider = this.settings.providers.find(p => p.id === modelObj?.providerId);
+      
+      if (!provider || !modelObj) throw new Error("Modelo no configurado");
+
+      // Lógica simple para Gemini y OpenAI (Ollama similar)
+      if (provider.id === 'gemini') {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelObj.model}:generateContent?key=${provider.apiKey}`;
+          const response = await fetch(url, {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+          });
+          const data = await response.json();
+          return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      } 
+      
+      // Fallback genérico para OpenAI/Ollama/Compatible
+      const baseUrl = provider.baseUrl || (provider.id === 'openai' ? 'https://api.openai.com/v1' : 'http://localhost:11434/v1');
+      const response = await fetch(`${baseUrl}/chat/completions`, {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${provider.apiKey || 'ollama'}`
+          },
+          body: JSON.stringify({
+              model: modelObj.model,
+              messages: [{ role: 'user', content: prompt }],
+              temperature: 0.1
+          })
+      });
+      const data = await response.json();
+      return data.choices?.[0]?.message?.content || "";
+  }
+
 }

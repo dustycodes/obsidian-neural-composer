@@ -24,32 +24,24 @@ const ragOptionsSchema = z.object({
 })
 
 /**
- * Settings Schema
+ * Settings Schema - VERSIÓN MAESTRA CORA 4.0
  */
 export const smartComposerSettingsSchema = z.object({
+  // --- CONFIGURACIÓN ORIGINAL ---
   version: z.literal(SETTINGS_SCHEMA_VERSION).catch(SETTINGS_SCHEMA_VERSION),
-
   providers: z.array(llmProviderSchema).catch([...DEFAULT_PROVIDERS]),
-
   chatModels: z.array(chatModelSchema).catch([...DEFAULT_CHAT_MODELS]),
+  embeddingModels: z.array(embeddingModelSchema).catch([...DEFAULT_EMBEDDING_MODELS]),
 
-  embeddingModels: z
-    .array(embeddingModelSchema)
-    .catch([...DEFAULT_EMBEDDING_MODELS]),
-
-  chatModelId: z
-    .string()
-    .catch(
-      DEFAULT_CHAT_MODELS.find((v) => v.id === DEFAULT_CHAT_MODEL_ID)?.id ??
-        DEFAULT_CHAT_MODELS[0].id,
-    ), 
-  applyModelId: z
-    .string()
-    .catch(
-      DEFAULT_CHAT_MODELS.find((v) => v.id === DEFAULT_APPLY_MODEL_ID)?.id ??
-        DEFAULT_CHAT_MODELS[0].id,
-    ),
-  embeddingModelId: z.string().catch(DEFAULT_EMBEDDING_MODELS[0].id), 
+  chatModelId: z.string().catch(
+    DEFAULT_CHAT_MODELS.find((v) => v.id === DEFAULT_CHAT_MODEL_ID)?.id ??
+      DEFAULT_CHAT_MODELS[0].id,
+  ),
+  applyModelId: z.string().catch(
+    DEFAULT_CHAT_MODELS.find((v) => v.id === DEFAULT_APPLY_MODEL_ID)?.id ??
+      DEFAULT_CHAT_MODELS[0].id,
+  ),
+  embeddingModelId: z.string().catch(DEFAULT_EMBEDDING_MODELS[0].id),
 
   systemPrompt: z.string().catch(''),
 
@@ -62,35 +54,41 @@ export const smartComposerSettingsSchema = z.object({
     includePatterns: [],
   }),
 
-  mcp: z
-    .object({
-      servers: z.array(mcpServerConfigSchema).catch([]),
-    })
-    .catch({
-      servers: [],
-    }),
+  mcp: z.object({
+    servers: z.array(mcpServerConfigSchema).catch([]),
+  }).catch({
+    servers: [],
+  }),
 
-  chatOptions: z
-    .object({
-      includeCurrentFileContent: z.boolean(),
-      enableTools: z.boolean(),
-      maxAutoIterations: z.number(),
-    })
-    .catch({
-      includeCurrentFileContent: true,
-      enableTools: true,
-      maxAutoIterations: 1,
-    }),
+  chatOptions: z.object({
+    includeCurrentFileContent: z.boolean(),
+    enableTools: z.boolean(),
+    maxAutoIterations: z.number(),
+  }).catch({
+    includeCurrentFileContent: true,
+    enableTools: true,
+    maxAutoIterations: 1,
+  }),
 
-  // --- CORA MOD: NUEVAS OPCIONES ---
+  // --- NEURAL COMPOSER (CORE) ---
   enableAutoStartServer: z.boolean().catch(false),
   lightRagCommand: z.string().catch('lightrag-server'),
   lightRagWorkDir: z.string().catch(''),
-  lightRagModelId: z.string().optional(),
-  // CORRECCIÓN: Default a English para público global
+  lightRagModelId: z.string().optional().catch(''),
   lightRagSummaryLanguage: z.string().catch('English'), 
   lightRagShowCitations: z.boolean().catch(true),
-  // ------------------------------
+  lightRagQueryMode: z.enum(['local', 'global', 'hybrid', 'naive', 'mix', 'bypass']).catch('mix'),
+
+  // --- RERANKING ---
+  lightRagRerankBinding: z.string().catch(''), 
+  lightRagRerankModel: z.string().catch(''),   
+  lightRagRerankApiKey: z.string().catch(''),  
+
+  // --- ONTOLOGY (NUEVO) ---
+  lightRagEntityTypes: z.string().catch(''),
+  lightRagOntologyFolder: z.string().catch(''),
+  // NUEVO INTERRUPTOR:
+  useCustomEntityTypes: z.boolean().catch(false), 
 })
 
 export type SmartComposerSettings = z.infer<typeof smartComposerSettingsSchema>
@@ -99,6 +97,7 @@ export type SmartComposerSettings = z.infer<typeof smartComposerSettingsSchema>
  * Default Settings Constant
  */
 export const DEFAULT_SETTINGS: SmartComposerSettings = {
+  // --- ORIGINALES ---
   version: SETTINGS_SCHEMA_VERSION,
   providers: [...DEFAULT_PROVIDERS],
   chatModels: [...DEFAULT_CHAT_MODELS],
@@ -119,9 +118,7 @@ export const DEFAULT_SETTINGS: SmartComposerSettings = {
     includePatterns: [],
   },
   
-  mcp: {
-    servers: [],
-  },
+  mcp: { servers: [] },
   
   chatOptions: {
     includeCurrentFileContent: true,
@@ -129,13 +126,26 @@ export const DEFAULT_SETTINGS: SmartComposerSettings = {
     maxAutoIterations: 1,
   },
 
-  // --- CORA MOD DEFAULTS ---
+  // --- NEURAL DEFAULTS ---
   enableAutoStartServer: false,
   lightRagCommand: 'lightrag-server',
   lightRagWorkDir: '',
   lightRagModelId: '',
-  lightRagSummaryLanguage: 'English', // Default neutro
+  lightRagSummaryLanguage: 'English',
   lightRagShowCitations: true,
+  lightRagQueryMode: 'mix',
+
+  // --- RERANK DEFAULTS ---
+  lightRagRerankBinding: '',
+  lightRagRerankModel: '',
+  lightRagRerankApiKey: '',
+
+  // --- ONTOLOGY DEFAULTS ---
+  // Ponemos los defaults estándar de LightRAG para que el usuario tenga un punto de partida
+  lightRagEntityTypes: 'Person, Creature, Organization, Location, Event, Concept, Method, Content, Data, Artifact, NaturalObject', 
+  lightRagOntologyFolder: '', 
+  // NUEVO DEFAULT:
+  useCustomEntityTypes: false, 
 }
 
 export type SettingMigration = {

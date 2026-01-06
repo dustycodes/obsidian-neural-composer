@@ -10,6 +10,8 @@ import {
   useState,
 } from 'react'
 
+import { useSettings } from '../../../contexts/settings-context'
+
 import { useApp } from '../../../contexts/app-context'
 import {
   Mentionable,
@@ -65,7 +67,7 @@ const ChatUserInput = forwardRef<ChatUserInputRef, ChatUserInputProps>(
     ref,
   ) => {
     const app = useApp()
-
+    const { settings, setSettings } = useSettings();
     const editorRef = useRef<LexicalEditor | null>(null)
     const contentEditableRef = useRef<HTMLDivElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
@@ -272,9 +274,35 @@ const ChatUserInput = forwardRef<ChatUserInputRef, ChatUserInputProps>(
         />
 
         <div className="smtcmp-chat-user-input-controls">
-          <div className="smtcmp-chat-user-input-controls__model-select-container">
-            <ModelSelect />
-          </div>
+<div className="smtcmp-chat-user-input-controls__model-select-container" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+  <ModelSelect />
+  
+  {/* --- CORA MOD: Selector de Modo LightRAG --- */}
+  <select 
+    value={settings.lightRagQueryMode}
+    onChange={(e) => {
+      setSettings({ ...settings, lightRagQueryMode: e.target.value as any });
+    }}
+    className="smtcmp-query-mode-select"
+    title="LightRAG Enfoque"
+    style={{
+        backgroundColor: 'var(--background-modifier-form-field)',
+        color: 'var(--text-muted)',
+        border: '1px solid var(--background-modifier-border)',
+        borderRadius: '0px',
+        fontSize: '0.8em',
+        padding: '2px 4px',
+        cursor: 'pointer'
+    }}
+  >
+    <option value="mix">🎯 Mix</option>
+    <option value="hybrid">🧬 Hybrid</option>
+    <option value="local">🔍 Local</option>
+    <option value="global">🌐 Global</option>
+    <option value="naive">📝 Naive</option>
+  </select>
+  {/* ------------------------------------------- */}
+</div>
           <div className="smtcmp-chat-user-input-controls__buttons">
             <ImageUploadButton onUpload={handleUploadImages} />
             <SubmitButton onClick={() => handleSubmit()} />
