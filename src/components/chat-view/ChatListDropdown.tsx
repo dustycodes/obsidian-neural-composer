@@ -26,7 +26,7 @@ function TitleInput({
       ref={inputRef}
       type="text"
       value={value}
-      className="smtcmp-chat-list-dropdown-item-title-input"
+      className="nrlcmp-chat-list-dropdown-item-title-input"
       onClick={(e) => e.stopPropagation()}
       onChange={(e) => setValue(e.target.value)}
       onKeyDown={(e) => {
@@ -80,15 +80,15 @@ function ChatListItem({
       {isEditing ? (
         <TitleInput title={title} onSubmit={onFinishEdit} />
       ) : (
-        <div className="smtcmp-chat-list-dropdown-item-title">{title}</div>
+        <div className="nrlcmp-chat-list-dropdown-item-title">{title}</div>
       )}
-      <div className="smtcmp-chat-list-dropdown-item-actions">
+      <div className="nrlcmp-chat-list-dropdown-item-actions">
         <button
           onClick={(e) => {
             e.stopPropagation()
             onStartEdit()
           }}
-          className="clickable-icon smtcmp-chat-list-dropdown-item-icon"
+          className="clickable-icon nrlcmp-chat-list-dropdown-item-icon"
         >
           <Pencil />
         </button>
@@ -97,7 +97,7 @@ function ChatListItem({
             e.stopPropagation()
             await onDelete()
           }}
-          className="clickable-icon smtcmp-chat-list-dropdown-item-icon"
+          className="clickable-icon nrlcmp-chat-list-dropdown-item-icon"
         >
           <Trash2 />
         </button>
@@ -159,12 +159,12 @@ export function ChatListDropdown({
 
       <Popover.Portal>
         <Popover.Content
-          className="smtcmp-popover smtcmp-chat-list-dropdown-content"
+          className="nrlcmp-popover nrlcmp-chat-list-dropdown-content"
           onKeyDown={handleKeyDown}
         >
           <ul>
             {chatList.length === 0 ? (
-              <li className="smtcmp-chat-list-dropdown-empty">
+              <li className="nrlcmp-chat-list-dropdown-empty">
                 No conversations
               </li>
             ) : (

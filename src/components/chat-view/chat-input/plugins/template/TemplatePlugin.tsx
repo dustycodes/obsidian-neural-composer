@@ -52,7 +52,7 @@ function TemplateMenuItem({
       onMouseEnter={onMouseEnter}
       onClick={onClick}
     >
-      <div className="smtcmp-template-menu-item">
+      <div className="nrlcmp-template-menu-item">
         <div className="text">{option.name}</div>
       </div>
     </li>
@@ -119,7 +119,7 @@ export default function TemplatePlugin() {
         anchorElementRef.current && searchResults.length
           ? createPortal(
               <div
-                className="smtcmp-popover"
+                className="nrlcmp-popover"
                 style={{
                   position: 'fixed',
                 }}

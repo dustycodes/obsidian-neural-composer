@@ -66,8 +66,8 @@ export default function LexicalContentEditable({
   const initialConfig: InitialConfigType = {
     namespace: 'LexicalContentEditable',
     theme: {
-      root: 'smtcmp-lexical-content-editable-root',
-      paragraph: 'smtcmp-lexical-content-editable-paragraph',
+      root: 'nrlcmp-lexical-content-editable-root',
+      paragraph: 'nrlcmp-lexical-content-editable-paragraph',
     },
     nodes: [MentionNode],
     editorState: initialEditorState,

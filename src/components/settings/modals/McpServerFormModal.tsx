@@ -4,7 +4,7 @@ import TextareaAutosize from 'react-textarea-autosize'
 import * as z from 'zod'
 
 import { validateServerName } from '../../../core/mcp/tool-name-utils'
-import SmartComposerPlugin from '../../../main'
+import NeuralComposerPlugin from '../../../main'
 import {
   McpServerParameters,
   mcpServerParametersSchema,
@@ -15,13 +15,13 @@ import { ObsidianTextInput } from '../../common/ObsidianTextInput'
 import { ReactModal } from '../../common/ReactModal'
 
 type McpServerFormComponentProps = {
-  plugin: SmartComposerPlugin
+  plugin: NeuralComposerPlugin
   onClose: () => void
   serverId?: string
 }
 
 export class AddMcpServerModal extends ReactModal<McpServerFormComponentProps> {
-  constructor(app: App, plugin: SmartComposerPlugin) {
+  constructor(app: App, plugin: NeuralComposerPlugin) {
     super({
       app: app,
       Component: McpServerFormComponent,
@@ -34,7 +34,7 @@ export class AddMcpServerModal extends ReactModal<McpServerFormComponentProps> {
 }
 
 export class EditMcpServerModal extends ReactModal<McpServerFormComponentProps> {
-  constructor(app: App, plugin: SmartComposerPlugin, editServerId: string) {
+  constructor(app: App, plugin: NeuralComposerPlugin, editServerId: string) {
     super({
       app: app,
       Component: McpServerFormComponent,
@@ -192,23 +192,23 @@ function McpServerFormComponent({
 - "command": The executable name (e.g., "npx", "node")
 - "args": (Optional) Array of command-line arguments
 - "env": (Optional) Key-value pairs of environment variables`}
-        className="smtcmp-settings-textarea-header smtcmp-settings-description-preserve-whitespace"
+        className="nrlcmp-settings-textarea-header nrlcmp-settings-description-preserve-whitespace"
         required
       />
       <TextareaAutosize
         value={parameters}
         placeholder={PARAMETERS_PLACEHOLDER}
         onChange={(e) => setParameters(e.target.value)}
-        className="smtcmp-mcp-server-modal-textarea"
+        className="nrlcmp-mcp-server-modal-textarea"
         maxRows={20}
         minRows={PARAMETERS_PLACEHOLDER.split('\n').length}
       />
       {validationError !== null ? (
-        <div className="smtcmp-mcp-server-modal-validation smtcmp-mcp-server-modal-validation--error">
+        <div className="nrlcmp-mcp-server-modal-validation nrlcmp-mcp-server-modal-validation--error">
           {validationError}
         </div>
       ) : (
-        <div className="smtcmp-mcp-server-modal-validation smtcmp-mcp-server-modal-validation--success">
+        <div className="nrlcmp-mcp-server-modal-validation nrlcmp-mcp-server-modal-validation--success">
           Valid parameters
         </div>
       )}

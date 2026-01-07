@@ -1,7 +1,7 @@
 import { SETTINGS_SCHEMA_VERSION, SETTING_MIGRATIONS } from './migrations'
 import {
-  SmartComposerSettings,
-  smartComposerSettingsSchema,
+  NeuralComposerSettings,
+  NeuralComposerSettingsSchema,
 } from './setting.types'
 
 function migrateSettings(
@@ -27,14 +27,14 @@ function migrateSettings(
   return currentData
 }
 
-export function parseSmartComposerSettings(
+export function parseNeuralComposerSettings(
   data: unknown,
-): SmartComposerSettings {
+): NeuralComposerSettings {
   try {
     const migratedData = migrateSettings(data as Record<string, unknown>)
-    return smartComposerSettingsSchema.parse(migratedData)
+    return NeuralComposerSettingsSchema.parse(migratedData)
   } catch (error) {
     console.warn('Invalid settings provided, using defaults:', error)
-    return smartComposerSettingsSchema.parse({})
+    return NeuralComposerSettingsSchema.parse({})
   }
 }

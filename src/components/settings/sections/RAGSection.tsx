@@ -2,7 +2,7 @@ import { App } from 'obsidian'
 
 import { RECOMMENDED_MODELS_FOR_EMBEDDING } from '../../../constants'
 import { useSettings } from '../../../contexts/settings-context'
-import SmartComposerPlugin from '../../../main'
+import NeuralComposerPlugin from '../../../main'
 import { findFilesMatchingPatterns } from '../../../utils/glob-utils'
 import { ObsidianButton } from '../../common/ObsidianButton'
 import { ObsidianDropdown } from '../../common/ObsidianDropdown'
@@ -15,15 +15,15 @@ import { IncludedFilesModal } from '../modals/IncludedFilesModal'
 
 type RAGSectionProps = {
   app: App
-  plugin: SmartComposerPlugin
+  plugin: NeuralComposerPlugin
 }
 
 export function RAGSection({ app, plugin }: RAGSectionProps) {
   const { settings, setSettings } = useSettings()
 
   return (
-    <div className="smtcmp-settings-section">
-      <div className="smtcmp-settings-header">RAG</div>
+    <div className="nrlcmp-settings-section">
+      <div className="nrlcmp-settings-header">RAG</div>
 
       <ObsidianSetting
         name="Embedding model"
@@ -63,7 +63,7 @@ export function RAGSection({ app, plugin }: RAGSectionProps) {
         />
       </ObsidianSetting>
 
-      <ObsidianSetting className="smtcmp-settings-textarea">
+      <ObsidianSetting className="nrlcmp-settings-textarea">
         <ObsidianTextArea
           value={settings.ragOptions.includePatterns.join('\n')}
           onChange={async (value: string) => {
@@ -99,7 +99,7 @@ export function RAGSection({ app, plugin }: RAGSectionProps) {
         />
       </ObsidianSetting>
 
-      <ObsidianSetting className="smtcmp-settings-textarea">
+      <ObsidianSetting className="nrlcmp-settings-textarea">
         <ObsidianTextArea
           value={settings.ragOptions.excludePatterns.join('\n')}
           onChange={async (value) => {

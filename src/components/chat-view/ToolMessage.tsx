@@ -58,11 +58,11 @@ const ToolMessage = memo(function ToolMessage({
   onMessageUpdate: (message: ChatToolMessage) => void
 }) {
   return (
-    <div className="smtcmp-toolcall-container">
+    <div className="nrlcmp-toolcall-container">
       {message.toolCalls.map((toolCall, index) => (
         <div
           key={toolCall.request.id}
-          className={clsx(index > 0 && 'smtcmp-toolcall-border-top')}
+          className={clsx(index > 0 && 'nrlcmp-toolcall-border-top')}
         >
           <ToolCallItem
             request={toolCall.request}
@@ -132,39 +132,39 @@ function ToolCallItem({
   }, [request.arguments])
 
   return (
-    <div className="smtcmp-toolcall">
+    <div className="nrlcmp-toolcall">
       <div
         onClick={() => setIsOpen(!isOpen)}
-        className="smtcmp-toolcall-header"
+        className="nrlcmp-toolcall-header"
       >
-        <div className="smtcmp-toolcall-header-icon">
+        <div className="nrlcmp-toolcall-header-icon">
           {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </div>
-        <div className="smtcmp-toolcall-header-content">
+        <div className="nrlcmp-toolcall-header-content">
           <span>{STATUS_LABELS[response.status] || 'Unknown'}</span>
           <span>&nbsp;&nbsp;</span>
-          <span className="smtcmp-toolcall-header-tool-name">
+          <span className="nrlcmp-toolcall-header-tool-name">
             {serverName ? `${serverName}:${toolName}` : toolName}
           </span>
         </div>
-        <div className="smtcmp-toolcall-header-icon smtcmp-toolcall-header-icon--status">
+        <div className="nrlcmp-toolcall-header-icon nrlcmp-toolcall-header-icon--status">
           <StatusIcon status={response.status} />
         </div>
       </div>
       {isOpen && (
-        <div className="smtcmp-toolcall-content">
-          <div className="smtcmp-toolcall-content-section">
+        <div className="nrlcmp-toolcall-content">
+          <div className="nrlcmp-toolcall-content-section">
             <div>Parameters:</div>
             <ObsidianCodeBlock language="json" content={parameters} />
           </div>
           {response.status === ToolCallResponseStatus.Success && (
-            <div className="smtcmp-toolcall-content-section">
+            <div className="nrlcmp-toolcall-content-section">
               <div>Result:</div>
               <ObsidianCodeBlock content={response.data.text} />
             </div>
           )}
           {response.status === ToolCallResponseStatus.Error && (
-            <div className="smtcmp-toolcall-content-section">
+            <div className="nrlcmp-toolcall-content-section">
               <div>Error:</div>
               <ObsidianCodeBlock content={response.error} />
             </div>
@@ -173,9 +173,9 @@ function ToolCallItem({
       )}
       {(response.status === ToolCallResponseStatus.PendingApproval ||
         response.status === ToolCallResponseStatus.Running) && (
-        <div className="smtcmp-toolcall-footer">
+        <div className="nrlcmp-toolcall-footer">
           {response.status === ToolCallResponseStatus.PendingApproval && (
-            <div className="smtcmp-toolcall-footer-actions">
+            <div className="nrlcmp-toolcall-footer-actions">
               <SplitButton
                 primaryText="Allow"
                 onPrimaryClick={() => {
@@ -212,7 +212,7 @@ function ToolCallItem({
             </div>
           )}
           {response.status === ToolCallResponseStatus.Running && (
-            <div className="smtcmp-toolcall-footer-actions">
+            <div className="nrlcmp-toolcall-footer-actions">
               <button onClick={handleAbort}>Abort</button>
             </div>
           )}

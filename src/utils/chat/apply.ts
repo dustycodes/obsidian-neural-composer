@@ -19,14 +19,14 @@ const systemPrompt = `You are an intelligent assistant helping a user apply chan
 
 You will receive:
 1. The content of the target markdown file.
-2. A conversation history between the user and the assistant. This conversation may contain multiple markdown blocks suggesting changes to the file. Markdown blocks are indicated by the <smtcmp_block> tag. For example:
-<smtcmp_block>
+2. A conversation history between the user and the assistant. This conversation may contain multiple markdown blocks suggesting changes to the file. Markdown blocks are indicated by the <nrlcmp_block> tag. For example:
+<nrlcmp_block>
 <!-- ... existing content ... -->
 {{ edit_1 }}
 <!-- ... existing content ... -->
 {{ edit_2 }}
 <!-- ... existing content ... -->
-</smtcmp_block>
+</nrlcmp_block>
 3. A single, specific markdown block extracted from the conversation history. This block contains the exact changes that should be applied to the target file.
 
 Please rewrite the entire markdown file with ONLY the changes from the specified markdown block applied. DO NOT apply changes suggested by other parts of the conversation. Preserve all parts of the original file that are not related to the changes. Output only the file content, without any additional words or explanations.`
@@ -100,9 +100,9 @@ ${chatMessages
 
 ## Changes to Apply
 Here is the markdown block that indicates where content changes should be applied.
-<smtcmp_block>
+<nrlcmp_block>
 ${blockToApply}
-</smtcmp_block>
+</nrlcmp_block>
 
 Now rewrite the entire file with the changes applied. Immediately start your response with \`\`\`${currentFile.path}`
 }

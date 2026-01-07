@@ -9,17 +9,17 @@ export function ModelSelect() {
   const [isOpen, setIsOpen] = useState(false)
   return (
     <DropdownMenu.Root open={isOpen} onOpenChange={setIsOpen}>
-      <DropdownMenu.Trigger className="smtcmp-chat-input-model-select">
-        <div className="smtcmp-chat-input-model-select__model-name">
+      <DropdownMenu.Trigger className="nrlcmp-chat-input-model-select">
+        <div className="nrlcmp-chat-input-model-select__model-name">
           {settings.chatModelId}
         </div>
-        <div className="smtcmp-chat-input-model-select__icon">
+        <div className="nrlcmp-chat-input-model-select__icon">
           {isOpen ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
         </div>
       </DropdownMenu.Trigger>
 
       <DropdownMenu.Portal>
-        <DropdownMenu.Content className="smtcmp-popover">
+        <DropdownMenu.Content className="nrlcmp-popover">
           <ul>
             {settings.chatModels
               .filter(({ enable }) => enable ?? true)

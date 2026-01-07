@@ -29,53 +29,53 @@ export default function LLMResponseInfoPopover({
         </button>
       </Popover.Trigger>
       {usage ? (
-        <Popover.Content className="smtcmp-popover-content smtcmp-llm-info-content">
-          <div className="smtcmp-llm-info-header">LLM Response Information</div>
-          <div className="smtcmp-llm-info-tokens">
-            <div className="smtcmp-llm-info-tokens-header">Token Count</div>
-            <div className="smtcmp-llm-info-tokens-grid">
-              <div className="smtcmp-llm-info-token-row">
-                <ArrowUp className="smtcmp-llm-info-icon--input" />
+        <Popover.Content className="nrlcmp-popover-content nrlcmp-llm-info-content">
+          <div className="nrlcmp-llm-info-header">LLM Response Information</div>
+          <div className="nrlcmp-llm-info-tokens">
+            <div className="nrlcmp-llm-info-tokens-header">Token Count</div>
+            <div className="nrlcmp-llm-info-tokens-grid">
+              <div className="nrlcmp-llm-info-token-row">
+                <ArrowUp className="nrlcmp-llm-info-icon--input" />
                 <span>Input:</span>
-                <span className="smtcmp-llm-info-token-value">
+                <span className="nrlcmp-llm-info-token-value">
                   {usage.prompt_tokens}
                 </span>
               </div>
-              <div className="smtcmp-llm-info-token-row">
-                <ArrowDown className="smtcmp-llm-info-icon--output" />
+              <div className="nrlcmp-llm-info-token-row">
+                <ArrowDown className="nrlcmp-llm-info-icon--output" />
                 <span>Output:</span>
-                <span className="smtcmp-llm-info-token-value">
+                <span className="nrlcmp-llm-info-token-value">
                   {usage.completion_tokens}
                 </span>
               </div>
-              <div className="smtcmp-llm-info-token-row smtcmp-llm-info-token-total">
-                <ArrowRightLeft className="smtcmp-llm-info-icon--total" />
+              <div className="nrlcmp-llm-info-token-row nrlcmp-llm-info-token-total">
+                <ArrowRightLeft className="nrlcmp-llm-info-icon--total" />
                 <span>Total:</span>
-                <span className="smtcmp-llm-info-token-value">
+                <span className="nrlcmp-llm-info-token-value">
                   {usage.total_tokens}
                 </span>
               </div>
             </div>
           </div>
-          <div className="smtcmp-llm-info-footer-row">
-            <Coins className="smtcmp-llm-info-icon--footer" />
+          <div className="nrlcmp-llm-info-footer-row">
+            <Coins className="nrlcmp-llm-info-icon--footer" />
             <span>Estimated Price:</span>
-            <span className="smtcmp-llm-info-footer-value">
+            <span className="nrlcmp-llm-info-footer-value">
               {estimatedPrice === null
                 ? 'Not available'
                 : `$${estimatedPrice.toFixed(4)}`}
             </span>
           </div>
-          <div className="smtcmp-llm-info-footer-row">
-            <Cpu className="smtcmp-llm-info-icon--footer" />
+          <div className="nrlcmp-llm-info-footer-row">
+            <Cpu className="nrlcmp-llm-info-icon--footer" />
             <span>Model:</span>
-            <span className="smtcmp-llm-info-footer-value smtcmp-llm-info-model">
+            <span className="nrlcmp-llm-info-footer-value nrlcmp-llm-info-model">
               {model ?? 'Not available'}
             </span>
           </div>
         </Popover.Content>
       ) : (
-        <Popover.Content className="smtcmp-popover-content">
+        <Popover.Content className="nrlcmp-popover-content">
           <div>Usage statistics are not available for this model</div>
         </Popover.Content>
       )}

@@ -1,4 +1,4 @@
-import { SmartComposerSettings } from '../../settings/schema/setting.types'
+import { NeuralComposerSettings } from '../../settings/schema/setting.types'
 import { ChatModel } from '../../types/chat-model.types'
 import { LLMProvider } from '../../types/provider.types'
 
@@ -28,7 +28,7 @@ export function getProviderClient({
   settings,
   providerId,
 }: {
-  settings: SmartComposerSettings
+  settings: NeuralComposerSettings
   providerId: string
 }): BaseLLMProvider<LLMProvider> {
   const provider = settings.providers.find((p) => p.id === providerId)
@@ -83,7 +83,7 @@ export function getChatModelClient({
   settings,
   modelId,
 }: {
-  settings: SmartComposerSettings
+  settings: NeuralComposerSettings
   modelId: string
 }): {
   providerClient: BaseLLMProvider<LLMProvider>

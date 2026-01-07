@@ -1,15 +1,15 @@
 import { App, Notice } from 'obsidian'
 
 import { useSettings } from '../../../contexts/settings-context'
-import SmartComposerPlugin from '../../../main'
-import { smartComposerSettingsSchema } from '../../../settings/schema/setting.types'
+import NeuralComposerPlugin from '../../../main'
+import { NeuralComposerSettingsSchema } from '../../../settings/schema/setting.types'
 import { ObsidianButton } from '../../common/ObsidianButton'
 import { ObsidianSetting } from '../../common/ObsidianSetting'
 import { ConfirmModal } from '../../modals/ConfirmModal'
 
 type EtcSectionProps = {
   app: App
-  plugin: SmartComposerPlugin
+  plugin: NeuralComposerPlugin
 }
 
 export function EtcSection({ app }: EtcSectionProps) {
@@ -22,7 +22,7 @@ export function EtcSection({ app }: EtcSectionProps) {
         'Are you sure you want to reset all settings to default values? This cannot be undone.',
       ctaText: 'Reset',
       onConfirm: async () => {
-        const defaultSettings = smartComposerSettingsSchema.parse({})
+        const defaultSettings = NeuralComposerSettingsSchema.parse({})
         await setSettings(defaultSettings)
         new Notice('Settings have been reset to defaults')
       },
@@ -30,8 +30,8 @@ export function EtcSection({ app }: EtcSectionProps) {
   }
 
   return (
-    <div className="smtcmp-settings-section">
-      <div className="smtcmp-settings-header">Etc</div>
+    <div className="nrlcmp-settings-section">
+      <div className="nrlcmp-settings-header">Etc</div>
 
       <ObsidianSetting
         name="Reset settings"

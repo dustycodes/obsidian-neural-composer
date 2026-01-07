@@ -207,14 +207,14 @@ export default function ApplyViewRoot({
   }, [])
 
   return (
-    <div id="smtcmp-apply-view">
+    <div id="nrlcmp-apply-view">
       <div className="view-header">
         <div className="view-header-title-container mod-at-start">
           <div className="view-header-title">
             Applying: {state?.file?.name ?? ''}
           </div>
           <div className="view-actions">
-            <div className="smtcmp-diff-navigation">
+            <div className="nrlcmp-diff-navigation">
               <button
                 className="clickable-icon"
                 onClick={handlePrevDiff}
@@ -262,7 +262,7 @@ export default function ApplyViewRoot({
           <div className="cm-editor">
             <div className="cm-scroller" ref={scrollerRef}>
               <div className="cm-sizer">
-                <div className="smtcmp-inline-title">
+                <div className="nrlcmp-inline-title">
                   {state?.file?.name
                     ? state.file.name.replace(/\.[^/.]+$/, '')
                     : ''}
@@ -300,28 +300,28 @@ const DiffBlockView = forwardRef<
 >(({ block: part, onAcceptIncoming, onAcceptCurrent, onAcceptBoth }, ref) => {
   if (part.type === 'unchanged') {
     return (
-      <div className="smtcmp-diff-block">
+      <div className="nrlcmp-diff-block">
         <div style={{ width: '100%' }}>{part.value}</div>
       </div>
     )
   } else if (part.type === 'modified') {
     return (
-      <div className="smtcmp-diff-block-container" ref={ref}>
+      <div className="nrlcmp-diff-block-container" ref={ref}>
         {part.originalValue && part.originalValue.length > 0 && (
-          <div className="smtcmp-diff-block removed">
+          <div className="nrlcmp-diff-block removed">
             <div style={{ width: '100%' }}>{part.originalValue}</div>
           </div>
         )}
         {part.modifiedValue && part.modifiedValue.length > 0 && (
-          <div className="smtcmp-diff-block added">
+          <div className="nrlcmp-diff-block added">
             <div style={{ width: '100%' }}>{part.modifiedValue}</div>
           </div>
         )}
-        <div className="smtcmp-diff-block-actions">
-          <button onClick={onAcceptIncoming} className="smtcmp-accept">
+        <div className="nrlcmp-diff-block-actions">
+          <button onClick={onAcceptIncoming} className="nrlcmp-accept">
             Accept Incoming
           </button>
-          <button onClick={onAcceptCurrent} className="smtcmp-exclude">
+          <button onClick={onAcceptCurrent} className="nrlcmp-exclude">
             Accept Current
           </button>
           <button onClick={onAcceptBoth}>Accept Both</button>

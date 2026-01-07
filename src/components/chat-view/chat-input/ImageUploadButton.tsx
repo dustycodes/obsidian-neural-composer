@@ -13,7 +13,7 @@ export function ImageUploadButton({
   }
 
   return (
-    <label className="smtcmp-chat-user-input-submit-button">
+    <label className="nrlcmp-chat-user-input-submit-button">
       <input
         type="file"
         accept="image/*"
@@ -21,7 +21,7 @@ export function ImageUploadButton({
         onChange={handleFileChange}
         style={{ display: 'none' }}
       />
-      <div className="smtcmp-chat-user-input-submit-button-icons">
+      <div className="nrlcmp-chat-user-input-submit-button-icons">
         <ImageIcon size={12} />
       </div>
       <div>Image</div>

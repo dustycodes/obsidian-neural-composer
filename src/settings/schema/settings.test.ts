@@ -7,11 +7,11 @@ import {
 } from '../../constants'
 
 import { SETTINGS_SCHEMA_VERSION } from './migrations'
-import { parseSmartComposerSettings } from './settings'
+import { parseNeuralComposerSettings } from './settings'
 
-describe('parseSmartComposerSettings', () => {
+describe('parseNeuralComposerSettings', () => {
   it('should return default values for empty input', () => {
-    const result = parseSmartComposerSettings({})
+    const result = parseNeuralComposerSettings({})
     expect(result).toEqual({
       version: SETTINGS_SCHEMA_VERSION,
 

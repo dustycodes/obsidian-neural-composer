@@ -12,7 +12,7 @@ import { ChatConversation, ChatConversationMeta } from '../../types/chat'
 
 const CURRENT_SCHEMA_VERSION = 3
 const SUPPORTED_SCHEMA_VERSION = 2
-const CHAT_HISTORY_DIR = '.smtcmp_chat_histories'
+const CHAT_HISTORY_DIR = '.nrlcmp_chat_histories'
 const CHAT_LIST_FILE = 'chat_list.json'
 
 export class ChatConversationManager {

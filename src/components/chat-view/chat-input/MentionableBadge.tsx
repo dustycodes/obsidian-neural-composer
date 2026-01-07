@@ -28,12 +28,12 @@ function BadgeBase({
 }>) {
   return (
     <div
-      className={`smtcmp-chat-user-input-file-badge ${isFocused ? 'smtcmp-chat-user-input-file-badge-focused' : ''}`}
+      className={`nrlcmp-chat-user-input-file-badge ${isFocused ? 'nrlcmp-chat-user-input-file-badge-focused' : ''}`}
       onClick={onClick}
     >
       {children}
       <div
-        className="smtcmp-chat-user-input-file-badge-delete"
+        className="nrlcmp-chat-user-input-file-badge-delete"
         onClick={(evt) => {
           evt.stopPropagation()
           onDelete()
@@ -59,11 +59,11 @@ function FileBadge({
   const Icon = getMentionableIcon(mentionable)
   return (
     <BadgeBase onDelete={onDelete} onClick={onClick} isFocused={isFocused}>
-      <div className="smtcmp-chat-user-input-file-badge-name">
+      <div className="nrlcmp-chat-user-input-file-badge-name">
         {Icon && (
           <Icon
             size={12}
-            className="smtcmp-chat-user-input-file-badge-name-icon"
+            className="nrlcmp-chat-user-input-file-badge-name-icon"
           />
         )}
         <span>{mentionable.file.name}</span>
@@ -86,11 +86,11 @@ function FolderBadge({
   const Icon = getMentionableIcon(mentionable)
   return (
     <BadgeBase onDelete={onDelete} onClick={onClick} isFocused={isFocused}>
-      <div className="smtcmp-chat-user-input-file-badge-name">
+      <div className="nrlcmp-chat-user-input-file-badge-name">
         {Icon && (
           <Icon
             size={12}
-            className="smtcmp-chat-user-input-file-badge-name-icon"
+            className="nrlcmp-chat-user-input-file-badge-name-icon"
           />
         )}
         <span>{mentionable.folder.name}</span>
@@ -114,11 +114,11 @@ function VaultBadge({
   const Icon = getMentionableIcon(mentionable)
   return (
     <BadgeBase onDelete={onDelete} onClick={onClick} isFocused={isFocused}>
-      <div className="smtcmp-chat-user-input-file-badge-name">
+      <div className="nrlcmp-chat-user-input-file-badge-name">
         {Icon && (
           <Icon
             size={12}
-            className="smtcmp-chat-user-input-file-badge-name-icon"
+            className="nrlcmp-chat-user-input-file-badge-name-icon"
           />
         )}
         <span>Vault</span>
@@ -158,17 +158,17 @@ function CurrentFileBadge({
   const Icon = getMentionableIcon(mentionable)
   return mentionable.file ? (
     <BadgeBase onDelete={onDelete} onClick={onClick} isFocused={isFocused}>
-      <div className="smtcmp-chat-user-input-file-badge-name">
+      <div className="nrlcmp-chat-user-input-file-badge-name">
         {Icon && (
           <Icon
             size={12}
-            className="smtcmp-chat-user-input-file-badge-name-icon"
+            className="nrlcmp-chat-user-input-file-badge-name-icon"
           />
         )}
         <span
           className={clsx(
             !settings.chatOptions.includeCurrentFileContent &&
-              'smtcmp-excluded-content',
+              'nrlcmp-excluded-content',
           )}
         >
           {mentionable.file.name}
@@ -176,15 +176,15 @@ function CurrentFileBadge({
       </div>
       <div
         className={clsx(
-          'smtcmp-chat-user-input-file-badge-name-suffix',
+          'nrlcmp-chat-user-input-file-badge-name-suffix',
           !settings.chatOptions.includeCurrentFileContent &&
-            'smtcmp-excluded-content',
+            'nrlcmp-excluded-content',
         )}
       >
         {' (Current File)'}
       </div>
       <div
-        className="smtcmp-chat-user-input-file-badge-eye"
+        className="nrlcmp-chat-user-input-file-badge-eye"
         onClick={handleCurrentFileToggle}
       >
         {settings.chatOptions.includeCurrentFileContent ? (
@@ -211,16 +211,16 @@ function BlockBadge({
   const Icon = getMentionableIcon(mentionable)
   return (
     <BadgeBase onDelete={onDelete} onClick={onClick} isFocused={isFocused}>
-      <div className="smtcmp-chat-user-input-file-badge-name">
+      <div className="nrlcmp-chat-user-input-file-badge-name">
         {Icon && (
           <Icon
             size={12}
-            className="smtcmp-chat-user-input-file-badge-name-icon"
+            className="nrlcmp-chat-user-input-file-badge-name-icon"
           />
         )}
         <span>{mentionable.file.name}</span>
       </div>
-      <div className="smtcmp-chat-user-input-file-badge-name-suffix">
+      <div className="nrlcmp-chat-user-input-file-badge-name-suffix">
         {` (${mentionable.startLine}:${mentionable.endLine})`}
       </div>
     </BadgeBase>
@@ -241,11 +241,11 @@ function UrlBadge({
   const Icon = getMentionableIcon(mentionable)
   return (
     <BadgeBase onDelete={onDelete} onClick={onClick} isFocused={isFocused}>
-      <div className="smtcmp-chat-user-input-file-badge-name">
+      <div className="nrlcmp-chat-user-input-file-badge-name">
         {Icon && (
           <Icon
             size={12}
-            className="smtcmp-chat-user-input-file-badge-name-icon"
+            className="nrlcmp-chat-user-input-file-badge-name-icon"
           />
         )}
         <span>{mentionable.url}</span>
@@ -268,11 +268,11 @@ function ImageBadge({
   const Icon = getMentionableIcon(mentionable)
   return (
     <BadgeBase onDelete={onDelete} onClick={onClick} isFocused={isFocused}>
-      <div className="smtcmp-chat-user-input-file-badge-name">
+      <div className="nrlcmp-chat-user-input-file-badge-name">
         {Icon && (
           <Icon
             size={12}
-            className="smtcmp-chat-user-input-file-badge-name-icon"
+            className="nrlcmp-chat-user-input-file-badge-name-icon"
           />
         )}
         <span>{mentionable.name}</span>

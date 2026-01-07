@@ -24,7 +24,7 @@ export default function UserMessageItem({
   onMentionablesChange,
 }: UserMessageItemProps) {
   return (
-    <div className="smtcmp-chat-messages-user">
+    <div className="nrlcmp-chat-messages-user">
       <ChatUserInput
         ref={chatUserInputRef}
         initialSerializedEditorState={message.content}

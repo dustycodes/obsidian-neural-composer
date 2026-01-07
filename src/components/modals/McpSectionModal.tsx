@@ -1,17 +1,17 @@
 import { App } from 'obsidian'
 
 import { SettingsProvider } from '../../contexts/settings-context'
-import SmartComposerPlugin from '../../main'
+import NeuralComposerPlugin from '../../main'
 import { ReactModal } from '../common/ReactModal'
 import { McpSection } from '../settings/sections/McpSection'
 
 type McpSectionComponentProps = {
   app: App
-  plugin: SmartComposerPlugin
+  plugin: NeuralComposerPlugin
 }
 
 export class McpSectionModal extends ReactModal<McpSectionComponentProps> {
-  constructor(app: App, plugin: SmartComposerPlugin) {
+  constructor(app: App, plugin: NeuralComposerPlugin) {
     super({
       app: app,
       Component: McpSectionComponent,

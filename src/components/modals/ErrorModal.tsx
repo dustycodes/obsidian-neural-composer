@@ -47,9 +47,9 @@ function ErrorModalComponent({
   options,
 }: ErrorModalComponentProps) {
   return (
-    <div className="smtcmp-error-modal-content">
-      <div className="smtcmp-error-modal-message">{message}</div>
-      {log && <pre className="smtcmp-error-modal-log">{log}</pre>}
+    <div className="nrlcmp-error-modal-content">
+      <div className="nrlcmp-error-modal-message">{message}</div>
+      {log && <pre className="nrlcmp-error-modal-log">{log}</pre>}
       <div className="modal-button-container">
         {options.showReportBugButton && (
           <button

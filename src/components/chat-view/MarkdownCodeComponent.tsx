@@ -47,19 +47,19 @@ export default function MarkdownCodeComponent({
   }
 
   return (
-    <div className="smtcmp-code-block">
-      <div className="smtcmp-code-block-header">
+    <div className="nrlcmp-code-block">
+      <div className="nrlcmp-code-block-header">
         {filename && (
           <div
-            className="smtcmp-code-block-header-filename"
+            className="nrlcmp-code-block-header-filename"
             onClick={handleOpenFile}
           >
             {filename}
           </div>
         )}
-        <div className="smtcmp-code-block-header-button-container">
+        <div className="nrlcmp-code-block-header-button-container">
           <button
-            className="clickable-icon smtcmp-code-block-header-button"
+            className="clickable-icon nrlcmp-code-block-header-button"
             onClick={() => {
               setIsPreviewMode(!isPreviewMode)
             }}
@@ -68,7 +68,7 @@ export default function MarkdownCodeComponent({
             {isPreviewMode ? 'View Raw Text' : 'View Formatted'}
           </button>
           <button
-            className="clickable-icon smtcmp-code-block-header-button"
+            className="clickable-icon nrlcmp-code-block-header-button"
             onClick={() => {
               handleCopy()
             }}
@@ -86,7 +86,7 @@ export default function MarkdownCodeComponent({
             )}
           </button>
           <button
-            className="clickable-icon smtcmp-code-block-header-button"
+            className="clickable-icon nrlcmp-code-block-header-button"
             onClick={
               isApplying
                 ? undefined
@@ -111,7 +111,7 @@ export default function MarkdownCodeComponent({
         </div>
       </div>
       {isPreviewMode ? (
-        <div className="smtcmp-code-block-obsidian-markdown">
+        <div className="nrlcmp-code-block-obsidian-markdown">
           <ObsidianMarkdown content={String(children)} scale="sm" />
         </div>
       ) : (

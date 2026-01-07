@@ -14,10 +14,10 @@ export function VaultChatButton({ onClick }: { onClick: () => void }) {
         <Tooltip.Root>
           <Tooltip.Trigger asChild>
             <div
-              className="smtcmp-chat-user-input-submit-button"
+              className="nrlcmp-chat-user-input-submit-button"
               onClick={onClick}
             >
-              <div className="smtcmp-chat-user-input-submit-button-icons">
+              <div className="nrlcmp-chat-user-input-submit-button-icons">
                 {Platform.isMacOS ? (
                   <Command size={10} />
                 ) : (
@@ -31,7 +31,7 @@ export function VaultChatButton({ onClick }: { onClick: () => void }) {
             </div>
           </Tooltip.Trigger>
           <Tooltip.Portal>
-            <Tooltip.Content className="smtcmp-tooltip-content" sideOffset={5}>
+            <Tooltip.Content className="nrlcmp-tooltip-content" sideOffset={5}>
               Chat with your entire vault
             </Tooltip.Content>
           </Tooltip.Portal>

@@ -62,7 +62,7 @@ export function ObsidianSetting({
     setting.nameEl.setAttrs({
       class: classNames(
         defaultNameElClassName.current,
-        required ? 'smtcmp-settings-required' : '',
+        required ? 'nrlcmp-settings-required' : '',
       ),
     })
   }, [name, desc, heading, className, setting, required])

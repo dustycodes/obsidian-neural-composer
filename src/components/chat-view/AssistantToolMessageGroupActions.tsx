@@ -51,7 +51,7 @@ function CopyButton({ messages }: { messages: AssistantToolMessageGroup }) {
           </button>
         </Tooltip.Trigger>
         <Tooltip.Portal>
-          <Tooltip.Content className="smtcmp-tooltip-content">
+          <Tooltip.Content className="nrlcmp-tooltip-content">
             Copy message
           </Tooltip.Content>
         </Tooltip.Portal>
@@ -76,7 +76,7 @@ function EditButton({ isEditing, onToggleEdit }: { isEditing: boolean, onToggleE
           </button>
         </Tooltip.Trigger>
         <Tooltip.Portal>
-          <Tooltip.Content className="smtcmp-tooltip-content">
+          <Tooltip.Content className="nrlcmp-tooltip-content">
             {isEditing ? 'Cancel editing' : 'Edit message'}
           </Tooltip.Content>
         </Tooltip.Portal>
@@ -140,7 +140,7 @@ function LLMResponseInfoButton({
           </div>
         </Tooltip.Trigger>
         <Tooltip.Portal>
-          <Tooltip.Content className="smtcmp-tooltip-content">
+          <Tooltip.Content className="nrlcmp-tooltip-content">
             View details
           </Tooltip.Content>
         </Tooltip.Portal>
@@ -160,7 +160,7 @@ export default function AssistantToolMessageGroupActions({
   isEditing?: boolean
 }) {
   return (
-    <div className="smtcmp-assistant-message-actions">
+    <div className="nrlcmp-assistant-message-actions">
       <LLMResponseInfoButton messages={messages} />
       {/* Botón de Editar (Solo si la función existe) */}
       {onToggleEdit && (

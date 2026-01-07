@@ -26,7 +26,7 @@ const ragOptionsSchema = z.object({
 /**
  * Settings Schema - VERSIÓN MAESTRA CORA 4.0
  */
-export const smartComposerSettingsSchema = z.object({
+export const NeuralComposerSettingsSchema = z.object({
   // --- CONFIGURACIÓN ORIGINAL ---
   version: z.literal(SETTINGS_SCHEMA_VERSION).catch(SETTINGS_SCHEMA_VERSION),
   providers: z.array(llmProviderSchema).catch([...DEFAULT_PROVIDERS]),
@@ -83,20 +83,23 @@ export const smartComposerSettingsSchema = z.object({
   lightRagRerankBinding: z.string().catch(''), 
   lightRagRerankModel: z.string().catch(''),   
   lightRagRerankApiKey: z.string().catch(''),  
+  lightRagRerankHost: z.string().catch(''),
+  lightRagRerankBindingType: z.string().catch(''),
 
   // --- ONTOLOGY (NUEVO) ---
   lightRagEntityTypes: z.string().catch(''),
   lightRagOntologyFolder: z.string().catch(''),
   // NUEVO INTERRUPTOR:
   useCustomEntityTypes: z.boolean().catch(false), 
+
 })
 
-export type SmartComposerSettings = z.infer<typeof smartComposerSettingsSchema>
+export type NeuralComposerSettings = z.infer<typeof NeuralComposerSettingsSchema>
 
 /**
  * Default Settings Constant
  */
-export const DEFAULT_SETTINGS: SmartComposerSettings = {
+export const DEFAULT_SETTINGS: NeuralComposerSettings = {
   // --- ORIGINALES ---
   version: SETTINGS_SCHEMA_VERSION,
   providers: [...DEFAULT_PROVIDERS],
@@ -139,6 +142,8 @@ export const DEFAULT_SETTINGS: SmartComposerSettings = {
   lightRagRerankBinding: '',
   lightRagRerankModel: '',
   lightRagRerankApiKey: '',
+  lightRagRerankHost: '',
+  lightRagRerankBindingType: '',
 
   // --- ONTOLOGY DEFAULTS ---
   // Ponemos los defaults estándar de LightRAG para que el usuario tenga un punto de partida
@@ -146,7 +151,9 @@ export const DEFAULT_SETTINGS: SmartComposerSettings = {
   lightRagOntologyFolder: '', 
   // NUEVO DEFAULT:
   useCustomEntityTypes: false, 
+
 }
+
 
 export type SettingMigration = {
   fromVersion: number

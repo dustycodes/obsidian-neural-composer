@@ -5,7 +5,7 @@ import React from 'react'
 import { DEFAULT_PROVIDERS, PROVIDER_TYPES_INFO } from '../../../constants'
 import { useSettings } from '../../../contexts/settings-context'
 import { getEmbeddingModelClient } from '../../../core/rag/embedding'
-import SmartComposerPlugin from '../../../main'
+import NeuralComposerPlugin from '../../../main'
 import { LLMProvider } from '../../../types/provider.types'
 import { ConfirmModal } from '../../modals/ConfirmModal'
 import {
@@ -15,7 +15,7 @@ import {
 
 type ProvidersSectionProps = {
   app: App
-  plugin: SmartComposerPlugin
+  plugin: NeuralComposerPlugin
 }
 
 export function ProvidersSection({ app, plugin }: ProvidersSectionProps) {
@@ -78,10 +78,10 @@ export function ProvidersSection({ app, plugin }: ProvidersSectionProps) {
   }
 
   return (
-    <div className="smtcmp-settings-section">
-      <div className="smtcmp-settings-header">Providers</div>
+    <div className="nrlcmp-settings-section">
+      <div className="nrlcmp-settings-header">Providers</div>
 
-      <div className="smtcmp-settings-desc">
+      <div className="nrlcmp-settings-desc">
         <span>Enter your API keys for the providers you want to use</span>
         <br />
         <a
@@ -93,8 +93,8 @@ export function ProvidersSection({ app, plugin }: ProvidersSectionProps) {
         </a>
       </div>
 
-      <div className="smtcmp-settings-table-container">
-        <table className="smtcmp-settings-table">
+      <div className="nrlcmp-settings-table-container">
+        <table className="nrlcmp-settings-table">
           <colgroup>
             <col />
             <col />
@@ -115,7 +115,7 @@ export function ProvidersSection({ app, plugin }: ProvidersSectionProps) {
                 <td>{provider.id}</td>
                 <td>{PROVIDER_TYPES_INFO[provider.type].label}</td>
                 <td
-                  className="smtcmp-settings-table-api-key"
+                  className="nrlcmp-settings-table-api-key"
                   onClick={() => {
                     new EditProviderModal(app, plugin, provider).open()
                   }}
@@ -123,7 +123,7 @@ export function ProvidersSection({ app, plugin }: ProvidersSectionProps) {
                   {provider.apiKey ? '••••••••' : 'Set API key'}
                 </td>
                 <td>
-                  <div className="smtcmp-settings-actions">
+                  <div className="nrlcmp-settings-actions">
                     <button
                       onClick={() => {
                         new EditProviderModal(app, plugin, provider).open()

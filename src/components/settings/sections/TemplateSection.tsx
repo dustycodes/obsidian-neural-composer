@@ -81,10 +81,10 @@ export function TemplateSection({ app }: TemplateSectionProps) {
   }, [fetchTemplateList])
 
   return (
-    <div className="smtcmp-settings-section">
-      <div className="smtcmp-settings-header">Prompt Templates</div>
+    <div className="nrlcmp-settings-section">
+      <div className="nrlcmp-settings-header">Prompt Templates</div>
 
-      <div className="smtcmp-settings-desc smtcmp-settings-callout">
+      <div className="nrlcmp-settings-desc nrlcmp-settings-callout">
         <strong>How to use:</strong> Create templates with reusable content that
         you can quickly insert into your chat. Type <code>/template-name</code>{' '}
         in the chat input to trigger template insertion. You can also drag and
@@ -92,18 +92,18 @@ export function TemplateSection({ app }: TemplateSectionProps) {
         button for quick template creation.
       </div>
 
-      <div className="smtcmp-settings-sub-header-container">
-        <div className="smtcmp-settings-sub-header">Saved Templates</div>
+      <div className="nrlcmp-settings-sub-header-container">
+        <div className="nrlcmp-settings-sub-header">Saved Templates</div>
         <ObsidianButton text="Add Prompt Template" onClick={handleCreate} />
       </div>
 
-      <div className="smtcmp-templates-container">
-        <div className="smtcmp-templates-header">
+      <div className="nrlcmp-templates-container">
+        <div className="nrlcmp-templates-header">
           <div>Name</div>
           <div>Actions</div>
         </div>
         {isLoading ? (
-          <div className="smtcmp-templates-empty">Loading templates...</div>
+          <div className="nrlcmp-templates-empty">Loading templates...</div>
         ) : templateList.length > 0 ? (
           templateList.map((template) => (
             <TemplateItem
@@ -118,7 +118,7 @@ export function TemplateSection({ app }: TemplateSectionProps) {
             />
           ))
         ) : (
-          <div className="smtcmp-templates-empty">No templates found</div>
+          <div className="nrlcmp-templates-empty">No templates found</div>
         )}
       </div>
     </div>
@@ -135,10 +135,10 @@ function TemplateItem({
   onDelete: () => void
 }) {
   return (
-    <div className="smtcmp-template">
-      <div className="smtcmp-template-row">
-        <div className="smtcmp-template-name">{template.name}</div>
-        <div className="smtcmp-template-actions">
+    <div className="nrlcmp-template">
+      <div className="nrlcmp-template-row">
+        <div className="nrlcmp-template-name">{template.name}</div>
+        <div className="nrlcmp-template-actions">
           <button
             className="clickable-icon"
             aria-label="Edit Template"

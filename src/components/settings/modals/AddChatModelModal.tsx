@@ -2,7 +2,7 @@ import { App, Notice } from 'obsidian'
 import { useState } from 'react'
 
 import { DEFAULT_PROVIDERS } from '../../../constants'
-import SmartComposerPlugin from '../../../main'
+import NeuralComposerPlugin from '../../../main'
 import { ChatModel, chatModelSchema } from '../../../types/chat-model.types'
 import { PromptLevel } from '../../../types/prompt-level.types'
 import { ObsidianButton } from '../../common/ObsidianButton'
@@ -12,12 +12,12 @@ import { ObsidianTextInput } from '../../common/ObsidianTextInput'
 import { ReactModal } from '../../common/ReactModal'
 
 type AddChatModelModalComponentProps = {
-  plugin: SmartComposerPlugin
+  plugin: NeuralComposerPlugin
   onClose: () => void
 }
 
 export class AddChatModelModal extends ReactModal<AddChatModelModalComponentProps> {
-  constructor(app: App, plugin: SmartComposerPlugin) {
+  constructor(app: App, plugin: NeuralComposerPlugin) {
     super({
       app: app,
       Component: AddChatModelModalComponent,

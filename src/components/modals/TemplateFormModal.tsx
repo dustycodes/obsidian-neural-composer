@@ -202,10 +202,10 @@ function TemplateFormComponent({
       <ObsidianSetting
         name="Template Content"
         desc="Content of the template"
-        className="smtcmp-settings-description-preserve-whitespace"
+        className="nrlcmp-settings-description-preserve-whitespace"
         required
       />
-      <div className="smtcmp-chat-user-input-container">
+      <div className="nrlcmp-chat-user-input-container">
         <LexicalContentEditable
           initialEditorState={initialEditorState}
           editorRef={editorRef}

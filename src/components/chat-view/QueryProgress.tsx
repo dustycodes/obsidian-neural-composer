@@ -40,7 +40,7 @@ export default function QueryProgress({
       return null
     case 'reading-mentionables':
       return (
-        <div className="smtcmp-query-progress">
+        <div className="nrlcmp-query-progress">
           <p>
             Reading mentioned files
             <DotLoader />
@@ -49,14 +49,14 @@ export default function QueryProgress({
       )
     case 'indexing':
       return (
-        <div className="smtcmp-query-progress">
+        <div className="nrlcmp-query-progress">
           <p>
             {`Indexing ${state.indexProgress.totalFiles} file`}
             <DotLoader />
           </p>
-          <p className="smtcmp-query-progress-detail">{`${state.indexProgress.completedChunks}/${state.indexProgress.totalChunks} chunks indexed`}</p>
+          <p className="nrlcmp-query-progress-detail">{`${state.indexProgress.completedChunks}/${state.indexProgress.totalChunks} chunks indexed`}</p>
           {state.indexProgress.waitingForRateLimit && (
-            <p className="smtcmp-query-progress-detail">
+            <p className="nrlcmp-query-progress-detail">
               Waiting for rate limit to reset...
             </p>
           )}
@@ -64,7 +64,7 @@ export default function QueryProgress({
       )
     case 'querying':
       return (
-        <div className="smtcmp-query-progress">
+        <div className="nrlcmp-query-progress">
           <p>
             Querying the vault
             <DotLoader />
@@ -73,7 +73,7 @@ export default function QueryProgress({
       )
     case 'querying-done':
       return (
-        <div className="smtcmp-query-progress">
+        <div className="nrlcmp-query-progress">
           <p>
             Reading related files
             <DotLoader />

@@ -4,7 +4,7 @@ import { ObsidianToggle } from 'src/components/common/ObsidianToggle'
 
 import { DEFAULT_CHAT_MODELS } from '../../../../constants'
 import { useSettings } from '../../../../contexts/settings-context'
-import SmartComposerPlugin from '../../../../main'
+import NeuralComposerPlugin from '../../../../main'
 import { ConfirmModal } from '../../../modals/ConfirmModal'
 import { AddChatModelModal } from '../../modals/AddChatModelModal'
 
@@ -15,7 +15,7 @@ import {
 
 type ChatModelsSubSectionProps = {
   app: App
-  plugin: SmartComposerPlugin
+  plugin: NeuralComposerPlugin
 }
 
 const isEnabled = (enable: boolean | undefined | null) => enable ?? true
@@ -80,11 +80,11 @@ export function ChatModelsSubSection({
 
   return (
     <div>
-      <div className="smtcmp-settings-sub-header">Chat Models</div>
-      <div className="smtcmp-settings-desc">Models used for chat and apply</div>
+      <div className="nrlcmp-settings-sub-header">Chat Models</div>
+      <div className="nrlcmp-settings-desc">Models used for chat and apply</div>
 
-      <div className="smtcmp-settings-table-container">
-        <table className="smtcmp-settings-table">
+      <div className="nrlcmp-settings-table-container">
+        <table className="nrlcmp-settings-table">
           <colgroup>
             <col />
             <col />
@@ -116,7 +116,7 @@ export function ChatModelsSubSection({
                   />
                 </td>
                 <td>
-                  <div className="smtcmp-settings-actions">
+                  <div className="nrlcmp-settings-actions">
                     {hasChatModelSettings(chatModel) && (
                       <button
                         onClick={() => {

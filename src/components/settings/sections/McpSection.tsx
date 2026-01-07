@@ -13,7 +13,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { useSettings } from '../../../contexts/settings-context'
 import { McpManager } from '../../../core/mcp/mcpManager'
-import SmartComposerPlugin from '../../../main'
+import NeuralComposerPlugin from '../../../main'
 import {
   McpServerState,
   McpServerStatus,
@@ -29,7 +29,7 @@ import {
 
 type McpSectionProps = {
   app: App
-  plugin: SmartComposerPlugin
+  plugin: NeuralComposerPlugin
 }
 
 export function McpSection({ app, plugin }: McpSectionProps) {
@@ -57,10 +57,10 @@ export function McpSection({ app, plugin }: McpSectionProps) {
   }, [mcpManager])
 
   return (
-    <div className="smtcmp-settings-section">
-      <div className="smtcmp-settings-header">MCP (Model Context Pool)</div>
+    <div className="nrlcmp-settings-section">
+      <div className="nrlcmp-settings-header">MCP (Model Context Pool)</div>
 
-      <div className="smtcmp-settings-desc smtcmp-settings-callout">
+      <div className="nrlcmp-settings-desc nrlcmp-settings-callout">
         <strong>Warning:</strong> When using tools, the tool response is passed
         to the language model (LLM). If the tool result contains a large amount
         of content, this can significantly increase LLM usage and associated
@@ -69,23 +69,23 @@ export function McpSection({ app, plugin }: McpSectionProps) {
       </div>
 
       {mcpManager?.disabled ? (
-        <div className="smtcmp-settings-sub-header-container">
-          <div className="smtcmp-settings-sub-header">
+        <div className="nrlcmp-settings-sub-header-container">
+          <div className="nrlcmp-settings-sub-header">
             MCP is not supported on mobile devices
           </div>
         </div>
       ) : (
         <>
-          <div className="smtcmp-settings-sub-header-container">
-            <div className="smtcmp-settings-sub-header">MCP Servers</div>
+          <div className="nrlcmp-settings-sub-header-container">
+            <div className="nrlcmp-settings-sub-header">MCP Servers</div>
             <ObsidianButton
               text="Add MCP Server"
               onClick={() => new AddMcpServerModal(app, plugin).open()}
             />
           </div>
 
-          <div className="smtcmp-mcp-servers-container">
-            <div className="smtcmp-mcp-servers-header">
+          <div className="nrlcmp-mcp-servers-container">
+            <div className="nrlcmp-mcp-servers-header">
               <div>Server</div>
               <div>Status</div>
               <div>Enabled</div>
@@ -101,7 +101,7 @@ export function McpSection({ app, plugin }: McpSectionProps) {
                 />
               ))
             ) : (
-              <div className="smtcmp-mcp-servers-empty">
+              <div className="nrlcmp-mcp-servers-empty">
                 No MCP servers found
               </div>
             )}
@@ -119,7 +119,7 @@ function McpServerComponent({
 }: {
   server: McpServerState
   app: App
-  plugin: SmartComposerPlugin
+  plugin: NeuralComposerPlugin
 }) {
   const { settings, setSettings } = useSettings()
   const [isOpen, setIsOpen] = useState(false)
@@ -162,19 +162,19 @@ function McpServerComponent({
   )
 
   return (
-    <div className="smtcmp-mcp-server">
-      <div className="smtcmp-mcp-server-row">
-        <div className="smtcmp-mcp-server-name">{server.name}</div>
-        <div className="smtcmp-mcp-server-status">
+    <div className="nrlcmp-mcp-server">
+      <div className="nrlcmp-mcp-server-row">
+        <div className="nrlcmp-mcp-server-name">{server.name}</div>
+        <div className="nrlcmp-mcp-server-status">
           <McpServerStatusBadge status={server.status} />
         </div>
-        <div className="smtcmp-mcp-server-toggle">
+        <div className="nrlcmp-mcp-server-toggle">
           <ObsidianToggle
             value={server.config.enabled}
             onChange={handleToggleEnabled}
           />
         </div>
-        <div className="smtcmp-mcp-server-actions">
+        <div className="nrlcmp-mcp-server-actions">
           <button
             onClick={handleEdit}
             className="clickable-icon"
@@ -212,11 +212,11 @@ function ExpandedServerInfo({ server }: { server: McpServerState }) {
   }
 
   return (
-    <div className="smtcmp-server-expanded-info">
+    <div className="nrlcmp-server-expanded-info">
       {server.status === McpServerStatus.Connected && (
         <div>
-          <div className="smtcmp-server-expanded-info-header">Tools</div>
-          <div className="smtcmp-server-tools-container">
+          <div className="nrlcmp-server-expanded-info-header">Tools</div>
+          <div className="nrlcmp-server-tools-container">
             {server.tools.map((tool) => (
               <McpToolComponent key={tool.name} tool={tool} server={server} />
             ))}
@@ -225,8 +225,8 @@ function ExpandedServerInfo({ server }: { server: McpServerState }) {
       )}
       {server.status === McpServerStatus.Error && (
         <div>
-          <div className="smtcmp-server-expanded-info-header">Error</div>
-          <div className="smtcmp-server-error-message">
+          <div className="nrlcmp-server-expanded-info-header">Error</div>
+          <div className="nrlcmp-server-error-message">
             {server.error.message}
           </div>
         </div>
@@ -240,31 +240,31 @@ function McpServerStatusBadge({ status }: { status: McpServerStatus }) {
     [McpServerStatus.Connected]: {
       icon: <Check size={16} />,
       label: 'Connected',
-      statusClass: 'smtcmp-mcp-server-status-badge--connected',
+      statusClass: 'nrlcmp-mcp-server-status-badge--connected',
     },
     [McpServerStatus.Connecting]: {
       icon: <Loader2 size={16} className="spinner" />,
       label: 'Connecting...',
-      statusClass: 'smtcmp-mcp-server-status-badge--connecting',
+      statusClass: 'nrlcmp-mcp-server-status-badge--connecting',
     },
     [McpServerStatus.Error]: {
       icon: <X size={16} />,
       label: 'Error',
-      statusClass: 'smtcmp-mcp-server-status-badge--error',
+      statusClass: 'nrlcmp-mcp-server-status-badge--error',
     },
     [McpServerStatus.Disconnected]: {
       icon: <CircleMinus size={16} />,
       label: 'Disconnected',
-      statusClass: 'smtcmp-mcp-server-status-badge--disconnected',
+      statusClass: 'nrlcmp-mcp-server-status-badge--disconnected',
     },
   }
 
   const { icon, label, statusClass } = statusConfig[status]
 
   return (
-    <div className={`smtcmp-mcp-server-status-badge ${statusClass}`}>
+    <div className={`nrlcmp-mcp-server-status-badge ${statusClass}`}>
       {icon}
-      <div className="smtcmp-mcp-server-status-badge-label">{label}</div>
+      <div className="nrlcmp-mcp-server-status-badge-label">{label}</div>
     </div>
   )
 }
@@ -327,20 +327,20 @@ function McpToolComponent({
   }
 
   return (
-    <div className="smtcmp-mcp-tool">
-      <div className="smtcmp-mcp-tool-info">
-        <div className="smtcmp-mcp-tool-name">{tool.name}</div>
-        <div className="smtcmp-mcp-tool-description">{tool.description}</div>
+    <div className="nrlcmp-mcp-tool">
+      <div className="nrlcmp-mcp-tool-info">
+        <div className="nrlcmp-mcp-tool-name">{tool.name}</div>
+        <div className="nrlcmp-mcp-tool-description">{tool.description}</div>
       </div>
-      <div className="smtcmp-mcp-tool-toggle">
-        <span className="smtcmp-mcp-tool-toggle-label">Enabled</span>
+      <div className="nrlcmp-mcp-tool-toggle">
+        <span className="nrlcmp-mcp-tool-toggle-label">Enabled</span>
         <ObsidianToggle
           value={!disabled}
           onChange={(value) => handleToggleEnabled(value)}
         />
       </div>
-      <div className="smtcmp-mcp-tool-toggle">
-        <span className="smtcmp-mcp-tool-toggle-label">Auto-execute</span>
+      <div className="nrlcmp-mcp-tool-toggle">
+        <span className="nrlcmp-mcp-tool-toggle-label">Auto-execute</span>
         <ObsidianToggle
           value={allowAutoExecution}
           onChange={(value) => handleToggleAutoExecution(value)}

@@ -4,7 +4,7 @@ import { editorStateToPlainText } from '../../components/chat-view/chat-input/ut
 import { QueryProgressState } from '../../components/chat-view/QueryProgress'
 import { RAGEngine } from '../../core/rag/ragEngine'
 import { SelectEmbedding } from '../../database/schema'
-import { SmartComposerSettings } from '../../settings/schema/setting.types'
+import { NeuralComposerSettings } from '../../settings/schema/setting.types'
 import {
   ChatAssistantMessage,
   ChatMessage,
@@ -34,13 +34,13 @@ import { YoutubeTranscript, isYoutubeUrl } from './youtube-transcript'
 export class PromptGenerator {
   private getRagEngine: () => Promise<RAGEngine>
   private app: App
-  private settings: SmartComposerSettings
+  private settings: NeuralComposerSettings
   private MAX_CONTEXT_MESSAGES = 20
 
   constructor(
     getRagEngine: () => Promise<RAGEngine>,
     app: App,
-    settings: SmartComposerSettings,
+    settings: NeuralComposerSettings,
   ) {
     this.getRagEngine = getRagEngine
     this.app = app
@@ -419,7 +419,7 @@ ${await this.getWebsiteContent(url)}
 - This text ALREADY contains correct citations like \\[1], \\[2].
 - **YOUR TASK:** Present this information clearly , example: \\[1], \\[2], etc
 - **ALWAYS** separate references by ", ", example: \\[1], \\[2], etc
-- **ALWAYS** start your answer with <smtcmp_block language="markdown">
+- **ALWAYS** start your answer with <nrlcmp_block language="markdown">
 - **CRITICAL:** DO NOT re-number the citations. Use the exact numbers provided in the context.
 - **FOOTER FORMAT:** At the very end, list the references exactly like this: \\[Reference_Number] [[File_name_with_extension]] or [Reference_Number] [[Note_name_without_extension]]. 
 Example:
@@ -427,14 +427,14 @@ Example:
    \\[1] [[Filename.pdf]]
    \\[2] [[NoteName]]
    (Do not use bullet points "-" or checkboxes. Use brackets "\\[ ]").
-- **ALWAYS** end your answer with </smtcmp_block>
+- **ALWAYS** end your answer with </nrlcmp_block>
    `
         : `\nSTYLE RULES:
-- **ALWAYS** start your answer with <smtcmp_block language="markdown">
+- **ALWAYS** start your answer with <nrlcmp_block language="markdown">
 - Do NOT use citation numbers (like [1] or [2]) in your response.
 - Answer naturally and fluidly.
 - Do not include the reference list at the bottom.
-- **ALWAYS** end your answer with </smtcmp_block>
+- **ALWAYS** end your answer with </nrlcmp_block>
 
 `;
         
@@ -452,26 +452,27 @@ ${
   modelPromptLevel == PromptLevel.Default
     ? `4. Respond in the same language as the user's message.
 5. 
-- **ALWAYS** start your answer with <smtcmp_block language="markdown">
-- **ALWAYS** end your answer with </smtcmp_block>
+- **ALWAYS** start your answer with <nrlcmp_block language="markdown">
+- **ALWAYS** end your answer with </nrlcmp_block>
 
 
-6. When providing markdown blocks for an existing file, add the filename and language attributes to the <smtcmp_block> tags. Restate the relevant section or heading, so the user knows which part of the file you are editing. For example:
-<smtcmp_block filename="path/to/file.md" language="markdown">
+6. When providing markdown blocks for an existing file, add the filename and language attributes to the <nrlcmp_block> tags. Restate the relevant section or heading, so the user knows which part of the file you are editing. For example:
+<nrlcmp_block filename="path/to/file.md" language="markdown">
 ## Section Title
 ...
 {{ content }}
 ...
-</smtcmp_block>
+</nrlcmp_block>
 
-7. When the user is asking for edits to their markdown, please provide a simplified version of the markdown block emphasizing only the changes. Use comments to show where unchanged content has been skipped. Wrap the markdown block with <smtcmp_block> tags. Add filename and language attributes to the <smtcmp_block> tags. For example:
-<smtcmp_block filename="path/to/file.md" language="markdown">
+
+7. When the user is asking for edits to their markdown, please provide a simplified version of the markdown block emphasizing only the changes. Use comments to show where unchanged content has been skipped. Wrap the markdown block with <nrlcmp_block> tags. Add filename and language attributes to the <nrlcmp_block> tags. For example:
+<nrlcmp_block filename="path/to/file.md" language="markdown">
 <!-- ... existing content ... -->
 {{ edit_1 }}
 <!-- ... existing content ... -->
 {{ edit_2 }}
 <!-- ... existing content ... -->
-</smtcmp_block>
+</nrlcmp_block>
 The user has full access to the file, so they prefer seeing only the changes in the markdown. Often this will mean that the start/end of the file will be skipped, but that's okay! Rewrite the entire file only if specifically requested. Always provide a brief explanation of the updates, except when the user specifically asks for just the content.
 `
     : ''
@@ -493,18 +494,18 @@ ${
 
   a. Never include line numbers in the output markdown.
 
-  b. Wrap the markdown block with <smtcmp_block> tags. Include language attribute. For example:
-  <smtcmp_block language="markdown">
+  b. Wrap the markdown block with <nrlcmp_block> tags. Include language attribute. For example:
+  <nrlcmp_block language="markdown">
   {{ content }}
-  </smtcmp_block>
+  </nrlcmp_block>
 
-  c. When providing markdown blocks for an existing file, also include the filename attribute to the <smtcmp_block> tags. For example:
-  <smtcmp_block filename="path/to/file.md" language="markdown">
+  c. When providing markdown blocks for an existing file, also include the filename attribute to the <nrlcmp_block> tags. For example:
+  <nrlcmp_block filename="path/to/file.md" language="markdown">
   {{ content }}
-  </smtcmp_block>
+  </nrlcmp_block>
 
-  d. When referencing a markdown block the user gives you, only add the startLine and endLine attributes to the <smtcmp_block> tags. Write related content outside of the <smtcmp_block> tags. The content inside the <smtcmp_block> tags will be ignored and replaced with the actual content of the markdown block. For example:
-  <smtcmp_block filename="path/to/file.md" language="markdown" startLine="2" endLine="30"></smtcmp_block>`
+  d. When referencing a markdown block the user gives you, only add the startLine and endLine attributes to the <nrlcmp_block> tags. Write related content outside of the <nrlcmp_block> tags. The content inside the <nrlcmp_block> tags will be ignored and replaced with the actual content of the markdown block. For example:
+  <nrlcmp_block filename="path/to/file.md" language="markdown" startLine="2" endLine="30"></nrlcmp_block>`
     : ''
 }`
 
@@ -547,8 +548,8 @@ ${fileContent}
   private getRagInstructionMessage(): RequestMessage {
     return {
       role: 'user',
-      content: `If you need to reference any of the markdown blocks I gave you, add the startLine and endLine attributes to the <smtcmp_block> tags without any content inside. For example:
-<smtcmp_block filename="path/to/file.md" language="markdown" startLine="200" endLine="310"></smtcmp_block>
+      content: `If you need to reference any of the markdown blocks I gave you, add the startLine and endLine attributes to the <nrlcmp_block> tags without any content inside. For example:
+<nrlcmp_block filename="path/to/file.md" language="markdown" startLine="200" endLine="310"></nrlcmp_block>
 
 When writing out new markdown blocks, remember not to include "line_number|" at the beginning of each line.`,
     }

@@ -1,7 +1,7 @@
 import isEqual from 'lodash.isequal'
 import { Platform } from 'obsidian'
 
-import { SmartComposerSettings } from '../../settings/schema/setting.types'
+import { NeuralComposerSettings } from '../../settings/schema/setting.types'
 import {
   McpServerConfig,
   McpServerState,
@@ -26,7 +26,7 @@ export class McpManager {
 
   public readonly disabled = !Platform.isDesktop // MCP should be disabled on mobile since it doesn't support node.js
 
-  private settings: SmartComposerSettings
+  private settings: NeuralComposerSettings
   private unsubscribeFromSettings: () => void
   private defaultEnv: Record<string, string>
 
@@ -41,9 +41,9 @@ export class McpManager {
     settings,
     registerSettingsListener,
   }: {
-    settings: SmartComposerSettings
+    settings: NeuralComposerSettings
     registerSettingsListener: (
-      listener: (settings: SmartComposerSettings) => void,
+      listener: (settings: NeuralComposerSettings) => void,
     ) => () => void
   }) {
     this.settings = settings
@@ -96,7 +96,7 @@ export class McpManager {
     return () => this.subscribers.delete(callback)
   }
 
-  public async handleSettingsUpdate(settings: SmartComposerSettings) {
+  public async handleSettingsUpdate(settings: NeuralComposerSettings) {
     this.settings = settings
     const updatedServers = settings.mcp.servers.map(
       (serverConfig: McpServerConfig): McpServerState => {

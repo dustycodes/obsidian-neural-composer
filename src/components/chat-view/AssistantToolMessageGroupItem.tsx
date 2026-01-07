@@ -42,11 +42,11 @@ export default function AssistantToolMessageGroupItem({
   // -----------------------------------------
 
   return (
-    <div className="smtcmp-assistant-tool-message-group">
+    <div className="nrlcmp-assistant-tool-message-group">
       {messages.map((message) =>
         message.role === 'assistant' ? (
           message.reasoning || message.annotations || message.content ? (
-            <div key={message.id} className="smtcmp-chat-messages-assistant">
+            <div key={message.id} className="nrlcmp-chat-messages-assistant">
               {message.reasoning && (
                 <AssistantMessageReasoning reasoning={message.reasoning} />
               )}

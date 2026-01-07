@@ -1,9 +1,9 @@
 import { ParsedTagContent, parseTagContents } from './parse-tag-content'
 
-describe('parseSmtcmpBlocks', () => {
-  it('should parse a string with smtcmp_block elements', () => {
+describe('parsenrlcmpBlocks', () => {
+  it('should parse a string with nrlcmp_block elements', () => {
     const input = `Some text before
-<smtcmp_block language="markdown" filename="example.md">
+<nrlcmp_block language="markdown" filename="example.md">
 # Example Markdown
 
 This is a sample markdown content for testing purposes.
@@ -19,13 +19,13 @@ This is a sample markdown content for testing purposes.
 \`\`\`python
 print("Hello, world!")
 \`\`\`
-</smtcmp_block>
+</nrlcmp_block>
 Some text after`
 
     const expected: ParsedTagContent[] = [
       { type: 'string', content: 'Some text before' },
       {
-        type: 'smtcmp_block',
+        type: 'nrlcmp_block',
         content: `# Example Markdown
 
 This is a sample markdown content for testing purposes.
@@ -51,15 +51,15 @@ print("Hello, world!")
     expect(result).toEqual(expected)
   })
 
-  it('should handle empty smtcmp_block elements', () => {
+  it('should handle empty nrlcmp_block elements', () => {
     const input = `
-      <smtcmp_block language="python"></smtcmp_block>
+      <nrlcmp_block language="python"></nrlcmp_block>
     `
 
     const expected: ParsedTagContent[] = [
       { type: 'string', content: '      ' },
       {
-        type: 'smtcmp_block',
+        type: 'nrlcmp_block',
         content: '',
         language: 'python',
         filename: undefined,
@@ -71,8 +71,8 @@ print("Hello, world!")
     expect(result).toEqual(expected)
   })
 
-  it('should handle input without smtcmp_block elements', () => {
-    const input = 'Just a regular string without any smtcmp_block elements.'
+  it('should handle input without nrlcmp_block elements', () => {
+    const input = 'Just a regular string without any nrlcmp_block elements.'
 
     const expected: ParsedTagContent[] = [{ type: 'string', content: input }]
 
@@ -80,14 +80,14 @@ print("Hello, world!")
     expect(result).toEqual(expected)
   })
 
-  it('should handle multiple smtcmp_block elements', () => {
+  it('should handle multiple nrlcmp_block elements', () => {
     const input = `Start
-<smtcmp_block language="python" filename="script.py">
+<nrlcmp_block language="python" filename="script.py">
 def greet(name):
     print(f"Hello, {name}!")
-</smtcmp_block>
+</nrlcmp_block>
 Middle
-<smtcmp_block language="markdown" filename="example.md">
+<nrlcmp_block language="markdown" filename="example.md">
 # Using tildes for code blocks
 
 Did you know that you can use tildes for code blocks?
@@ -95,13 +95,13 @@ Did you know that you can use tildes for code blocks?
 ~~~python
 print("Hello, world!")
 ~~~
-</smtcmp_block>
+</nrlcmp_block>
 End`
 
     const expected: ParsedTagContent[] = [
       { type: 'string', content: 'Start' },
       {
-        type: 'smtcmp_block',
+        type: 'nrlcmp_block',
         content: `def greet(name):
     print(f"Hello, {name}!")`,
         language: 'python',
@@ -109,7 +109,7 @@ End`
       },
       { type: 'string', content: 'Middle' },
       {
-        type: 'smtcmp_block',
+        type: 'nrlcmp_block',
         content: `# Using tildes for code blocks
 
 Did you know that you can use tildes for code blocks?
@@ -127,17 +127,17 @@ print("Hello, world!")
     expect(result).toEqual(expected)
   })
 
-  it('should handle unfinished smtcmp_block with only opening tag', () => {
+  it('should handle unfinished nrlcmp_block with only opening tag', () => {
     const input = `Start
-<smtcmp_block language="markdown">
-# Unfinished smtcmp_block
+<nrlcmp_block language="markdown">
+# Unfinished nrlcmp_block
 
 Some text after without closing tag`
     const expected: ParsedTagContent[] = [
       { type: 'string', content: 'Start' },
       {
-        type: 'smtcmp_block',
-        content: `# Unfinished smtcmp_block
+        type: 'nrlcmp_block',
+        content: `# Unfinished nrlcmp_block
 
 Some text after without closing tag`,
         language: 'markdown',
@@ -149,11 +149,11 @@ Some text after without closing tag`,
     expect(result).toEqual(expected)
   })
 
-  it('should handle smtcmp_block with startline and endline attributes', () => {
-    const input = `<smtcmp_block language="markdown" startline="2" endline="5"></smtcmp_block>`
+  it('should handle nrlcmp_block with startline and endline attributes', () => {
+    const input = `<nrlcmp_block language="markdown" startline="2" endline="5"></nrlcmp_block>`
     const expected: ParsedTagContent[] = [
       {
-        type: 'smtcmp_block',
+        type: 'nrlcmp_block',
         content: '',
         language: 'markdown',
         startLine: 2,
@@ -216,12 +216,12 @@ End`
   })
 })
 
-describe('parseSmtcmpBlockAndThink', () => {
-  it('should parse a string with smtcmp_block and think elements', () => {
+describe('parsenrlcmpBlockAndThink', () => {
+  it('should parse a string with nrlcmp_block and think elements', () => {
     const input = `Start
 <think>Thinking...</think>
 
-<smtcmp_block language="markdown" filename="example.md">
+<nrlcmp_block language="markdown" filename="example.md">
 # Example Markdown
 
 This is a sample markdown content for testing purposes.
@@ -232,7 +232,7 @@ This is a sample markdown content for testing purposes.
 - **Bold text**
 - *Italic text*
 - [Links](https://example.com)
-</smtcmp_block>
+</nrlcmp_block>
 End`
 
     const expected: ParsedTagContent[] = [
@@ -240,7 +240,7 @@ End`
       { type: 'think', content: 'Thinking...' },
       { type: 'string', content: '' },
       {
-        type: 'smtcmp_block',
+        type: 'nrlcmp_block',
         content: `# Example Markdown
 
 This is a sample markdown content for testing purposes.
@@ -263,16 +263,16 @@ This is a sample markdown content for testing purposes.
     expect(result).toEqual(expected)
   })
 
-  it('should handle nested smtcmp_block and think elements', () => {
+  it('should handle nested nrlcmp_block and think elements', () => {
     const input = `Start
 <think>Thinking...
-<smtcmp_block language="markdown" filename="example.md">
+<nrlcmp_block language="markdown" filename="example.md">
 # Example Markdown
 
 This is a sample markdown content for testing purposes.
 
 ## Features
-</smtcmp_block>
+</nrlcmp_block>
 </think>
 End`
     const expected: ParsedTagContent[] = [
@@ -280,13 +280,13 @@ End`
       {
         type: 'think',
         content: `Thinking...
-<smtcmp_block language="markdown" filename="example.md">
+<nrlcmp_block language="markdown" filename="example.md">
 # Example Markdown
 
 This is a sample markdown content for testing purposes.
 
 ## Features
-</smtcmp_block>`,
+</nrlcmp_block>`,
       },
       { type: 'string', content: 'End' },
     ]

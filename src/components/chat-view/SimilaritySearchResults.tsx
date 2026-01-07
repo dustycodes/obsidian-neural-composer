@@ -19,14 +19,14 @@ function SimiliartySearchItem({
     openMarkdownFile(app, chunk.path, chunk.metadata.startLine)
   }
   return (
-    <div onClick={handleClick} className="smtcmp-similarity-search-item">
-      <div className="smtcmp-similarity-search-item__similarity">
+    <div onClick={handleClick} className="nrlcmp-similarity-search-item">
+      <div className="nrlcmp-similarity-search-item__similarity">
         {chunk.similarity.toFixed(3)}
       </div>
-      <div className="smtcmp-similarity-search-item__path">
+      <div className="nrlcmp-similarity-search-item__path">
         {path.basename(chunk.path)}
       </div>
-      <div className="smtcmp-similarity-search-item__line-numbers">
+      <div className="nrlcmp-similarity-search-item__line-numbers">
         {`${chunk.metadata.startLine} - ${chunk.metadata.endLine}`}
       </div>
     </div>
@@ -43,12 +43,12 @@ export default function SimilaritySearchResults({
   const [isOpen, setIsOpen] = useState(false)
 
   return (
-    <div className="smtcmp-similarity-search-results">
+    <div className="nrlcmp-similarity-search-results">
       <div
         onClick={() => {
           setIsOpen(!isOpen)
         }}
-        className="smtcmp-similarity-search-results__trigger"
+        className="nrlcmp-similarity-search-results__trigger"
       >
         {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         <div>Show Referenced Documents ({similaritySearchResults.length})</div>

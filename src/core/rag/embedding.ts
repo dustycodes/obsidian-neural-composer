@@ -1,4 +1,4 @@
-import { SmartComposerSettings } from '../../settings/schema/setting.types'
+import { NeuralComposerSettings } from '../../settings/schema/setting.types'
 import { EmbeddingModelClient } from '../../types/embedding'
 import { getProviderClient } from '../llm/manager'
 
@@ -6,7 +6,7 @@ export const getEmbeddingModelClient = ({
   settings,
   embeddingModelId,
 }: {
-  settings: SmartComposerSettings
+  settings: NeuralComposerSettings
   embeddingModelId: string
 }): EmbeddingModelClient => {
   const embeddingModel = settings.embeddingModels.find(

@@ -2,7 +2,7 @@ import { App, Notice } from 'obsidian'
 import { useState } from 'react'
 
 import { PROVIDER_TYPES_INFO } from '../../../constants'
-import SmartComposerPlugin from '../../../main'
+import NeuralComposerPlugin from '../../../main'
 import { LLMProvider, llmProviderSchema } from '../../../types/provider.types'
 import { ObsidianButton } from '../../common/ObsidianButton'
 import { ObsidianDropdown } from '../../common/ObsidianDropdown'
@@ -12,13 +12,13 @@ import { ObsidianToggle } from '../../common/ObsidianToggle'
 import { ReactModal } from '../../common/ReactModal'
 
 type ProviderFormComponentProps = {
-  plugin: SmartComposerPlugin
+  plugin: NeuralComposerPlugin
   provider: LLMProvider | null // null for new provider
   onClose: () => void
 }
 
 export class AddProviderModal extends ReactModal<ProviderFormComponentProps> {
-  constructor(app: App, plugin: SmartComposerPlugin) {
+  constructor(app: App, plugin: NeuralComposerPlugin) {
     super({
       app: app,
       Component: ProviderFormComponent,
@@ -31,7 +31,7 @@ export class AddProviderModal extends ReactModal<ProviderFormComponentProps> {
 }
 
 export class EditProviderModal extends ReactModal<ProviderFormComponentProps> {
-  constructor(app: App, plugin: SmartComposerPlugin, provider: LLMProvider) {
+  constructor(app: App, plugin: NeuralComposerPlugin, provider: LLMProvider) {
     super({
       app: app,
       Component: ProviderFormComponent,

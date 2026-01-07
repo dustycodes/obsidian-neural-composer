@@ -3,7 +3,7 @@ import { parseFragment } from 'parse5'
 export type ParsedTagContent =
   | { type: 'string'; content: string }
   | {
-      type: 'smtcmp_block'
+      type: 'nrlcmp_block'
       content: string
       language?: string
       filename?: string
@@ -16,7 +16,7 @@ export type ParsedTagContent =
     }
 
 /**
- * Parses text containing <smtcmp_block> and <think> tags into structured content
+ * Parses text containing <nrlcmp_block> and <think> tags into structured content
  */
 export function parseTagContents(input: string): ParsedTagContent[] {
   const parsedResult: ParsedTagContent[] = []
@@ -25,7 +25,7 @@ export function parseTagContents(input: string): ParsedTagContent[] {
   })
   let lastEndOffset = 0
   for (const node of fragment.childNodes) {
-    if (node.nodeName === 'smtcmp_block') {
+    if (node.nodeName === 'nrlcmp_block') {
       if (!node.sourceCodeLocation) {
         throw new Error('sourceCodeLocation is undefined')
       }
@@ -52,7 +52,7 @@ export function parseTagContents(input: string): ParsedTagContent[] {
       const children = node.childNodes
       if (children.length === 0) {
         parsedResult.push({
-          type: 'smtcmp_block',
+          type: 'nrlcmp_block',
           content: '',
           language,
           filename,
@@ -68,7 +68,7 @@ export function parseTagContents(input: string): ParsedTagContent[] {
           throw new Error('sourceCodeLocation is undefined')
         }
         parsedResult.push({
-          type: 'smtcmp_block',
+          type: 'nrlcmp_block',
           content: input.slice(innerContentStartOffset, innerContentEndOffset),
           language,
           filename,
@@ -119,13 +119,13 @@ export function parseTagContents(input: string): ParsedTagContent[] {
    *
    * Example input:
    * hello world
-   * <smtcmp_block>
+   * <nrlcmp_block>
    * some content
-   * </smtcmp_block>
+   * </nrlcmp_block>
    *
    * Becomes:
    * { type: 'string', content: 'hello world' }
-   * { type: 'smtcmp_block', content: 'some content' }
+   * { type: 'nrlcmp_block', content: 'some content' }
    */
   parsedResult.forEach((block) => {
     block.content = block.content.replace(/^\n|\n$/g, '')

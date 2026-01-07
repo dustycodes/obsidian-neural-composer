@@ -203,8 +203,8 @@ const ChatUserInput = forwardRef<ChatUserInputRef, ChatUserInputProps>(
     }
 
     return (
-      <div className="smtcmp-chat-user-input-container" ref={containerRef}>
-        <div className="smtcmp-chat-user-input-files">
+      <div className="nrlcmp-chat-user-input-container" ref={containerRef}>
+        <div className="nrlcmp-chat-user-input-files">
           <ToolBadge />
           {mentionables.map((m) => (
             <MentionableBadge
@@ -273,8 +273,8 @@ const ChatUserInput = forwardRef<ChatUserInputRef, ChatUserInputProps>(
           }}
         />
 
-        <div className="smtcmp-chat-user-input-controls">
-<div className="smtcmp-chat-user-input-controls__model-select-container" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div className="nrlcmp-chat-user-input-controls">
+<div className="nrlcmp-chat-user-input-controls__model-select-container" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
   <ModelSelect />
   
   {/* --- CORA MOD: Selector de Modo LightRAG --- */}
@@ -283,7 +283,7 @@ const ChatUserInput = forwardRef<ChatUserInputRef, ChatUserInputProps>(
     onChange={(e) => {
       setSettings({ ...settings, lightRagQueryMode: e.target.value as any });
     }}
-    className="smtcmp-query-mode-select"
+    className="nrlcmp-query-mode-select"
     title="LightRAG Enfoque"
     style={{
         backgroundColor: 'var(--background-modifier-form-field)',
@@ -303,7 +303,7 @@ const ChatUserInput = forwardRef<ChatUserInputRef, ChatUserInputProps>(
   </select>
   {/* ------------------------------------------- */}
 </div>
-          <div className="smtcmp-chat-user-input-controls__buttons">
+          <div className="nrlcmp-chat-user-input-controls__buttons">
             <ImageUploadButton onUpload={handleUploadImages} />
             <SubmitButton onClick={() => handleSubmit()} />
             <VaultChatButton
@@ -378,11 +378,11 @@ function MentionableContentPreview({
   }, [displayedMentionable])
 
   return displayFileContent ? (
-    <div className="smtcmp-chat-user-input-file-content-preview">
+    <div className="nrlcmp-chat-user-input-file-content-preview">
       <ObsidianMarkdown content={displayFileContent} scale="xs" />
     </div>
   ) : displayImage ? (
-    <div className="smtcmp-chat-user-input-file-content-preview">
+    <div className="nrlcmp-chat-user-input-file-content-preview">
       <img src={displayImage.data} alt={displayImage.name} />
     </div>
   ) : null

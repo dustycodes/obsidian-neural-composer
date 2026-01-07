@@ -19,19 +19,19 @@ export function SplitButton({
   const [isOpen, setIsOpen] = useState(false)
 
   return (
-    <div className="smtcmp-split-button">
-      <button onClick={onPrimaryClick} className="smtcmp-split-button-primary">
+    <div className="nrlcmp-split-button">
+      <button onClick={onPrimaryClick} className="nrlcmp-split-button-primary">
         {primaryText}
       </button>
       <DropdownMenu.Root open={isOpen} onOpenChange={setIsOpen}>
         <DropdownMenu.Trigger
-          className="smtcmp-split-button-toggle"
+          className="nrlcmp-split-button-toggle"
           aria-label="Show more options"
         >
           <ChevronDown size={16} />
         </DropdownMenu.Trigger>
         <DropdownMenu.Portal>
-          <DropdownMenu.Content className="smtcmp-popover">
+          <DropdownMenu.Content className="nrlcmp-popover">
             <ul>
               {menuOptions.map((option) => (
                 <DropdownMenu.Item

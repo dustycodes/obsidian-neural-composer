@@ -13,8 +13,8 @@ export function ChatSection() {
   const { settings, setSettings } = useSettings()
 
   return (
-    <div className="smtcmp-settings-section">
-      <div className="smtcmp-settings-header">Chat</div>
+    <div className="nrlcmp-settings-section">
+      <div className="nrlcmp-settings-header">Chat</div>
 
       <ObsidianSetting
         name="Chat model"
@@ -65,10 +65,10 @@ export function ChatSection() {
       <ObsidianSetting
         name="System prompt"
         desc="This prompt will be added to the beginning of every chat."
-        className="smtcmp-settings-textarea-header"
+        className="nrlcmp-settings-textarea-header"
       />
 
-      <ObsidianSetting className="smtcmp-settings-textarea">
+      <ObsidianSetting className="nrlcmp-settings-textarea">
         <ObsidianTextArea
           value={settings.systemPrompt}
           onChange={async (value: string) => {

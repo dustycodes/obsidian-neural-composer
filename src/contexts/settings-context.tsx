@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react'
 
-import { SmartComposerSettings } from '../settings/schema/setting.types'
+import { NeuralComposerSettings } from '../settings/schema/setting.types'
 
 type SettingsContextType = {
-  settings: SmartComposerSettings
-  setSettings: (newSettings: SmartComposerSettings) => void | Promise<void>
+  settings: NeuralComposerSettings
+  setSettings: (newSettings: NeuralComposerSettings) => void | Promise<void>
 }
 
 // Settings context
@@ -19,10 +19,10 @@ export const SettingsProvider = ({
   addSettingsChangeListener,
 }: {
   children: React.ReactNode
-  settings: SmartComposerSettings
-  setSettings: (newSettings: SmartComposerSettings) => void | Promise<void>
+  settings: NeuralComposerSettings
+  setSettings: (newSettings: NeuralComposerSettings) => void | Promise<void>
   addSettingsChangeListener: (
-    listener: (newSettings: SmartComposerSettings) => void,
+    listener: (newSettings: NeuralComposerSettings) => void,
   ) => () => void
 }) => {
   const [settingsCached, setSettingsCached] = useState(initialSettings)

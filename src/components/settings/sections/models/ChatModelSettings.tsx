@@ -1,7 +1,7 @@
 import { App, Notice } from 'obsidian'
 import { useState } from 'react'
 
-import SmartComposerPlugin from '../../../../main'
+import NeuralComposerPlugin from '../../../../main'
 import { ChatModel, chatModelSchema } from '../../../../types/chat-model.types'
 import { ObsidianButton } from '../../../common/ObsidianButton'
 import { ObsidianDropdown } from '../../../common/ObsidianDropdown'
@@ -12,12 +12,12 @@ import { ReactModal } from '../../../common/ReactModal'
 
 type SettingsComponentProps = {
   model: ChatModel
-  plugin: SmartComposerPlugin
+  plugin: NeuralComposerPlugin
   onClose: () => void
 }
 
 export class ChatModelSettingsModal extends ReactModal<SettingsComponentProps> {
-  constructor(model: ChatModel, app: App, plugin: SmartComposerPlugin) {
+  constructor(model: ChatModel, app: App, plugin: NeuralComposerPlugin) {
     const modelSettings = getModelSettings(model)
     super({
       app: app,
@@ -106,7 +106,7 @@ const MODEL_SETTINGS_REGISTRY: ModelSettingsRegistry[] = [
             <ObsidianSetting
               name="Reasoning Effort"
               desc={`Controls how much thinking the model does before responding. Default is "medium".`}
-              className="smtcmp-setting-item--nested"
+              className="nrlcmp-setting-item--nested"
               required
             >
               <ObsidianDropdown
@@ -204,7 +204,7 @@ const MODEL_SETTINGS_REGISTRY: ModelSettingsRegistry[] = [
             <ObsidianSetting
               name="Budget Tokens"
               desc="The maximum number of tokens that Claude can use for thinking. Must be at least 1024."
-              className="smtcmp-setting-item--nested"
+              className="nrlcmp-setting-item--nested"
               required
             >
               <ObsidianTextInput

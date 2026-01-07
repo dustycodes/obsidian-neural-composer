@@ -17,21 +17,21 @@ const AssistantMessageAnnotations = memo(function AssistantMessageAnnotations({
   }
 
   return (
-    <div className="smtcmp-assistant-message-metadata">
+    <div className="nrlcmp-assistant-message-metadata">
       <div
-        className="smtcmp-assistant-message-metadata-toggle"
+        className="nrlcmp-assistant-message-metadata-toggle"
         onClick={handleToggle}
       >
         <span>View Sources ({annotations.length})</span>
         {isExpanded ? (
-          <ChevronUp className="smtcmp-assistant-message-metadata-toggle-icon" />
+          <ChevronUp className="nrlcmp-assistant-message-metadata-toggle-icon" />
         ) : (
-          <ChevronDown className="smtcmp-assistant-message-metadata-toggle-icon" />
+          <ChevronDown className="nrlcmp-assistant-message-metadata-toggle-icon" />
         )}
       </div>
       {isExpanded && (
-        <div className="smtcmp-assistant-message-metadata-content">
-          <div className="smtcmp-assistant-message-metadata-annotations">
+        <div className="nrlcmp-assistant-message-metadata-content">
+          <div className="nrlcmp-assistant-message-metadata-annotations">
             {annotations.map((annotation, index) => {
               return (
                 <div key={annotation.url_citation.url}>

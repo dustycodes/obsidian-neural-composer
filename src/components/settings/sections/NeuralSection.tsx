@@ -1,9 +1,10 @@
 import { Setting } from 'obsidian'
+import { EnvEditorModal } from '../../modals/EnvEditorModal'
 import { useEffect, useRef, useState } from 'react'
 
-import SmartComposerPlugin from '../../../main'
+import NeuralComposerPlugin from '../../../main'
 
-export const NeuralSection = ({ plugin }: { plugin: SmartComposerPlugin }) => {
+export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
   const settingsRef = useRef<HTMLDivElement>(null)
   
   // Estados locales para reactividad inmediata en la UI
@@ -102,7 +103,7 @@ export const NeuralSection = ({ plugin }: { plugin: SmartComposerPlugin }) => {
 
     new Setting(container)
       .setName('Use Custom Entity Types')
-      .setDesc('Enable to define your own knowledge categories.<br>Disable to use LightRAG defaults:\nPerson, Creature, Organization, Location, Event, Concept, Method, Content, Data, Artifact, NaturalObject.')
+      .setDesc('Enable to define your own knowledge categories.Disable to use LightRAG defaults:Person, Creature, Organization, Location, Event, Concept, Method, Content, Data, Artifact, NaturalObject.')
       .addToggle((toggle) =>
         toggle
           .setValue(useCustomOntology)
@@ -179,22 +180,26 @@ export const NeuralSection = ({ plugin }: { plugin: SmartComposerPlugin }) => {
         };
     }
 
-    // --- SECCIÓN RERANKING (RESTAURADA) ---
+    // --- SECCIÓN RERANKING (AVANZADA) ---
     container.createEl('h4', { text: '🎯 Reranking (Precision)' })
 
     new Setting(container)
       .setName('Rerank Provider')
-      .setDesc('Service to re-order results for better relevance. Leave empty to disable.')
+      .setDesc('Service to re-order results. Use "Custom" for local servers (e.g. vLLM, TEI).')
       .addDropdown((dropdown) => {
         dropdown.addOption('', 'None (Disabled)')
         dropdown.addOption('jina', 'Jina AI')
         dropdown.addOption('cohere', 'Cohere')
+        dropdown.addOption('custom', 'Custom / Local') // <--- NUEVA OPCIÓN
         
-        dropdown.setValue(currentRerankBinding)
+        dropdown.setValue(currentRerankBinding === 'jina' || currentRerankBinding === 'cohere' ? currentRerankBinding : (currentRerankBinding ? 'custom' : ''))
         
         dropdown.onChange(async (value) => {
+          // Si es custom, no sobreescribimos el modelo inmediatamente
           const newModel = value === 'jina' ? 'jina-reranker-v2-base-multilingual' : 
-                           value === 'cohere' ? 'rerank-v3.5' : '';
+                           value === 'cohere' ? 'rerank-v3.5' : 
+                           plugin.settings.lightRagRerankModel; 
+
           await plugin.setSettings({
             ...plugin.settings,
             lightRagRerankBinding: value,
@@ -205,12 +210,16 @@ export const NeuralSection = ({ plugin }: { plugin: SmartComposerPlugin }) => {
         })
       })
 
-    // BLOQUE CONDICIONAL RERANKING
+    // MOSTRAR CAMPOS SEGÚN SELECCIÓN
     if (currentRerankBinding && currentRerankBinding !== '') {
+        
+        // 1. MODELO (Siempre visible)
         new Setting(container)
         .setName('Rerank Model')
+        .setDesc('E.g. "BAAI/bge-reranker-v2-m3" for local.')
         .addText((text) =>
             text
+            .setPlaceholder('Model Name')
             .setValue(plugin.settings.lightRagRerankModel)
             .onChange(async (value) => {
                 await plugin.setSettings({ ...plugin.settings, lightRagRerankModel: value })
@@ -218,34 +227,95 @@ export const NeuralSection = ({ plugin }: { plugin: SmartComposerPlugin }) => {
             })
         )
 
+        // 2. API KEY (Solo para Jina/Cohere/Custom con Auth)
         new Setting(container)
         .setName('Rerank API Key')
-        .setDesc('API Key for the reranking service.')
+        .setDesc('Leave empty for local open servers.')
         .addText((text) =>
             text
-            .setPlaceholder('jina_xxx or cohere_xxx')
+            .setPlaceholder('sk-...')
             .setValue(plugin.settings.lightRagRerankApiKey)
             .onChange(async (value) => {
                 await plugin.setSettings({ ...plugin.settings, lightRagRerankApiKey: value })
                 await plugin.updateEnvFile()
             })
         )
+        
+        // 3. HOST URL (Solo para Custom)
+        if (currentRerankBinding === 'custom') {
+             new Setting(container)
+            .setName('Local/Custom Host URL')
+            .setDesc('The full URL to the rerank endpoint (e.g. http://localhost:8000/v1/rerank).')
+            .addText((text) =>
+                text
+                .setPlaceholder('http://localhost:8000/v1/rerank')
+                // Usamos un campo temporal en settings o reutilizamos uno existente?
+                // Mejor creemos uno nuevo en settings.types.ts (ver paso abajo)
+                .setValue(plugin.settings.lightRagRerankHost || '') 
+                .onChange(async (value) => {
+                    await plugin.setSettings({ ...plugin.settings, lightRagRerankHost: value })
+                    await plugin.updateEnvFile()
+                })
+            )
+            
+            // 4. BINDING REAL (Solo para Custom)
+            // LightRAG necesita saber qué "tipo" de API es (cohere-compatible, transformer, etc)
+             new Setting(container)
+            .setName('Binding Type')
+            .setDesc('Internal binding type for LightRAG (usually "cohere" for compatible local APIs).')
+            .addText((text) =>
+                text
+                .setPlaceholder('cohere')
+                .setValue(plugin.settings.lightRagRerankBindingType || 'cohere') 
+                .onChange(async (value) => {
+                    await plugin.setSettings({ ...plugin.settings, lightRagRerankBindingType: value })
+                    await plugin.updateEnvFile()
+                })
+            )
+        }
     }
 
-    // 7. RESTART BUTTON
-    new Setting(container)
-      .setName('Apply Changes & Restart')
-      .setDesc('Restart the LightRAG server to apply new configuration settings.')
+    // 7. RESTART BUTTON (CON ÉNFASIS VISUAL)
+    // Creamos un contenedor estilizado para llamar la atención
+    const restartSetting = new Setting(container)
+      .setName('⚠️ Apply Changes & Restart')
+      .setDesc('You MUST restart the server after changing ANY setting above to apply the new configuration (.env).')
       .addButton((button) =>
         button
-          .setButtonText('Restart Server')
+          .setButtonText('Restart Server Now')
           .setCta()
           .onClick(async () => {
             await plugin.restartLightRagServer();
           }),
+      );
+
+    // 8. ADVANCED CONFIG & RESTART
+    new Setting(container)
+      .setName('Server Configuration')
+      .setDesc('Review the generated .env file, tweak advanced parameters (Chunk size, Async limits), and restart the server.')
+      .addButton((button) =>
+        button
+          .setButtonText('⚙️ Review .env & Restart')
+          .setCta()
+          .onClick(() => {
+            // Abrir el Modal de Edición
+            new EnvEditorModal(plugin.app, plugin).open();
+          }),
       )
 
-  }, [plugin.settings, currentRerankBinding, useCustomOntology])
+    // ESTILO "ZONA DE ATENCIÓN"
+    // Aplicamos estilos directamente al elemento del DOM de este setting
+    restartSetting.settingEl.style.backgroundColor = 'rgba(255, 165, 0, 0.15)'; // Fondo Naranja suave
+    restartSetting.settingEl.style.border = '1px solid var(--color-orange)';     // Borde Naranja
+    restartSetting.settingEl.style.borderRadius = '8px';
+    restartSetting.settingEl.style.marginTop = '20px';
+    restartSetting.settingEl.style.padding = '15px';
+    
+    // Icono o énfasis en el nombre
+    restartSetting.nameEl.style.color = 'var(--text-normal)';
+    restartSetting.nameEl.style.fontWeight = 'bold';
 
+  }, [plugin.settings, currentRerankBinding, useCustomOntology])
+  
   return <div ref={settingsRef} />
 }

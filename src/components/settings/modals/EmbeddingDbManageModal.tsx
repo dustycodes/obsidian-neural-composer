@@ -19,18 +19,18 @@ import {
   useSettings,
 } from '../../../contexts/settings-context'
 import { getEmbeddingModelClient } from '../../../core/rag/embedding'
-import SmartComposerPlugin from '../../../main'
+import NeuralComposerPlugin from '../../../main'
 import { EmbeddingDbStats } from '../../../types/embedding'
 import { IndexProgress } from '../../chat-view/QueryProgress'
 import { ReactModal } from '../../common/ReactModal'
 
 type EmbeddingDbManagerModalComponentWrapperProps = {
   app: App
-  plugin: SmartComposerPlugin
+  plugin: NeuralComposerPlugin
 }
 
 export class EmbeddingDbManageModal extends ReactModal<EmbeddingDbManagerModalComponentWrapperProps> {
-  constructor(app: App, plugin: SmartComposerPlugin) {
+  constructor(app: App, plugin: NeuralComposerPlugin) {
     super({
       app: app,
       Component: EmbeddingDbManagerModalComponentWrapper,
@@ -163,8 +163,8 @@ function EmbeddingDbManageModalComponent() {
   }
 
   return (
-    <div className="smtcmp-settings-embedding-db-manage-root">
-      <div className="smtcmp-settings-embedding-db-manage-header">
+    <div className="nrlcmp-settings-embedding-db-manage-root">
+      <div className="nrlcmp-settings-embedding-db-manage-header">
         <button
           className="clickable-icon"
           aria-label="Refresh"
@@ -174,11 +174,11 @@ function EmbeddingDbManageModalComponent() {
           <RefreshCw size={16} className={clsx(isFetching && 'spinner')} />
         </button>
 
-        <span className="smtcmp-settings-embedding-db-manage-last-updated">
+        <span className="nrlcmp-settings-embedding-db-manage-last-updated">
           Last updated: {dayjs(dataUpdatedAt).format('YYYY-MM-DD HH:mm:ss')}
         </span>
       </div>
-      <table className="smtcmp-settings-embedding-db-manage-table">
+      <table className="nrlcmp-settings-embedding-db-manage-table">
         <thead>
           <tr>
             <th>Model</th>
@@ -194,7 +194,7 @@ function EmbeddingDbManageModalComponent() {
               <td>{stat.rowCount}</td>
               <td>{(stat.totalDataBytes / 1000 / 1000).toFixed(2)}</td>
               {indexProgressMap.get(stat.model) ? (
-                <td className="smtcmp-settings-embedding-db-manage-actions-loading">
+                <td className="nrlcmp-settings-embedding-db-manage-actions-loading">
                   <Loader2 className="spinner" size={14} />
                   <div>
                     {Math.round(
@@ -207,7 +207,7 @@ function EmbeddingDbManageModalComponent() {
                   </div>
                 </td>
               ) : (
-                <td className="smtcmp-settings-embedding-db-manage-actions">
+                <td className="nrlcmp-settings-embedding-db-manage-actions">
                   <button
                     className="clickable-icon"
                     aria-label="Rebuild index"

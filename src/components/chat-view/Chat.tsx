@@ -574,10 +574,10 @@ const Chat = forwardRef<ChatRef, ChatProps>((props, ref) => {
   }))
 
   return (
-    <div className="smtcmp-chat-container">
-      <div className="smtcmp-chat-header">
-        <h1 className="smtcmp-chat-header-title">Chat</h1>
-        <div className="smtcmp-chat-header-buttons">
+    <div className="nrlcmp-chat-container">
+      <div className="nrlcmp-chat-header">
+        <h1 className="nrlcmp-chat-header-title">Chat</h1>
+        <div className="nrlcmp-chat-header-buttons">
           <button
             onClick={() => handleNewChat()}
             className="clickable-icon"
@@ -622,7 +622,7 @@ const Chat = forwardRef<ChatRef, ChatProps>((props, ref) => {
           </button>
         </div>
       </div>
-      <div className="smtcmp-chat-messages" ref={chatMessagesRef}>
+      <div className="nrlcmp-chat-messages" ref={chatMessagesRef}>
         {groupedChatMessages.map((messageOrGroup, index) =>
           !Array.isArray(messageOrGroup) ? (
             <UserMessageItem
@@ -702,9 +702,9 @@ const Chat = forwardRef<ChatRef, ChatProps>((props, ref) => {
         )}
         <QueryProgress state={queryProgress} />
         {showContinueResponseButton && (
-          <div className="smtcmp-continue-response-button-container">
+          <div className="nrlcmp-continue-response-button-container">
             <button
-              className="smtcmp-continue-response-button"
+              className="nrlcmp-continue-response-button"
               onClick={handleContinueResponse}
             >
               <div>Continue Response</div>
@@ -712,7 +712,7 @@ const Chat = forwardRef<ChatRef, ChatProps>((props, ref) => {
           </div>
         )}
         {submitChatMutation.isPending && (
-          <button onClick={abortActiveStreams} className="smtcmp-stop-gen-btn">
+          <button onClick={abortActiveStreams} className="nrlcmp-stop-gen-btn">
             <CircleStop size={16} />
             <div>Stop Generation</div>
           </button>

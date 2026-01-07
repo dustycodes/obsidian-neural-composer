@@ -3,21 +3,21 @@ import { App, TFile, Notice } from 'obsidian'
 import { QueryProgressState } from '../../components/chat-view/QueryProgress'
 import { VectorManager } from '../../database/modules/vector/VectorManager'
 import { SelectEmbedding } from '../../database/schema'
-import { SmartComposerSettings } from '../../settings/schema/setting.types'
+import { NeuralComposerSettings } from '../../settings/schema/setting.types'
 import { EmbeddingModelClient } from '../../types/embedding'
 
 import { getEmbeddingModelClient } from './embedding'
 
 export class RAGEngine {
   private app: App
-  private settings: SmartComposerSettings
+  private settings: NeuralComposerSettings
   private vectorManager: VectorManager | null = null
   private embeddingModel: EmbeddingModelClient | null = null
   private restartServerCallback: () => Promise<void>;
 
   constructor(
     app: App,
-    settings: SmartComposerSettings,
+    settings: NeuralComposerSettings,
     vectorManager: VectorManager,
     restartServerCallback?: () => Promise<void> 
   ) {
@@ -36,7 +36,7 @@ export class RAGEngine {
     this.vectorManager = null
   }
 
-  setSettings(settings: SmartComposerSettings) {
+  setSettings(settings: NeuralComposerSettings) {
     this.settings = settings
     this.embeddingModel = getEmbeddingModelClient({
       settings,
@@ -100,17 +100,29 @@ export class RAGEngine {
     }
   }
 
-  // --- 3. CONSULTA MAESTRA (PASSTHROUGH) ---
+// --- 3. CONSULTA MAESTRA (PASSTHROUGH) ---
+// --- INJERTO CORA: CONSULTA CON DETECCIÓN DE ERRORES ---
   async processQuery({
-    query, scope, onQueryProgressChange,
+    query,
+    scope,
+    onQueryProgressChange,
   }: {
     query: string
-    scope?: { files: string[], folders: string[] }
+    scope?: {
+      files: string[]
+      folders: string[]
+    }
     onQueryProgressChange?: (queryProgress: QueryProgressState) => void
-  }): Promise<(Omit<SelectEmbedding, 'embedding'> & { similarity: number })[]> {
+  }): Promise<
+    (Omit<SelectEmbedding, 'embedding'> & {
+      similarity: number
+    })[]
+  > {
     
-    // A. ESTRATEGIA LOCAL
+    // 1. ESTRATEGIA LOCAL (Se mantiene igual)
     if (scope && scope.files && scope.files.length > 0) {
+        // ... (código existente de lectura local) ...
+        // (Resumido aquí para brevedad, mantén tu código local igual)
         const localResults: any[] = [];
         for (const filePath of scope.files) {
              const file = this.app.vault.getAbstractFileByPath(filePath);
@@ -126,24 +138,33 @@ export class RAGEngine {
         return localResults;
     }
 
-    // B. ESTRATEGIA GLOBAL
-    console.log("🕸️ Consulting Global Graph...");
+    // 2. ESTRATEGIA GLOBAL
+    console.log("🕸️ Consulting the Global Graph...");
     onQueryProgressChange?.({ type: 'querying' })
 
     const performQuery = async () => {
-      const response = await fetch("http://localhost:9621/query", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-            query: query, 
-            // --- AQUÍ USAMOS EL MODO SELECCIONADO ---
-            mode: this.settings.lightRagQueryMode, 
-            // ----------------------------------------
-            stream: false,
-            only_need_context: false
-        })
-      });
-        if (!response.ok) throw new Error(`Status ${response.status}`);
+        const response = await fetch("http://localhost:9621/query", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+                query: query, mode: "hybrid", stream: false, only_need_context: false
+            })
+        });
+        
+        // --- DETECCIÓN DE ERRORES DEL SERVIDOR ---
+        if (!response.ok) {
+            const errorText = await response.text();
+            
+            // Detectar problemas de Reranking comunes
+            if (errorText.toLowerCase().includes("quota") || errorText.toLowerCase().includes("credit") || errorText.toLowerCase().includes("429")) {
+                new Notice("⚠️ RERANK ERROR: Quota Exceeded.\nPlease check your Jina/Cohere API Key.", 0); // 0 = Se queda pegado hasta que lo cierren
+            }
+            else if (errorText.toLowerCase().includes("rerank")) {
+                new Notice(`⚠️ Reranking Error: ${errorText}`, 5000);
+            }
+            
+            throw new Error(`Status ${response.status}: ${errorText}`);
+        }
         return await response.json();
     };
 
@@ -152,6 +173,7 @@ export class RAGEngine {
       try {
           data = await performQuery();
       } catch (firstError) {
+          // Lógica de resurrección (se mantiene igual)
           console.warn("⚠️ First attempt failed...", firstError);
           if (this.settings.enableAutoStartServer) {
               onQueryProgressChange?.({ type: 'querying' }); 
@@ -164,50 +186,38 @@ export class RAGEngine {
           }
       }
 
+      // ... (Procesamiento de respuesta igual que antes) ...
       console.log("✅ Data received:", data);
       const results: any[] = [];
       const graphAnswer = typeof data === 'string' ? data : (data.response || "");
       
-      // --- CONSTRUCCIÓN DEL DOCUMENTO MAESTRO ---
-      // Combinamos la respuesta + la lista de referencias en un solo texto
       let masterContent = graphAnswer;
-
       if (data.references && Array.isArray(data.references)) {
           masterContent += "\n\n--- ORIGINAL REFERENCES (DATA LAYER) ---\n";
           data.references.forEach((ref: any, index: number) => {
               const docName = ref.file_path || `Source ${index + 1}`;
-              // Usamos el índice original [1], [2]...
               masterContent += `[${index + 1}] ${docName}\n`;
           });
       }
 
-      // 1. Inyectar Documento Maestro
       if (masterContent) {
           results.push({
-              id: -1, 
-              model: 'lightrag-master',
-              path: "🧠 Graph's Memory",
-              content: masterContent, // <--- Aquí va todo junto
-              similarity: 1.0, 
-              mtime: Date.now(),
+              id: -1, model: 'lightrag-master', path: "🧠 Grap's Memory",
+              content: masterContent, similarity: 1.0, mtime: Date.now(),
               metadata: { startLine: 0, endLine: 0, fileName: "GraphAnswer", content: masterContent }
           });
       }
 
-      // 2. Inyectar Referencias Desglosadas (Para la UI)
+      // Referencias desglosadas
       if (data.references && Array.isArray(data.references)) {
           for (let i = 0; i < data.references.length; i++) {
               const ref = data.references[i];
               const filePath = ref.file_path || `Source #${i+1}`;
               const docName = `[${i + 1}] ${filePath}`; 
-              
               results.push({
-                  id: -(i + 2), 
-                  model: 'lightrag-ref', 
-                  path: `📂 ${docName}`, 
+                  id: -(i + 2), model: 'lightrag-ref', path: `📂 ${docName}`,
                   content: `[Full Content of ${docName}]:\n${ref.content || "..."}`, 
-                  similarity: 0.5, 
-                  mtime: Date.now(),
+                  similarity: 0.5, mtime: Date.now(),
                   metadata: { startLine: 0, endLine: 0, fileName: filePath }
               });
           }
@@ -217,8 +227,15 @@ export class RAGEngine {
       return results;
 
     } catch (error) {
-      console.error("❌ Fatal error:", error);
-      return [];
+      console.error("❌ Error definitivo:", error);
+      
+      // Mensaje amigable en el chat si falla
+      const errorDoc: any = {
+          id: -2, path: "⚠️ Query Error",
+          content: `No response could be obtained from Graph.\n\nPosible cause: ${error.message}\n\nIf you use Reranking, check your credits.`,
+          similarity: 1.0, metadata: { startLine: 0, endLine: 0 }
+      };
+      return [errorDoc];
     }
   }
 

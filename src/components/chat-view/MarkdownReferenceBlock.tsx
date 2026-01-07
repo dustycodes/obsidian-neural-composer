@@ -54,19 +54,19 @@ export default function MarkdownReferenceBlock({
 
   return (
     blockContent && (
-      <div className={clsx('smtcmp-code-block', filename && 'has-filename')}>
-        <div className="smtcmp-code-block-header">
+      <div className={clsx('nrlcmp-code-block', filename && 'has-filename')}>
+        <div className="nrlcmp-code-block-header">
           {filename && (
             <div
-              className="smtcmp-code-block-header-filename"
+              className="nrlcmp-code-block-header-filename"
               onClick={handleOpenFile}
             >
               {filename}
             </div>
           )}
-          <div className="smtcmp-code-block-header-button-container">
+          <div className="nrlcmp-code-block-header-button-container">
             <button
-              className="clickable-icon smtcmp-code-block-header-button"
+              className="clickable-icon nrlcmp-code-block-header-button"
               onClick={() => {
                 setIsPreviewMode(!isPreviewMode)
               }}
@@ -77,7 +77,7 @@ export default function MarkdownReferenceBlock({
           </div>
         </div>
         {isPreviewMode ? (
-          <div className="smtcmp-code-block-obsidian-markdown">
+          <div className="nrlcmp-code-block-obsidian-markdown">
             <ObsidianMarkdown content={blockContent} scale="sm" />
           </div>
         ) : (

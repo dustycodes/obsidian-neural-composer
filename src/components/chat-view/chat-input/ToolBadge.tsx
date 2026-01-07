@@ -63,24 +63,24 @@ export default function ToolBadge() {
 
   return (
     <div
-      className="smtcmp-chat-user-input-file-badge"
+      className="nrlcmp-chat-user-input-file-badge"
       onClick={handleBadgeClick}
     >
-      <div className="smtcmp-chat-user-input-file-badge-name">
+      <div className="nrlcmp-chat-user-input-file-badge-name">
         <Wrench
           size={12}
-          className="smtcmp-chat-user-input-file-badge-name-icon"
+          className="nrlcmp-chat-user-input-file-badge-name-icon"
         />
         <span
           className={clsx(
-            !settings.chatOptions.enableTools && 'smtcmp-excluded-content',
+            !settings.chatOptions.enableTools && 'nrlcmp-excluded-content',
           )}
         >
           Tools ({toolCount})
         </span>
       </div>
       <div
-        className="smtcmp-chat-user-input-file-badge-eye"
+        className="nrlcmp-chat-user-input-file-badge-eye"
         onClick={handleToolToggle}
       >
         {settings.chatOptions.enableTools ? (

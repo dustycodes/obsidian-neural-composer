@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { DEFAULT_PROVIDERS, PROVIDER_TYPES_INFO } from '../../../constants'
 import { getProviderClient } from '../../../core/llm/manager'
 import { supportedDimensionsForIndex } from '../../../database/schema'
-import SmartComposerPlugin from '../../../main'
+import NeuralComposerPlugin from '../../../main'
 import {
   EmbeddingModel,
   embeddingModelSchema,
@@ -17,12 +17,12 @@ import { ReactModal } from '../../common/ReactModal'
 import { ConfirmModal } from '../../modals/ConfirmModal'
 
 type AddEmbeddingModelModalComponentProps = {
-  plugin: SmartComposerPlugin
+  plugin: NeuralComposerPlugin
   onClose: () => void
 }
 
 export class AddEmbeddingModelModal extends ReactModal<AddEmbeddingModelModalComponentProps> {
-  constructor(app: App, plugin: SmartComposerPlugin) {
+  constructor(app: App, plugin: NeuralComposerPlugin) {
     super({
       app: app,
       Component: AddEmbeddingModelModalComponent,

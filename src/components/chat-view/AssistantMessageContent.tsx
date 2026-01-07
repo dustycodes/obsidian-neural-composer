@@ -47,7 +47,7 @@ export default function AssistantMessageContent({
   // --- MODO EDICIÓN ACTIVADO POR EL PADRE ---
   if (isEditingMode && onContentUpdate) {
     return (
-      <div className="smtcmp-edit-container" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <div className="nrlcmp-edit-container" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <textarea
           value={editedContent}
           onChange={(e) => setEditedContent(e.target.value)}

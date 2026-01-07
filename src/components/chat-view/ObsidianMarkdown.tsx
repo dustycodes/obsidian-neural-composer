@@ -50,7 +50,7 @@ const ObsidianMarkdown = memo(function ObsidianMarkdown({
   return (
     <div
       ref={containerRef}
-      className={`markdown-rendered smtcmp-markdown-rendered smtcmp-scale-${scale}`}
+      className={`markdown-rendered nrlcmp-markdown-rendered nrlcmp-scale-${scale}`}
     />
   )
 })
@@ -105,7 +105,7 @@ function ObsidianCodeBlock({
   scale?: 'xs' | 'sm' | 'base'
 }) {
   return (
-    <div className="smtcmp-obsidian-code-block">
+    <div className="nrlcmp-obsidian-code-block">
       <ObsidianMarkdown
         content={`\`\`\`${language ?? ''}\n${content}\n\`\`\``}
         scale={scale}

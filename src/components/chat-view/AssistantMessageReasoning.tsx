@@ -38,20 +38,20 @@ const AssistantMessageReasoning = memo(function AssistantMessageReasoning({
   }
 
   return (
-    <div className="smtcmp-assistant-message-metadata">
+    <div className="nrlcmp-assistant-message-metadata">
       <div
-        className="smtcmp-assistant-message-metadata-toggle"
+        className="nrlcmp-assistant-message-metadata-toggle"
         onClick={handleToggle}
       >
         <span>Reasoning {showLoader && <DotLoader />}</span>
         {isExpanded ? (
-          <ChevronUp className="smtcmp-assistant-message-metadata-toggle-icon" />
+          <ChevronUp className="nrlcmp-assistant-message-metadata-toggle-icon" />
         ) : (
-          <ChevronDown className="smtcmp-assistant-message-metadata-toggle-icon" />
+          <ChevronDown className="nrlcmp-assistant-message-metadata-toggle-icon" />
         )}
       </div>
       {isExpanded && (
-        <div className="smtcmp-assistant-message-metadata-content">
+        <div className="nrlcmp-assistant-message-metadata-content">
           <ObsidianMarkdown content={reasoning} scale="xs" />
         </div>
       )}
