@@ -1,96 +1,93 @@
 # 🧠 Neural Composer
+**Deep, graph-based search for your Obsidian Vault.**
 
-**Neural Composer** is the graph-based evolution of the *Smart Composer* plugin for Obsidian. 
+![Hero Banner](https://raw.githubusercontent.com/oscampo/obsidian-neural-composer/main/images/hero-banner.png)
 
-It upgrades your note-taking experience by connecting Obsidian to a local **LightRAG (Graph RAG)** server. Instead of simple vector search, Neural Composer retrieves information based on **relationships**, deep context, and semantic understanding from your personal knowledge graph.
+## 👋 Hello, Obsidian Community!
 
-> **Forked from:** [Smart Composer](https://github.com/glowingjade/obsidian-smart-composer)
-> 
-> **Developed by:** Oscar Campo & Cora (AI)
+We built **Neural Composer** because we love Obsidian, but we often felt limited by standard search tools. 
+
+Have you ever searched for a topic in your vault and gotten a list of notes that contain the *word*, but miss the *context*? Or tried to ask an AI plugin a complex question, only for it to fail because it couldn't "see" the connections between your files?
+
+**We wanted a way to talk to our notes that felt like talking to someone who actually remembers them.**
+
+That's why we integrated **LightRAG** (Graph-based Retrieval) into Obsidian. Unlike standard plugins that just look for matching text chunks, Neural Composer builds a **Knowledge Graph** of your ideas, helping you find relationships you might have forgotten.
+
+---
+
+## 🤔 Why use Graph RAG?
+
+Standard AI search (Vector RAG) is great for finding *similar text*. But **Graph RAG** is better for finding *connected ideas*.
+
+| Feature | Standard Vector Search | Neural Composer (Graph) |
+| :--- | :--- | :--- |
+| **How it searches** | Finds matching keywords/concepts | Follows relationships between entities |
+| **Best for** | Simple questions ("What is X?") | Complex questions ("How does X influence Y?") |
+| **Context** | Often fragmented | Holistic and interconnected |
+
+---
+
+## 🛠️ How it helps (Use Cases)
+
+We designed this to fit into different workflows. Here is how it might help you:
+
+*   **For Researchers:** If you have hundreds of papers, you can ask it to synthesize arguments across multiple authors, finding consensus or contradictions that a simple search would miss.
+*   **For Writers & DMs:** If you are building a world or a story, the graph tracks the relationships between characters and lore, helping you maintain consistency without digging through folders.
+*   **For Daily Journalers:** It connects entries from months ago to today, helping you spot patterns in your life or work that aren't obvious day-to-day.
+*   **For Project Managers:** It helps visualize dependencies between different project notes that might otherwise look like separate tasks.
+
+---
 
 ## ✨ Features
 
-*   **🕸️ Graph RAG Power:** Queries a local LightRAG server using hybrid search (Vector + Knowledge Graph).
-*   **⚡ Automated Lifecycle:** The plugin fully manages the Python server. Auto-starts on load, stops on exit, and restarts with one click.
-*   **🧬 Custom Ontology:** Define the "Entity Types" (Categories) that matter to *you*. Includes an **Auto-Detect** feature that analyzes your notes to suggest the perfect ontology structure.
-*   **🎯 Semantic Reranking:** Integrated support for **Jina AI**, **Cohere**, or **Custom Local Rerankers** (like BAAI/bge-m3) to drastically improve retrieval precision.
-*   **⚙️ Dynamic Configuration:** No need to touch `.env` files. The plugin generates the server configuration automatically based on your settings.
-*   **📥 Integrated Ingestion:** 
-    *   **Single Note:** Command to ingest the current file.
-    *   **Batch Ingestion:** Right-click any folder to ingest all supported files (MD, PDF, DOCX, etc.) recursively.
-*   **🔍 Transparent Sources:** 
-    *   **Strict Citations:** Option to force academic-style citations `[1]` linked to source files.
-    *   **Reference List:** View the exact text segments used to generate the answer.
-*   **🎛️ Flexible Query Modes:** Switch between `Mix`, `Hybrid`, `Local`, or `Global` search modes directly from the chat interface.
+We wanted the experience to be as smooth as possible:
 
-## 🛠️ Prerequisites
+*   **⚡ Automated Server:** No need to fiddle with terminals. The plugin handles the background Python server for you (starts and stops automatically).
+*   **🕸️ Hybrid Search:** You don't have to choose. It combines Vector search with Graph traversal for the best results.
+*   **📥 Easy Ingestion:** Right-click any folder to add your notes to the graph. It supports PDFs, DOCX, and more...  <details> <summary> Complete list of supported formats </summary> md, txt, docx, pdf, pptx, xlsx, rtf, odt, epub, html, htm, xml, json, yaml, yml, csv, tex, log, conf, ini, properties, sql, bat, sh, c, cpp, py, java, js, ts, swift, go, rb, php, css, scss, less  </details>
+*   **🔍 Transparency:** The chat shows you exactly which files and text segments were used to generate the answer (with citations like `[1]`), so you can always verify the source.
+*   **🔒 Local & Private:** You can use local models (like Ollama) for a completely offline experience, or connect to Gemini/OpenAI if you prefer.
 
-Neural Composer acts as a controller for the **LightRAG Server**. You need the Python environment set up on your machine.
+---
 
-1.  **Install Python (3.10+):** Ensure Python is installed.
-2.  **Install LightRAG:**
+## 🚀 Getting Started
+
+This plugin requires a small backend setup (Python) to run the LightRAG engine.
+
+### 1. One-time Setup
+1.  Ensure you have **Python 3.10+** installed.
+2.  Install the engine via terminal:
     ```bash
     pip install "lightrag-hku[api]"
     ```
-    *(Recommendation: Use a virtual environment `venv` to keep dependencies clean).*
+    *(We recommend using a virtual environment).*
 
-## 🚀 Installation & Setup
+### 2. Install the Plugin
+Download `main.js`, `manifest.json`, and `styles.css` from the **[Releases](../../releases)** page and place them in your `.obsidian/plugins/obsidian-neural-composer` folder. Enable it in Obsidian.
 
-### 1. Install the Plugin
-1.  Download `main.js`, `manifest.json`, and `styles.css` from the **[Releases](../../releases)** page.
-2.  Create a folder named `obsidian-neural-composer` inside your vault's `.obsidian/plugins/` directory.
-3.  Place the files there and **Enable** the plugin in Obsidian Settings.
+### 3. Connect & Go
+Go to **Settings > Neural Composer**.
+1.  Enter your API Keys (Gemini/OpenAI/Ollama).
+2.  In the **Neural Backend** section, paste the path to your `lightrag-server` executable and choose a folder for your data.
+3.  Turn on **Auto-start** and click **"Restart Server"**.
 
-### 2. Configure the Neural Backend
-Go to **Settings > Neural Composer > Neural Backend (LightRAG)**.
+You are ready! You can now right-click a folder to ingest your notes and start chatting with your vault.
 
-1.  **LightRAG Command Path:** Enter the **absolute path** to the `lightrag-server` executable.
-    *   *Windows (Virtual Env):* `C:\Users\[YourName]\Projects\my-env\Scripts\lightrag-server.exe`
-    *   *Mac/Linux (Virtual Env):* `/home/[User]/projects/my-env/bin/lightrag-server`
-2.  **Graph Data Directory:** Enter the absolute path to the folder where you want to store your graph data.
-3.  **Graph Logic & Embedding Models:** You can select specific models for the Graph (e.g., use Ollama for indexing but OpenAI for chat).
-4.  **Summary Language:** Enter the language of your notes (e.g., "Spanish", "English"). **Crucial for graph quality.**
-5.  **Auto-start LightRAG Server:** Toggle this **ON**.
-6.  Click **"Restart Server"**.
+---
 
-> **Magic:** The plugin will automatically create/update the `.env` file in your data directory and launch the server for you!
+## 🧩 Advanced Options
 
-## 🧩 Advanced Configuration
+For those who like to tinker, we added some power features:
+*   **Custom Ontology:** Teach the graph the specific categories of your field (e.g., "Experiment", "Theorem") instead of generic ones.
+*   **Reranking:** Connect to Jina AI or a local reranker for higher precision results.
 
-### 🧬 Custom Ontology
-Instead of generic "Person/Organization" types, you can teach the graph your specific domain.
-1.  Go to **Ontology** settings.
-2.  Select a source folder (e.g., "Research").
-3.  Click **"✨ Analyze & Generate"**. The AI will suggest types like `Concept`, `Methodology`, `Experiment`.
-4.  Enable **"Use Custom Entity Types"** and restart the server.
-    *   *⚠️ Warning: Changing ontology requires re-ingesting your data.*
+---
 
-### 🎯 Reranking (Precision Boost)
-Filter out irrelevant results before they reach the LLM.
-1.  Go to **Reranking** settings.
-2.  Select a provider: **Jina AI**, **Cohere**, or **Custom / Local**.
-3.  **Local Setup:** If you have a local rerank server (e.g., running `bge-reranker-v2-m3` via API), select "Custom", enter your host URL (e.g., `http://localhost:8182/v1/rerank`), and set Binding Type to `cohere`.
+## 🤝 Acknowledgements
 
-## 💡 Usage
+This project is a labor of love, built upon the shoulders of giants:
+*   Forked from the excellent **[Smart Composer](https://github.com/glowingjade/obsidian-smart-composer)** by glowingjade.
+*   Powered by the **[LightRAG](https://github.com/HKUDS/LightRAG)** library.
+*   Developed by **Oscar Campo** & **Cora** (AI).
 
-### Building Your Brain (Ingestion)
-*   **Single File:** Open a note > Command Palette > **"Neural Composer: Ingest current note"**.
-*   **Entire Folder:** File Explorer > Right-Click Folder > **"🧠 Ingest Folder into Graph"**.
-    *   *Supports:* MD, TXT, PDF, DOCX, PPTX, and code files.
-
-### Asking Questions (Retrieval)
-1.  Open **Neural Composer Chat**.
-2.  Select **Vault Chat**.
-3.  **Select Mode:**
-    *   **Mix/Hybrid:** Best for general questions.
-    *   **Global:** Best for "What are the main themes..." summaries.
-    *   **Local:** Best for specific details about an entity.
-4.  **Citations:** Toggle "Show Citations" in settings if you want strict `[1]` references in the text.
-
-## 🤝 Credits & License
-
-*   **Core UI/UX:** [glowingjade](https://github.com/glowingjade) (Smart Composer).
-*   **Graph Integration & Architecture:** Oscar Campo.
-*   **Backend Power:** [LightRAG](https://github.com/HKUDS/LightRAG).
-
-MIT License.
+We hope this helps you connect the dots in your own second brain. Happy composing!
