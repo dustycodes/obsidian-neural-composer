@@ -1,7 +1,7 @@
 # 🧠 Neural Composer
 **Deep, graph-based search for your Obsidian Vault.**
 
-![Hero Banner](https://raw.githubusercontent.com/oscampo/obsidian-neural-composer/main/images/hero-banner.png)
+![Hero Banner](https://raw.githubusercontent.com/oscampo/obsidian-neural-composer/main/images/hero-banner.GIF)
 
 ## 👋 Hello, Obsidian Community!
 
