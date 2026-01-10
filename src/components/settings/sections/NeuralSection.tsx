@@ -72,6 +72,31 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
         })
       })
 
+// 3.5 Graph Embedding Model (NUEVO)
+    new Setting(container)
+      .setName('Graph Embedding Model')
+      .setDesc('Select the model used for vectorizing your notes. (Must match the dimensions used during ingestion).')
+      .addDropdown((dropdown) => {
+        // Llenar lista con modelos de embedding disponibles
+        plugin.settings.embeddingModels.forEach((model) => {
+          dropdown.addOption(model.id, `${model.providerId} - ${model.model} (${model.dimension || '?'} dim)`)
+        })
+        
+        // Opción por defecto
+        dropdown.addOption('', 'Same as Chat Model (Default)')
+        
+        // Valor actual
+        dropdown.setValue(plugin.settings.lightRagEmbeddingModelId || '')
+
+        dropdown.onChange(async (value) => {
+          await plugin.setSettings({
+            ...plugin.settings,
+            lightRagEmbeddingModelId: value,
+          })
+           await plugin.updateEnvFile(); 
+        })
+      })
+
     // 4. Language
     new Setting(container)
       .setName('Summary Language')
@@ -302,6 +327,26 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
             new EnvEditorModal(plugin.app, plugin).open();
           }),
       )
+
+
+// ... dentro de NeuralSection ...
+    container.createEl('h4', { text: '🎨 Visualization' })
+
+    new Setting(container)
+      .setName('Graph Rendering Engine')
+      .setDesc('Choose 2D for performance/clarity or 3D for immersion (requires GPU).')
+      .addDropdown((dropdown) => {
+        dropdown.addOption('2d', '2D (Cytoscape) - Fast & Clean')
+        dropdown.addOption('3d', '3D (WebGL) - Immersive')
+        dropdown.setValue(plugin.settings.graphViewMode)
+        dropdown.onChange(async (value) => {
+          await plugin.setSettings({
+            ...plugin.settings,
+            graphViewMode: value as '2d' | '3d',
+          })
+        })
+      })
+
 
     // ESTILO "ZONA DE ATENCIÓN"
     // Aplicamos estilos directamente al elemento del DOM de este setting

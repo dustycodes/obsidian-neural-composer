@@ -78,6 +78,7 @@ export const NeuralComposerSettingsSchema = z.object({
   lightRagSummaryLanguage: z.string().catch('English'), 
   lightRagShowCitations: z.boolean().catch(true),
   lightRagQueryMode: z.enum(['local', 'global', 'hybrid', 'naive', 'mix', 'bypass']).catch('mix'),
+  lightRagEmbeddingModelId: z.string().optional().catch(''), 
 
   // --- RERANKING ---
   lightRagRerankBinding: z.string().catch(''), 
@@ -91,6 +92,8 @@ export const NeuralComposerSettingsSchema = z.object({
   lightRagOntologyFolder: z.string().catch(''),
   // NUEVO INTERRUPTOR:
   useCustomEntityTypes: z.boolean().catch(false), 
+
+  graphViewMode: z.enum(['2d', '3d']).catch('2d'),
 
 })
 
@@ -137,6 +140,7 @@ export const DEFAULT_SETTINGS: NeuralComposerSettings = {
   lightRagSummaryLanguage: 'English',
   lightRagShowCitations: true,
   lightRagQueryMode: 'mix',
+  lightRagEmbeddingModelId: '', 
 
   // --- RERANK DEFAULTS ---
   lightRagRerankBinding: '',
@@ -151,6 +155,8 @@ export const DEFAULT_SETTINGS: NeuralComposerSettings = {
   lightRagOntologyFolder: '', 
   // NUEVO DEFAULT:
   useCustomEntityTypes: false, 
+
+  graphViewMode: '2d', // Default seguro para todos
 
 }
 

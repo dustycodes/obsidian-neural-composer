@@ -3,6 +3,8 @@ import { spawn, execSync, ChildProcess } from 'child_process'
 import * as fs from 'fs'
 import * as path from 'path'
 import * as net from 'net' // <--- ¡NUEVO IMPORT!
+import { GraphDashboardView, GRAPH_VIEW_TYPE } from './views/GraphDashboardView';
+import { NativeGraphView, NATIVE_GRAPH_VIEW_TYPE } from './views/NativeGraphView';
 
 import { ApplyView } from './ApplyView'
 import { ChatView } from './ChatView'
@@ -54,10 +56,35 @@ async onload() {
 
     this.registerView(CHAT_VIEW_TYPE, (leaf) => new ChatView(leaf, this))
     this.registerView(APPLY_VIEW_TYPE, (leaf) => new ApplyView(leaf))
-
-      this.addRibbonIcon('brain-circuit', 'Open Neural Composer', () =>
-      this.openChatView(),
+    // CORA MOD: REGISTRAR VISUALIZADOR
+    this.registerView(GRAPH_VIEW_TYPE, (leaf) => new GraphDashboardView(leaf)); 
+    this.addRibbonIcon('brain-circuit', 'Open Neural Composer', () =>
+    this.openChatView(),
     )
+
+    // NATIVE GRAPH VIEWER
+    this.registerView(
+      NATIVE_GRAPH_VIEW_TYPE,
+      (leaf) => new NativeGraphView(leaf, this) // <--- AQUÍ ESTÁ EL CAMBIO: Pasamos 'this'
+    );
+
+  this.addCommand({
+  id: 'open-native-graph',
+  name: '🕸️ Open Native Graph View (Experimental)',
+  callback: async () => {
+    const { workspace } = this.app;
+    let leaf = null;
+    const leaves = workspace.getLeavesOfType(NATIVE_GRAPH_VIEW_TYPE);
+
+    if (leaves.length > 0) {
+      leaf = leaves[0];
+    } else {
+      leaf = workspace.getLeaf(true);
+      await leaf.setViewState({ type: NATIVE_GRAPH_VIEW_TYPE, active: true });
+    }
+    workspace.revealLeaf(leaf);
+  },
+});
 
     this.addCommand({
       id: 'open-new-chat',
@@ -144,6 +171,29 @@ async onload() {
         })();
       },
     })
+
+// --- CORA MOD: COMANDO PARA ABRIR DASHBOARD ---
+this.addCommand({
+  id: 'open-graph-dashboard',
+  name: '🕸️ Open Knowledge Graph Dashboard',
+  callback: async () => {
+    const { workspace } = this.app;
+
+    let leaf = null;
+    const leaves = workspace.getLeavesOfType(GRAPH_VIEW_TYPE);
+
+    if (leaves.length > 0) {
+      // Si ya existe, úsala
+      leaf = leaves[0];
+    } else {
+      // Si no, crea una nueva en el panel principal (tab)
+      leaf = workspace.getLeaf(true); // 'true' = nueva pestaña
+      await leaf.setViewState({ type: GRAPH_VIEW_TYPE, active: true });
+    }
+
+    workspace.revealLeaf(leaf);
+  },
+});
 
     this.addSettingTab(new NeuralComposerSettingTab(this.app, this))
 
@@ -318,7 +368,7 @@ async onload() {
 
     try {
         const targetLlmId = this.settings.lightRagModelId || this.settings.chatModelId;
-        const embeddingId = this.settings.embeddingModelId;
+        const embeddingId = this.settings.lightRagEmbeddingModelId || this.settings.embeddingModelId;
         
         const llmModelObj = this.settings.chatModels.find(m => m.id === targetLlmId);
         const embedModelObj = this.settings.embeddingModels.find(m => m.id === embeddingId);
@@ -359,19 +409,41 @@ async onload() {
             envContent += `MAX_TOKEN_SIZE=8192\n`;
         }
 
-        // Rerank (Tu lógica existente)
-        const rerankBinding = this.settings.lightRagRerankBinding;
-        if (rerankBinding && rerankBinding !== '') {
+// --- RERANKING CONFIGURATION (CORREGIDA) ---
+        const rerankSelection = this.settings.lightRagRerankBinding;
+        
+        if (rerankSelection && rerankSelection !== '') {
             envContent += `\n# Reranking Configuration\n`;
-            envContent += `RERANK_BINDING=${rerankBinding}\n`;
+            
+            // Variable para decidir qué nombre ponerle al binding
+            let realBindingName = rerankSelection;
+            
+            if (rerankSelection === 'custom') {
+                 // CASO CUSTOM: Usamos el tipo interno (ej: 'cohere')
+                 // Si el usuario no puso nada, por defecto 'cohere' que es el estándar compatible
+                 realBindingName = this.settings.lightRagRerankBindingType || 'cohere';
+                 
+                 // Inyectamos el Host personalizado que escribió el usuario
+                 envContent += `RERANK_BINDING_HOST=${this.settings.lightRagRerankHost}\n`;
+            } else {
+                 // CASO PRESETS: URLs oficiales
+                 if (rerankSelection === 'jina') envContent += `RERANK_BINDING_HOST=https://api.jina.ai/v1/rerank\n`;
+                 if (rerankSelection === 'cohere') envContent += `RERANK_BINDING_HOST=https://api.cohere.com/v2/rerank\n`;
+            }
+
+            // AQUI ESTÁ EL CAMBIO: Usamos 'realBindingName', no la selección cruda
+            envContent += `RERANK_BINDING=${realBindingName}\n`;
+            
+            // El resto sigue igual
             envContent += `RERANK_MODEL=${this.settings.lightRagRerankModel}\n`;
-            if (rerankBinding === 'jina') envContent += `RERANK_BINDING_HOST=https://api.jina.ai/v1/rerank\n`;
-            if (rerankBinding === 'cohere') envContent += `RERANK_BINDING_HOST=https://api.cohere.com/v2/rerank\n`;
-            if (this.settings.lightRagRerankApiKey) envContent += `RERANK_BINDING_API_KEY=${this.settings.lightRagRerankApiKey}\n`;
+            if (this.settings.lightRagRerankApiKey) {
+                envContent += `RERANK_BINDING_API_KEY=${this.settings.lightRagRerankApiKey}\n`;
+            }
         } else {
              envContent += `\n# Reranking Disabled\n`;
              envContent += `RERANK_BINDING=null\n`;
         }
+        // -------------------------------------------
 
         // API Keys
         const providersNeeded = new Set([llmProvider, embedProvider]);
