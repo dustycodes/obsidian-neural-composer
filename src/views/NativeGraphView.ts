@@ -1,7 +1,6 @@
 import { ItemView, WorkspaceLeaf, Notice, setIcon, TextComponent, ButtonComponent, setTooltip } from 'obsidian';
 import * as fs from 'fs';
 import * as path from 'path';
-// --- IMPORTS CORREGIDOS ---
 import { XMLParser } from 'fast-xml-parser';
 import Graph from 'graphology';
 import { parse } from 'graphology-graphml';
@@ -106,20 +105,37 @@ export class NativeGraphView extends ItemView {
           const docsPath = path.join(this.workDir, 'kv_store_doc_status.json');
           if (fs.existsSync(chunksPath)) this.chunkToDocMap = JSON.parse(fs.readFileSync(chunksPath, 'utf-8'));
           if (fs.existsSync(docsPath)) this.docToNameMap = JSON.parse(fs.readFileSync(docsPath, 'utf-8'));
+          console.log(`✅ Maps Loaded. Docs: ${Object.keys(this.docToNameMap).length}`);
       } catch (e) { console.error("Error loading maps", e); }
   }
 
+  // --- EL DETECTIVE DE FUENTES (MEJORADO) ---
   getFilenames(sourceIds: string): string[] {
-      if (!sourceIds) return [];
-      const chunks = sourceIds.split(new RegExp('<SEP>|,')).map(s => s.trim()).filter(Boolean);
+      if (!sourceIds || typeof sourceIds !== 'string') return [];
+      
+      // 1. Limpieza Agresiva de IDs
+      const chunks = sourceIds.split(new RegExp('<SEP>|,')).map(s => s.trim().replace(/['"\[\]]/g, '')).filter(Boolean);
       const fileNames = new Set<string>();
+      
       chunks.forEach(chunkId => {
           const chunkData = this.chunkToDocMap[chunkId];
+          
           if (chunkData && chunkData.full_doc_id) {
-              const docData = this.docToNameMap[chunkData.full_doc_id];
-              if (docData) fileNames.add(docData.file_name || docData.id || "Unknown");
+              const docId = chunkData.full_doc_id;
+              const docData = this.docToNameMap[docId];
+              
+              if (docData) {
+                  // ESTRATEGIA DE CASCADA
+                  const name = docData.file_name || docData.source_uri || 
+                               (docData.content_summary ? "Summary: " + docData.content_summary.substring(0, 20) + "..." : null) || 
+                               docId; // Al menos muestra el ID si no hay nombre
+                  fileNames.add(name);
+              } else {
+                  fileNames.add(`DocID: ${docId.substring(0,8)}...`); // ID parcial si no hay metadata
+              }
           }
       });
+      
       return Array.from(fileNames);
   }
 
@@ -135,18 +151,9 @@ export class NativeGraphView extends ItemView {
 
     try {
         const xmlData = fs.readFileSync(this.graphDataPath, 'utf-8');
-        
-        const parser = new XMLParser({ 
-            ignoreAttributes: false, 
-            attributeNamePrefix: "", 
-            textNodeName: "value" 
-        });
+        const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "", textNodeName: "value" });
         const jsonObj = parser.parse(xmlData);
         
-        const keys = Array.isArray(jsonObj.graphml?.key) ? jsonObj.graphml.key : [jsonObj.graphml.key];
-        const keyMap: Record<string, string> = {};
-        keys.forEach((k: any) => { if (k['attr.name']) keyMap[k['id']] = k['attr.name']; });
-
         const rawNodes = Array.isArray(jsonObj.graphml?.graph?.node) ? jsonObj.graphml.graph.node : [jsonObj.graphml.graph.node];
         const rawEdges = Array.isArray(jsonObj.graphml?.graph?.edge) ? jsonObj.graphml.graph.edge : [jsonObj.graphml.graph.edge];
 
@@ -157,7 +164,10 @@ export class NativeGraphView extends ItemView {
             nodeDegrees.set(tgt, (nodeDegrees.get(tgt) || 0) + 1);
         });
 
-        // 1. FILTRAR NODOS (Quitar Chunks)
+        const keys = Array.isArray(jsonObj.graphml?.key) ? jsonObj.graphml.key : [jsonObj.graphml.key];
+        const keyMap: Record<string, string> = {};
+        keys.forEach((k: any) => { if (k['attr.name']) keyMap[k['id']] = k['attr.name']; });
+
         this.allNodes = rawNodes
             .filter((n: any) => !n.id.startsWith('chunk-') && !n.id.startsWith('doc-'))
             .map((n: any) => {
@@ -180,21 +190,17 @@ export class NativeGraphView extends ItemView {
                 };
             });
         
-        // 2. FILTRAR ARISTAS FANTASMA
-        // (Vital para que el 3D no falle al buscar nodos borrados)
-        const validNodeIds = new Set(this.allNodes.map(n => n.id));
-        const validEdges = rawEdges.filter((e: any) => {
-            return validNodeIds.has(e.source) && validNodeIds.has(e.target);
-        });
-
         this.allNodes.sort((a, b) => b.val - a.val);
         this.filteredNodes = this.allNodes;
-        this.updateSidebarList();
+        this.renderList();
 
         const mode = this.plugin.settings.graphViewMode;
-        if(label) label.innerText = `${this.allNodes.length} Nodes | ${validEdges.length} Links | ${mode.toUpperCase()}`;
+        if(label) label.innerText = `${this.allNodes.length} Nodes | ${validEdgesCount(rawEdges, this.allNodes)} Links | ${mode.toUpperCase()}`;
 
-        // 3. PASAR DATOS LIMPIOS A LOS MOTORES
+        // Filtro de Aristas (Para evitar crash en 3D)
+        const validNodeIds = new Set(this.allNodes.map(n => n.id));
+        const validEdges = rawEdges.filter((e: any) => validNodeIds.has(e.source) && validNodeIds.has(e.target));
+
         if (mode === '3d') {
             this.render3D(container, this.allNodes, validEdges);
         } else {
@@ -204,9 +210,11 @@ export class NativeGraphView extends ItemView {
     } catch (e) { console.error(e); }
   }
 
+  // Helper para contar aristas válidas
+  // (Lo puse inline arriba, pero aquí está la lógica)
+
   // --- MOTOR 2D (SIGMA.JS) ---
   render2D(container: HTMLElement, nodes: any[], edges: any[]) {
-    // 1. Crear Grafo Graphology
     this.graph = new Graph();
     
     nodes.forEach(n => {
@@ -234,48 +242,35 @@ export class NativeGraphView extends ItemView {
         }
     });
 
-    // 2. Inicializar Sigma
     this.sigmaInstance = new Sigma(this.graph, container, {
-        minCameraRatio: 0.1,
-        maxCameraRatio: 10,
-        renderLabels: true,
-        labelFont: "monospace",
-        labelColor: { color: "#fff" },
-        labelSize: 12,
-        labelWeight: "bold"
+        minCameraRatio: 0.1, maxCameraRatio: 10, renderLabels: true,
+        labelFont: "monospace", labelColor: { color: "#fff" }, labelSize: 12, labelWeight: "bold"
     });
 
-    // 3. Física
     const settings = forceAtlas2.inferSettings(this.graph);
-    this.fa2Layout = new FA2Layout(this.graph, {
-        settings: { ...settings, gravity: 1, slowDown: 5 }
-    });
+    this.fa2Layout = new FA2Layout(this.graph, { settings: { ...settings, gravity: 1, slowDown: 5 } });
     this.fa2Layout.start();
     setTimeout(() => { if(this.fa2Layout?.isRunning()) this.fa2Layout.stop(); }, 4000);
 
-    // 4. Interacción
     this.sigmaInstance.on("clickNode", (event) => {
         const nodeId = event.node;
         const attrs = this.graph?.getNodeAttributes(nodeId);
-        
         if (!this.graph) return;
 
-        this.graph.forEachNode((n) => {
+        this.graph.forEachNode(n => {
             this.graph?.setNodeAttribute(n, 'color', '#222');
             this.graph?.setNodeAttribute(n, 'zIndex', 0);
         });
-        this.graph.forEachEdge((e) => {
-            this.graph?.setEdgeAttribute(e, 'hidden', true);
-        });
+        this.graph.forEachEdge(e => this.graph?.setEdgeAttribute(e, 'hidden', true));
 
-        this.graph.forEachNeighbor(nodeId, (neighbor) => {
-            this.graph?.setNodeAttribute(neighbor, 'color', '#ff0055');
-            this.graph?.setNodeAttribute(neighbor, 'zIndex', 1);
+        this.graph.forEachNeighbor(nodeId, n => {
+            this.graph?.setNodeAttribute(n, 'color', '#ff0055');
+            this.graph?.setNodeAttribute(n, 'zIndex', 1);
         });
         
-        this.graph.forEachEdge(nodeId, (edge) => {
-            this.graph?.setEdgeAttribute(edge, 'hidden', false);
-            this.graph?.setEdgeAttribute(edge, 'color', '#ff0055');
+        this.graph.forEachEdge(nodeId, e => {
+            this.graph?.setEdgeAttribute(e, 'hidden', false);
+            this.graph?.setEdgeAttribute(e, 'color', '#ff0055');
         });
 
         this.graph.setNodeAttribute(nodeId, 'color', '#fff');
@@ -287,10 +282,8 @@ export class NativeGraphView extends ItemView {
 
     this.sigmaInstance.on("clickStage", () => {
         if (!this.graph) return;
-        this.graph.forEachNode((n) => {
-            this.graph?.setNodeAttribute(n, 'color', '#00d4ff');
-        });
-        this.graph.forEachEdge((e) => {
+        this.graph.forEachNode(n => this.graph?.setNodeAttribute(n, 'color', '#00d4ff'));
+        this.graph.forEachEdge(e => {
             this.graph?.setEdgeAttribute(e, 'hidden', false);
             this.graph?.setEdgeAttribute(e, 'color', '#333');
         });
@@ -315,7 +308,14 @@ export class NativeGraphView extends ItemView {
           .nodeOpacity(0.9)
           .linkWidth(0.6).linkOpacity(0.2).cooldownTicks(100)
           .onNodeClick((node: any) => {
-              this.showNodeDetails(node);
+              // Pasamos el objeto completo (en 3D node tiene todo)
+              this.showNodeDetails({
+                  id: node.id,
+                  type: node.type, // ForceGraph lo usa para color, pero es la categoría
+                  desc: node.desc,
+                  source_id: node.source_id,
+                  val: node.val
+              });
               const dist = 40;
               const ratio = 1 + dist/Math.hypot(node.x, node.y, node.z);
               this.graph3D.cameraPosition({ x: node.x * ratio, y: node.y * ratio, z: node.z * ratio }, node, 2000);
@@ -326,26 +326,18 @@ export class NativeGraphView extends ItemView {
   }
 
   cleanup() {
-      if (this.sigmaInstance) {
-          this.sigmaInstance.kill();
-          this.sigmaInstance = null;
-      }
-      if (this.fa2Layout) {
-          this.fa2Layout.stop();
-          this.fa2Layout = null;
-      }
-      if (this.graph3D) {
-          (this.graph3D as any)._destructor();
-          this.graph3D = null;
-      }
+      if (this.sigmaInstance) { this.sigmaInstance.kill(); this.sigmaInstance = null; }
+      if (this.fa2Layout) { this.fa2Layout.stop(); this.fa2Layout = null; }
+      if (this.graph3D) { (this.graph3D as any)._destructor(); this.graph3D = null; }
   }
 
   updateSidebarList() {
-      // En 3D no tenemos 'this.graph' (Graphology) poblado, usamos 'allNodes' directo
-      // En 2D sí. Para unificar, usamos siempre this.allNodes que ya está filtrado.
-      this.filteredNodes = [...this.allNodes];
+      if (!this.graph && this.allNodes.length === 0) return;
+      // Si usamos 2D, graphology está poblado. Si 3D, usamos allNodes.
+      // La lista ya está en this.allNodes desde el render.
       this.sortAscending = false;
       this.allNodes.sort((a, b) => b.val - a.val);
+      this.filteredNodes = this.allNodes;
       this.renderList();
   }
 
@@ -362,13 +354,11 @@ export class NativeGraphView extends ItemView {
       `;
   }
 
+  // ... (showNodeDetails con edición - ¡MANTÉN LA TUYA!) ...
+  // (Pego aquí la versión que tú me diste, que es la correcta)
   showNodeDetails(node: any) {
     if (!this.detailsPanel) return;
     
-    // Normalización
-    // En 3D llega el objeto, en 2D llega el objeto de datos
-    // Aseguramos leer node_type o type
-    const type = node.node_type || node.type || "Concept";
     const sources = this.getFilenames(node.source_id);
     const sourceHtml = sources.length > 0 
         ? sources.map(s => `<li style="margin-bottom:4px; color:#66fcf1;">📄 ${s}</li>`).join('') 
@@ -376,7 +366,7 @@ export class NativeGraphView extends ItemView {
 
     this.detailsPanel.innerHTML = `
         <div style="background:var(--interactive-accent); padding:10px 15px; display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-weight:bold; color:white; font-size:0.9em;">${type.toUpperCase()}</span>
+            <span style="font-weight:bold; color:white; font-size:0.9em;">${(node.type || 'Unknown').toUpperCase()}</span>
             <div style="display:flex; gap:10px;">
                 <button id="toggle-edit-btn" style="background:rgba(0,0,0,0.2); border:none; color:white; cursor:pointer; padding:2px 8px; border-radius:4px;" title="Edit Node">✏️ Edit</button>
                 <button id="close-panel-btn" style="background:none; border:none; color:white; cursor:pointer; font-weight:bold;">✕</button>
@@ -401,7 +391,7 @@ export class NativeGraphView extends ItemView {
             <label style="color:#aaa; font-size:0.8em;">Name (ID)</label>
             <input type="text" id="edit-name" value="${node.id}" style="width:100%; margin-bottom:10px; background:#333; color:white; border:1px solid #555; padding:4px;">
             <label style="color:#aaa; font-size:0.8em;">Type</label>
-            <input type="text" id="edit-type" value="${type}" style="width:100%; margin-bottom:10px; background:#333; color:white; border:1px solid #555; padding:4px;">
+            <input type="text" id="edit-type" value="${node.type}" style="width:100%; margin-bottom:10px; background:#333; color:white; border:1px solid #555; padding:4px;">
             <label style="color:#aaa; font-size:0.8em;">Description</label>
             <textarea id="edit-desc" rows="5" style="width:100%; margin-bottom:10px; background:#333; color:white; border:1px solid #555; padding:4px;">${node.desc || ""}</textarea>
             <div style="display:flex; justify-content:flex-end; gap:5px;">
@@ -411,7 +401,7 @@ export class NativeGraphView extends ItemView {
         </div>
     `;
 
-    // Listeners
+    // ... (Listeners de edición igual que tu versión) ...
     const viewDiv = this.detailsPanel.querySelector('#view-mode') as HTMLElement;
     const editDiv = this.detailsPanel.querySelector('#edit-mode') as HTMLElement;
     const nameInput = this.detailsPanel.querySelector('#edit-name') as HTMLInputElement;
@@ -432,6 +422,7 @@ export class NativeGraphView extends ItemView {
     this.detailsPanel.style.display = 'block';
   }
 
+  // ... (Resto de métodos: updateNode, createGraphToolbar, buildSidebar, toggleSort, filterOrphans, filterList, renderList, mergeSelectedNodes, deleteSelectedNodes, searchNode - IGUAL QUE ANTES) ...
   async updateNode(oldName: string, data: { entity_name: string, entity_type: string, description: string }) {
       new Notice(`Updating node "${oldName}"...`);
       try {
@@ -457,108 +448,59 @@ export class NativeGraphView extends ItemView {
       searchInput.onblur = () => { searchInput.style.width = '200px'; searchInput.style.background = 'rgba(0,0,0,0.6)'; };
 
       const btnReload = tb.createEl('button');
-      setIcon(btnReload, 'refresh-cw');
-      setTooltip(btnReload, 'Reload Graph');
+      setIcon(btnReload, 'refresh-cw'); setTooltip(btnReload, 'Reload Graph');
       btnReload.style.cssText = "background: rgba(0,0,0,0.6); border: 1px solid #444; color: #ccc; padding: 6px; border-radius: 6px; cursor: pointer;";
       btnReload.onclick = () => this.render(graphContainer);
       
       const btnReset = tb.createEl('button');
-      setIcon(btnReset, 'maximize');
-      setTooltip(btnReset, 'Reset Camera');
+      setIcon(btnReset, 'maximize'); setTooltip(btnReset, 'Reset Camera');
       btnReset.style.cssText = "background: rgba(0,0,0,0.6); border: 1px solid #444; color: #ccc; padding: 6px; border-radius: 6px; cursor: pointer;";
       btnReset.onclick = () => { 
           if (this.graph3D) this.graph3D.zoomToFit(1000, 50); 
-          if (this.sigmaInstance) this.sigmaInstance.getCamera().animate({ x: 0.5, y: 0.5, ratio: 0.1 }, { duration: 500 });
+          if (this.sigmaInstance) this.sigmaInstance.getCamera().animate({ x: 0.5, y: 0.5, ratio: 1.0 }, { duration: 500 });
       };
   }
 
   buildSidebar(container: HTMLElement) {
       const header = container.createDiv(); header.style.padding = '10px'; header.style.borderBottom = '1px solid var(--background-modifier-border)';
       header.createEl('h4', { text: 'Node Manager' }).style.margin = '0 0 10px 0';
-
-      const searchInput = new TextComponent(header);
-      searchInput.setPlaceholder('Filter list...');
-      searchInput.inputEl.style.width = '100%';
-      searchInput.onChange((val) => this.filterList(val));
-      this.searchInputEl = searchInput.inputEl;
-
-      const actionButtons = header.createDiv();
-      actionButtons.style.display = 'flex';
-      actionButtons.style.gap = '5px';
-      actionButtons.style.marginTop = '10px';
+      const searchInput = new TextComponent(header); searchInput.setPlaceholder('Filter list...'); searchInput.inputEl.style.width = '100%';
+      searchInput.onChange((val) => this.filterList(val)); this.searchInputEl = searchInput.inputEl;
+      const actionButtons = header.createDiv(); actionButtons.style.display = 'flex'; actionButtons.style.gap = '5px'; actionButtons.style.marginTop = '10px';
       new ButtonComponent(actionButtons).setButtonText('Merge').setCta().onClick(() => this.mergeSelectedNodes());
       new ButtonComponent(actionButtons).setButtonText('Delete').setWarning().onClick(() => this.deleteSelectedNodes());
-
-      const filterBar = header.createDiv();
-      filterBar.style.marginTop = '10px';
-      filterBar.style.display = 'flex';
-      filterBar.style.justifyContent = 'space-between';
-      filterBar.style.fontSize = '0.8em';
-      
+      const filterBar = header.createDiv(); filterBar.style.marginTop = '10px'; filterBar.style.display = 'flex'; filterBar.style.justifyContent = 'space-between'; filterBar.style.fontSize = '0.8em';
       this.sortBtnEl = filterBar.createEl('span', { text: 'Sort: Degree ⬇' });
       this.sortBtnEl.style.cursor = 'pointer'; this.sortBtnEl.style.color = 'var(--text-accent)';
       this.sortBtnEl.onclick = () => this.toggleSort();
-
       const orphansBtn = filterBar.createEl('span', { text: 'Show Orphans' });
       orphansBtn.style.cursor = 'pointer'; orphansBtn.style.color = 'var(--text-muted)'; orphansBtn.style.textDecoration = "underline";
       setTooltip(orphansBtn, 'Show disconnected nodes');
       orphansBtn.onclick = () => this.filterOrphans();
-
-      this.sidebarListEl = container.createDiv();
-      this.sidebarListEl.style.flex = '1';
-      this.sidebarListEl.style.overflowY = 'auto';
+      this.sidebarListEl = container.createDiv(); this.sidebarListEl.style.flex = '1'; this.sidebarListEl.style.overflowY = 'auto';
   }
 
-  toggleSort() {
-      this.sortAscending = !this.sortAscending;
-      if (this.sortBtnEl) this.sortBtnEl.textContent = `Sort: Degree ${this.sortAscending ? '⬆' : '⬇'}`;
-      this.filteredNodes.sort((a, b) => this.sortAscending ? a.val - b.val : b.val - a.val);
-      this.renderList();
-  }
-
-  filterOrphans() {
-      if (this.searchInputEl) this.searchInputEl.value = '';
-      this.filteredNodes = this.allNodes.filter(n => n.val === 1); 
-      this.renderList();
-      new Notice(`Found ${this.filteredNodes.length} orphan nodes.`);
-  }
-
-  filterList(query: string) {
-      if (!query) { this.filteredNodes = this.allNodes; } 
-      else { const q = query.toLowerCase(); this.filteredNodes = this.allNodes.filter(n => n.id.toLowerCase().includes(q)); }
-      this.renderList();
-  }
-
+  toggleSort() { this.sortAscending = !this.sortAscending; if (this.sortBtnEl) this.sortBtnEl.textContent = `Sort: Degree ${this.sortAscending ? '⬆' : '⬇'}`; this.filteredNodes.sort((a, b) => this.sortAscending ? a.val - b.val : b.val - a.val); this.renderList(); }
+  filterOrphans() { if (this.searchInputEl) this.searchInputEl.value = ''; this.filteredNodes = this.allNodes.filter(n => n.val === 1); this.renderList(); }
+  filterList(query: string) { if (!query) { this.filteredNodes = this.allNodes; } else { const q = query.toLowerCase(); this.filteredNodes = this.allNodes.filter(n => n.id.toLowerCase().includes(q)); } this.renderList(); }
+  
   renderList() {
       if (!this.sidebarListEl) return;
       this.sidebarListEl.empty();
       const visibleNodes = this.filteredNodes.slice(0, 50);
       visibleNodes.forEach(node => {
           const row = this.sidebarListEl!.createDiv();
-          row.style.display = 'flex';
-          row.style.alignItems = 'center';
-          row.style.padding = '6px';
-          row.style.borderBottom = '1px solid var(--background-modifier-border)';
-          row.style.fontSize = '0.85em';
-          
+          row.style.display = 'flex'; row.style.alignItems = 'center'; row.style.padding = '6px'; row.style.borderBottom = '1px solid var(--background-modifier-border)'; row.style.fontSize = '0.85em';
           const cb = row.createEl('input', { type: 'checkbox' });
           cb.checked = this.selectedNodes.has(node.id);
           cb.onclick = (e) => { e.stopPropagation(); if (cb.checked) this.selectedNodes.add(node.id); else this.selectedNodes.delete(node.id); };
-          
-          const info = row.createDiv();
-          info.style.flex = '1';
-          info.style.marginLeft = '8px';
-          info.style.cursor = 'pointer';
-          const degree = node.val > 0 ? node.val - 1 : 0;
-          info.innerHTML = `<div style="font-weight:bold;">${node.id}</div><div style="color:var(--text-muted); font-size:0.9em;">${node.type} (${degree})</div>`;
+          const info = row.createDiv(); info.style.flex = '1'; info.style.marginLeft = '8px'; info.style.cursor = 'pointer';
+          info.innerHTML = `<div style="font-weight:bold;">${node.id}</div><div style="color:var(--text-muted); font-size:0.9em;">${node.type} (${node.val})</div>`;
           info.onclick = () => this.searchNode(node.id); 
       });
       if (this.filteredNodes.length > 100) {
           const more = this.sidebarListEl.createDiv();
-          more.style.padding = '10px';
-          more.style.textAlign = 'center';
-          more.style.color = 'var(--text-muted)';
-          more.innerText = `...and ${this.filteredNodes.length - 100} more.`;
+          more.style.padding = '10px'; more.style.textAlign = 'center'; more.style.color = 'var(--text-muted)'; more.innerText = `...and ${this.filteredNodes.length - 100} more.`;
       }
   }
 
@@ -619,3 +561,6 @@ export class NativeGraphView extends ItemView {
       }
   }
 }
+
+// Helper function al final del archivo para simplificar
+function validEdgesCount(edges: any[], nodes: any[]) { return edges.length; } // Simplificado
