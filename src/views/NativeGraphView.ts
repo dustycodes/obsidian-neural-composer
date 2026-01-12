@@ -1,4 +1,5 @@
 import { ItemView, WorkspaceLeaf, Notice, setIcon, TextComponent, ButtonComponent, setTooltip } from 'obsidian';
+import { MergeSelectionModal } from '../components/modals/MergeSelectionModal';
 import * as fs from 'fs';
 import * as path from 'path';
 import { XMLParser } from 'fast-xml-parser';
@@ -504,19 +505,49 @@ export class NativeGraphView extends ItemView {
       }
   }
 
+// --- FUSIÓN CON UI BLOQUEANTE ---
   async mergeSelectedNodes() {
       const targets = Array.from(this.selectedNodes);
-      if (targets.length < 2) { new Notice("Select 2+ nodes"); return; }
-      if(!confirm(`Merge ${targets.length} nodes into "${targets[0]}"?`)) return;
-      try {
-          const response = await fetch("http://localhost:9621/graph/entities/merge", {
-              method: "POST", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ "entity_to_change_into": targets[0], "entities_to_change": targets.slice(1) })
-          });
-          if (response.ok) { new Notice("Merged!"); this.selectedNodes.clear(); setTimeout(() => this.render(this.contentEl.querySelector('#sigma-container') as HTMLElement), 1000); }
-      } catch (e) { console.error(e); }
+      if (targets.length < 2) { 
+          new Notice("⚠️ Select at least 2 nodes to merge."); 
+          return; 
+      }
+      
+      // Abrimos el Modal
+      new MergeSelectionModal(this.app, targets, async (targetNode, sourceNodes) => {
+          
+          // Aquí ya no cerramos inmediatamente, esperamos al fetch
+          try {
+              const response = await fetch("http://localhost:9621/graph/entities/merge", {
+                  method: "POST", 
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ 
+                      "entity_to_change_into": targetNode, 
+                      "entities_to_change": sourceNodes 
+                  })
+              });
+              
+              if (response.ok) { 
+                  new Notice(`✅ Merge Successful!`);
+                  
+                  // Actualización de UI
+                  this.selectedNodes.clear(); 
+                  if (this.sidebarListEl) this.sidebarListEl.empty();
+                  
+                  // Recarga
+                  setTimeout(() => this.render(this.contentEl.querySelector('#sigma-container') as HTMLElement), 1000); 
+              } else { 
+                  const err = await response.text();
+                  console.error(err);
+                  new Notice(`❌ Merge Failed: ${err}`);
+              }
+          } catch (e) { 
+              console.error(e); 
+              new Notice("❌ API Connection Error."); 
+          }
+          
+      }).open();
   }
-
   async deleteSelectedNodes() {
       const targets = Array.from(this.selectedNodes);
       if (targets.length === 0) return;
