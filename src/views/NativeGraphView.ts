@@ -213,49 +213,30 @@ export class NativeGraphView extends ItemView {
     } catch (e) { console.error(e); }
   }
 
-// --- HELPER 2D: RESALTAR Y ENFOCAR (CORREGIDO) ---
+// --- HELPER 2D: NAVEGACIÓN PRECISA ---
   focusOnNode2D(nodeId: string) {
       if (!this.graph || !this.sigmaInstance) return;
 
-      // 1. OBTENER DATOS REALES
-      const attrs = this.graph.getNodeAttributes(nodeId);
-      // ¡CLAVE! Preguntamos a Sigma dónde está el nodo visualmente AHORA
+      // 1. CONGELAR FÍSICA (Vital para que el objetivo no se mueva)
+      if (this.fa2Layout && this.fa2Layout.isRunning()) {
+          this.fa2Layout.stop();
+      }
+
+      // 2. OBTENER COORDENADAS VISUALES (La verdad absoluta de la pantalla)
+      // Sigma sabe dónde pintó el nodo, independientemente de la DB
       const visualData = this.sigmaInstance.getNodeDisplayData(nodeId);
-
-      if (!attrs || !visualData) return;
-
-      // 2. LÓGICA DE HIGHLIGHT (Igual que antes)
-      this.graph.forEachNode(n => {
-          this.graph?.setNodeAttribute(n, 'color', '#333'); 
-          this.graph?.setNodeAttribute(n, 'label', '');
-          this.graph?.setNodeAttribute(n, 'zIndex', 0);
-      });
-      this.graph.forEachEdge(e => this.graph?.setEdgeAttribute(e, 'hidden', true));
-
-      this.graph.forEachNeighbor(nodeId, n => {
-          this.graph?.setNodeAttribute(n, 'color', '#ff0055');
-          this.graph?.setNodeAttribute(n, 'label', n); 
-          this.graph?.setNodeAttribute(n, 'zIndex', 1);
-      });
+      const attrs = this.graph.getNodeAttributes(nodeId);
       
-      this.graph.forEachEdge(nodeId, e => {
-          this.graph?.setEdgeAttribute(e, 'hidden', false);
-          this.graph?.setEdgeAttribute(e, 'color', '#ff0055');
-          this.graph?.setEdgeAttribute(e, 'size', 2);
-      });
+      if (!visualData || !attrs) return;
 
-      this.graph.setNodeAttribute(nodeId, 'color', '#fff');
-      this.graph.setNodeAttribute(nodeId, 'label', nodeId);
-      this.graph.setNodeAttribute(nodeId, 'size', (attrs.size || 5) * 1.5);
-
-      // 3. MOVER CÁMARA (USANDO COORDENADAS VISUALES)
-      // Usamos visualData.x y visualData.y para precisión milimétrica
+      // 3. MOVER CÁMARA
+      // Usamos visualData.x / y porque ahí es donde está el nodo AHORA.
       this.sigmaInstance.getCamera().animate(
           { 
               x: visualData.x, 
               y: visualData.y, 
-              ratio: 0.05, // Zoom cercano
-              angle: 0     // Resetear rotación si la hubiera
+              ratio: 0.15, // Zoom un poco menos agresivo para no perder contexto
+              angle: 0
           }, 
           { 
               duration: 1000, 
@@ -263,7 +244,38 @@ export class NativeGraphView extends ItemView {
           }
       );
 
-      // 4. MOSTRAR DETALLES (USANDO DATOS LÓGICOS)
+      // 4. HIGHLIGHT (Encender luces)
+      
+      // Apagar todo
+      this.graph.forEachNode(n => {
+          this.graph?.setNodeAttribute(n, 'color', '#333'); 
+          this.graph?.setNodeAttribute(n, 'label', '');
+          this.graph?.setNodeAttribute(n, 'zIndex', 0);
+      });
+      this.graph.forEachEdge(e => {
+          this.graph?.setEdgeAttribute(e, 'hidden', true);
+      });
+
+      // Encender Vecinos
+      this.graph.forEachNeighbor(nodeId, n => {
+          this.graph?.setNodeAttribute(n, 'color', '#ff0055');
+          this.graph?.setNodeAttribute(n, 'label', n); 
+          this.graph?.setNodeAttribute(n, 'zIndex', 1);
+      });
+      
+      // Encender Aristas
+      this.graph.forEachEdge(nodeId, e => {
+          this.graph?.setEdgeAttribute(e, 'hidden', false);
+          this.graph?.setEdgeAttribute(e, 'color', '#ff0055');
+          this.graph?.setEdgeAttribute(e, 'size', 2);
+      });
+
+      // Encender Objetivo
+      this.graph.setNodeAttribute(nodeId, 'color', '#fff'); // Blanco
+      this.graph.setNodeAttribute(nodeId, 'label', nodeId);
+      this.graph.setNodeAttribute(nodeId, 'size', (visualData.size || 5) * 1.5);
+
+      // 5. MOSTRAR PANEL
       this.showNodeDetails({ 
           id: nodeId, 
           type: attrs.node_type, 
@@ -275,9 +287,9 @@ export class NativeGraphView extends ItemView {
   }
 
 
-// --- MOTOR 2D (SIGMA.JS) ---
+// --- MOTOR 2D (SIGMA.JS) - FIRMA CORRECTA Y VISUALIZACIÓN ---
   render2D(container: HTMLElement, nodes: any[], edges: any[]) {
-    // 1. Crear Grafo
+    // 1. Crear Grafo (Usando los argumentos recibidos)
     this.graph = new Graph();
     
     nodes.forEach(n => {
@@ -298,7 +310,6 @@ export class NativeGraphView extends ItemView {
     });
 
     edges.forEach(e => {
-        // Usamos normalizedSource si existe (del filtro en render), si no source
         const src = e.normalizedSource || e.source;
         const tgt = e.normalizedTarget || e.target;
         
@@ -309,62 +320,79 @@ export class NativeGraphView extends ItemView {
         }
     });
 
-    // 2. Inicializar Sigma
-    this.sigmaInstance = new Sigma(this.graph, container, {
-        minCameraRatio: 0.05, 
-        maxCameraRatio: 10,
-        renderLabels: true,
-        labelFont: "monospace",
-        labelColor: { color: "#fff" },
-        labelSize: 14,
-        labelWeight: "bold"
-    });
+    // 2. Inicializar Sigma (Con espera de frame para seguridad)
+    const initSigma = () => {
+        if (container.clientWidth === 0) { requestAnimationFrame(initSigma); return; }
+        if (!this.graph) return;
+        if (this.sigmaInstance) this.sigmaInstance.kill();
 
-    // 3. Física
-    const settings = forceAtlas2.inferSettings(this.graph);
-    this.fa2Layout = new FA2Layout(this.graph, {
-        settings: { ...settings, gravity: 1, slowDown: 5 }
-    });
-    this.fa2Layout.start();
-    setTimeout(() => { if(this.fa2Layout?.isRunning()) this.fa2Layout.stop(); }, 4000);
+        this.sigmaInstance = new Sigma(this.graph, container, {
+            minCameraRatio: 0.05, 
+            maxCameraRatio: 10,
+            renderLabels: true,
+            labelFont: "monospace",
+            labelColor: { color: "#fff" },
+            labelSize: 14,
+            labelWeight: "bold",
+            allowInvalidContainer: true,
+            zIndex: true
+        });
 
-       // --- EVENTOS DE INTERACCIÓN 2D ---
+        // 3. Física
+        const settings = forceAtlas2.inferSettings(this.graph);
+        this.fa2Layout = new FA2Layout(this.graph, {
+            settings: { ...settings, gravity: 1, slowDown: 5 }
+        });
+        this.fa2Layout.start();
+        setTimeout(() => { if(this.fa2Layout?.isRunning()) this.fa2Layout.stop(); }, 4000);
 
-      // CLICK: Delega a la función centralizada
-      this.sigmaInstance.on("clickNode", (event) => {
-          this.focusOnNode2D(event.node);
-      });
+        // --- EVENTOS (EL AJUSTE VISUAL) ---
 
-      // HOVER (ENTRAR): Muestra etiqueta temporalmente
-      this.sigmaInstance.on("enterNode", (event) => {
-          // Solo mostramos si el grafo no está en "Modo Foco" (si el nodo sigue siendo azul)
-          const color = this.graph?.getNodeAttribute(event.node, 'color');
-          if (color === '#00d4ff') {
-              this.graph?.setNodeAttribute(event.node, 'label', event.node);
-          }
-      });
+        // A. CLICK: Enfocar
+        this.sigmaInstance.on("clickNode", (event) => {
+            this.focusOnNode2D(event.node);
+        });
 
-      // HOVER (SALIR): Oculta etiqueta
-      this.sigmaInstance.on("leaveNode", (event) => {
-          const color = this.graph?.getNodeAttribute(event.node, 'color');
-          if (color === '#00d4ff') {
-              this.graph?.setNodeAttribute(event.node, 'label', '');
-          }
-      });
+        // B. HOVER: Rojo Neón + Texto Visible
+        this.sigmaInstance.on("enterNode", (event) => {
+            const color = this.graph?.getNodeAttribute(event.node, 'color');
+            // Si es azul (normal), lo ponemos rojo para leer el texto
+            if (color === '#00d4ff') {
+                this.graph?.setNodeAttribute(event.node, 'label', event.node);
+                this.graph?.setNodeAttribute(event.node, 'color', '#ff0055');
+                this.graph?.setNodeAttribute(event.node, 'zIndex', 10);
+            }
+        });
 
-      // CLIC EN EL FONDO: Resetear grafo a estado inicial
-      this.sigmaInstance.on("clickStage", () => {
-          if (!this.graph) return;
-          this.graph.forEachNode(n => {
-              this.graph?.setNodeAttribute(n, 'color', '#00d4ff'); // Volver a Azul
-              this.graph?.setNodeAttribute(n, 'label', ''); // Silencio
-          });
-          this.graph.forEachEdge(e => {
-              this.graph?.setEdgeAttribute(e, 'hidden', false);
-              this.graph?.setEdgeAttribute(e, 'color', '#333');
-          });
-          if(this.detailsPanel) this.detailsPanel.style.display = 'none';
-      });
+        // C. LEAVE: Restaurar Azul y Silencio
+        this.sigmaInstance.on("leaveNode", (event) => {
+            const color = this.graph?.getNodeAttribute(event.node, 'color');
+            // Si sigue siendo rojo (no fue clicado), restaurar
+            if (color === '#ff0055') {
+                this.graph?.setNodeAttribute(event.node, 'label', '');
+                this.graph?.setNodeAttribute(event.node, 'color', '#00d4ff');
+                this.graph?.setNodeAttribute(event.node, 'zIndex', 0);
+            }
+        });
+
+        // D. CLIC FONDO: Reset Total
+        this.sigmaInstance.on("clickStage", () => {
+            if (!this.graph) return;
+            this.graph.forEachNode(n => {
+                this.graph?.setNodeAttribute(n, 'color', '#00d4ff'); 
+                this.graph?.setNodeAttribute(n, 'label', ''); 
+                this.graph?.setNodeAttribute(n, 'size', Math.max(3, Math.min((this.graph?.getNodeAttribute(n, 'val')||1) * 1.5, 20)));
+                this.graph?.setNodeAttribute(n, 'zIndex', 0);
+            });
+            this.graph.forEachEdge(e => {
+                this.graph?.setEdgeAttribute(e, 'hidden', false);
+                this.graph?.setEdgeAttribute(e, 'color', '#333');
+            });
+            if(this.detailsPanel) this.detailsPanel.style.display = 'none';
+        });
+    };
+
+    requestAnimationFrame(initSigma);
   }
 
   // --- MOTOR 3D ---
@@ -618,38 +646,114 @@ export class NativeGraphView extends ItemView {
       } catch (e) { console.error(e); }
   }
 
-// --- ENFOQUE QUIRÚRGICO (ID EXACTO 2D/3D) ---
+// --- NAVEGACIÓN UNIFICADA (3D + 2D) ---
   focusNodeById(nodeId: string) {
       if (!nodeId) return;
-      
-      // 1. LÓGICA 3D
+
+      // =========================================================
+      // CASO 1: MODO 3D (Recuperado y Restaurado)
+      // =========================================================
       if (this.plugin.settings.graphViewMode === '3d' && this.graph3D) {
           const { nodes } = this.graph3D.graphData();
-          const target = nodes.find((n: any) => n.id === nodeId); // Búsqueda exacta
+          // Búsqueda exacta en los datos del motor 3D
+          const target = nodes.find((n: any) => n.id === nodeId);
+          
           if (target) {
+              // 1. Mostrar Panel
               this.showNodeDetails(target);
+              
+              // 2. Calcular Coordenadas de Vuelo
+              // (La lógica matemática que ya funcionaba)
               const dist = 40;
               const ratio = 1 + dist/Math.hypot(target.x, target.y, target.z);
-              this.graph3D.cameraPosition({ x: target.x * ratio, y: target.y * ratio, z: target.z * ratio }, target, 2000);
-          }
-      } 
-      // 2. LÓGICA 2D (SIGMA)
-      else if (this.sigmaInstance && this.graph) {
-          if (this.graph.hasNode(nodeId)) {
-              const attrs = this.graph.getNodeAttributes(nodeId);
               
-              // A. Mover Cámara (El "Viaje")
-              this.sigmaInstance.getCamera().animate(
-                  { x: attrs.x, y: attrs.y, ratio: 0.1 }, 
-                  { duration: 1000, easing: 'cubicInOut' }
+              // 3. Ejecutar Vuelo
+              this.graph3D.cameraPosition(
+                  { x: target.x * ratio, y: target.y * ratio, z: target.z * ratio }, // Destino
+                  target, // Mirar al nodo
+                  2000    // Duración (ms)
               );
-
-              // B. Aplicar Colores y Filtros Visuales
-              this.highlightNodeVisuals(nodeId); 
-              
-              // C. Mostrar Panel
-              this.showNodeDetails({ id: nodeId, ...attrs, type: attrs.node_type });
           }
+          return; // ¡Terminamos aquí si es 3D!
+      } 
+
+      // =========================================================
+      // CASO 2: MODO 2D (Sigma con GPS Robusto)
+      // =========================================================
+      if (this.sigmaInstance && this.graph && this.graph.hasNode(nodeId)) {
+          
+          // 1. DETENER FÍSICA (Vital para que no se mueva el objetivo)
+          if (this.fa2Layout && this.fa2Layout.isRunning()) {
+              this.fa2Layout.stop();
+          }
+
+          const attrs = this.graph.getNodeAttributes(nodeId);
+          const visualData = this.sigmaInstance.getNodeDisplayData(nodeId);
+
+          // 2. ESTRATEGIA DE COORDENADAS (Visual > Lógica)
+          let targetX = attrs.x;
+          let targetY = attrs.y;
+
+          // Si Sigma ya lo pintó, usamos esa coordenada exacta
+          if (visualData && typeof visualData.x === 'number' && !isNaN(visualData.x)) {
+              targetX = visualData.x;
+              targetY = visualData.y;
+          }
+
+          // 3. MOVER CÁMARA
+          this.sigmaInstance.getCamera().animate(
+              { 
+                  x: targetX, 
+                  y: targetY, 
+                  ratio: 0.15, // Zoom seguro
+                  angle: 0
+              }, 
+              { 
+                  duration: 1500, 
+                  easing: 'cubicInOut' 
+              }
+          );
+
+          // 4. HIGHLIGHT ROJO (Tu lógica visual favorita)
+          // A. Apagar todo
+          this.graph.forEachNode(n => {
+              this.graph?.setNodeAttribute(n, 'color', '#444');
+              this.graph?.setNodeAttribute(n, 'label', '');
+              this.graph?.setNodeAttribute(n, 'zIndex', 0);
+          });
+          this.graph.forEachEdge(e => {
+              this.graph?.setEdgeAttribute(e, 'hidden', true);
+          });
+
+          // B. Encender Vecinos
+          this.graph.forEachNeighbor(nodeId, n => {
+              this.graph?.setNodeAttribute(n, 'color', '#ff0055');
+              this.graph?.setNodeAttribute(n, 'label', n); 
+              this.graph?.setNodeAttribute(n, 'zIndex', 1);
+          });
+          
+          // C. Encender Aristas
+          this.graph.forEachEdge(nodeId, e => {
+              this.graph?.setEdgeAttribute(e, 'hidden', false);
+              this.graph?.setEdgeAttribute(e, 'color', '#ff0055');
+              this.graph?.setEdgeAttribute(e, 'size', 2);
+          });
+
+          // D. Encender Objetivo Central
+          this.graph.setNodeAttribute(nodeId, 'color', '#fff');
+          this.graph.setNodeAttribute(nodeId, 'label', nodeId);
+          const size = (visualData?.size || attrs.size || 5) * 1.5;
+          this.graph.setNodeAttribute(nodeId, 'size', size);
+
+          // 5. MOSTRAR DETALLES
+          this.showNodeDetails({ 
+              id: nodeId, 
+              type: attrs.node_type || attrs.type, 
+              val: attrs.val, 
+              desc: attrs.desc, 
+              file_paths: attrs.file_paths,
+              source_id: attrs.source_id
+          });
       }
   }
 
