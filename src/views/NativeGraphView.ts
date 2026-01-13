@@ -102,7 +102,7 @@ export class NativeGraphView extends ItemView {
     setTimeout(() => this.render(graphContainer), 100);
   }
 
-  // --- RENDERIZADO PRINCIPAL ---
+// --- RENDERIZADO PRINCIPAL ---
   async render(container: HTMLElement, label?: HTMLElement) {
     this.cleanup();
     container.empty();
@@ -138,13 +138,13 @@ export class NativeGraphView extends ItemView {
             nodeDegrees.set(tgt, (nodeDegrees.get(tgt) || 0) + 1);
         });
 
-        // 3. Procesar Nodos
+        // 3. Procesar Nodos (Esto ya lo tenías)
         this.allNodes = rawNodes
             .filter((n: any) => !n.id.startsWith('chunk-') && !n.id.startsWith('doc-'))
             .map((n: any) => {
                 let type = "Unknown";
                 let desc = "";
-                let files: string[] = []; // Array de archivos
+                let files: string[] = []; 
                 
                 const dataArr = Array.isArray(n.data) ? n.data : (n.data ? [n.data] : []);
                 
@@ -153,9 +153,7 @@ export class NativeGraphView extends ItemView {
                     if (mappedKey === "entity_type" || d.key === "d0") type = d.value;
                     if (mappedKey === "description" || d.key === "d1") desc = d.value;
                     
-                    // Intento de extraer archivos directamente del XML
                     if (mappedKey === "file_path" || mappedKey === "source_id") {
-                         // LightRAG a veces pone los filenames aquí separados por <SEP>
                          const val = String(d.value);
                          if (val.includes('.md') || val.includes('.pdf') || val.includes('.txt')) {
                              files = val.split('<SEP>').filter(s => s.trim().length > 0);
@@ -167,37 +165,125 @@ export class NativeGraphView extends ItemView {
                     id: n.id,
                     type: type,
                     desc: desc,
-                    source_id: "", // No usado
-                    file_paths: files, // Guardamos los archivos encontrados
+                    source_id: "", 
+                    file_paths: files, 
                     val: (nodeDegrees.get(n.id) || 0) + 1
                 };
             });
         
+        // --- [AQUÍ] INSERTAMOS EL CÓDIGO NUEVO ---
+        
+        // Creamos un Set de IDs válidos para búsqueda rápida
+        const validNodeIds = new Set(this.allNodes.map(n => n.id));
+        
+        // Filtramos las aristas: Solo permitimos las que conectan dos nodos que existen
+        const validEdges = rawEdges.filter((e: any) => {
+            // Normalizamos para atrapar 'source' o '@_source' según el parser
+            const src = e.source || e['@_source'];
+            const tgt = e.target || e['@_target'];
+            
+            if (validNodeIds.has(src) && validNodeIds.has(tgt)) {
+                // Guardamos la versión limpia para que los motores no sufran
+                e.normalizedSource = src;
+                e.normalizedTarget = tgt;
+                return true;
+            }
+            return false;
+        });
+
+        // ----------------------------------------
+
         this.allNodes.sort((a, b) => b.val - a.val);
         this.filteredNodes = this.allNodes;
         this.updateSidebarList();
 
         const mode = this.plugin.settings.graphViewMode;
-        if(label) label.innerText = `${this.allNodes.length} Nodes | ${mode.toUpperCase()}`;
+        
+        // Actualizamos la etiqueta para mostrar Links válidos
+        if(label) label.innerText = `${this.allNodes.length} Nodes | ${validEdges.length} Links | ${mode.toUpperCase()}`;
 
         if (mode === '3d') {
-            this.render3D(container, this.allNodes, rawEdges);
+            // ¡OJO! Aquí pasamos validEdges, NO rawEdges
+            this.render3D(container, this.allNodes, validEdges);
         } else {
-            this.render2D(container, this.allNodes, rawEdges);
+            // Aquí también
+            this.render2D(container, this.allNodes, validEdges);
         }
 
     } catch (e) { console.error(e); }
   }
 
-  // --- MOTOR 2D (SIGMA.JS) ---
+// --- HELPER 2D: RESALTAR Y ENFOCAR (CORREGIDO) ---
+  focusOnNode2D(nodeId: string) {
+      if (!this.graph || !this.sigmaInstance) return;
+
+      // 1. OBTENER DATOS REALES
+      const attrs = this.graph.getNodeAttributes(nodeId);
+      // ¡CLAVE! Preguntamos a Sigma dónde está el nodo visualmente AHORA
+      const visualData = this.sigmaInstance.getNodeDisplayData(nodeId);
+
+      if (!attrs || !visualData) return;
+
+      // 2. LÓGICA DE HIGHLIGHT (Igual que antes)
+      this.graph.forEachNode(n => {
+          this.graph?.setNodeAttribute(n, 'color', '#333'); 
+          this.graph?.setNodeAttribute(n, 'label', '');
+          this.graph?.setNodeAttribute(n, 'zIndex', 0);
+      });
+      this.graph.forEachEdge(e => this.graph?.setEdgeAttribute(e, 'hidden', true));
+
+      this.graph.forEachNeighbor(nodeId, n => {
+          this.graph?.setNodeAttribute(n, 'color', '#ff0055');
+          this.graph?.setNodeAttribute(n, 'label', n); 
+          this.graph?.setNodeAttribute(n, 'zIndex', 1);
+      });
+      
+      this.graph.forEachEdge(nodeId, e => {
+          this.graph?.setEdgeAttribute(e, 'hidden', false);
+          this.graph?.setEdgeAttribute(e, 'color', '#ff0055');
+          this.graph?.setEdgeAttribute(e, 'size', 2);
+      });
+
+      this.graph.setNodeAttribute(nodeId, 'color', '#fff');
+      this.graph.setNodeAttribute(nodeId, 'label', nodeId);
+      this.graph.setNodeAttribute(nodeId, 'size', (attrs.size || 5) * 1.5);
+
+      // 3. MOVER CÁMARA (USANDO COORDENADAS VISUALES)
+      // Usamos visualData.x y visualData.y para precisión milimétrica
+      this.sigmaInstance.getCamera().animate(
+          { 
+              x: visualData.x, 
+              y: visualData.y, 
+              ratio: 0.05, // Zoom cercano
+              angle: 0     // Resetear rotación si la hubiera
+          }, 
+          { 
+              duration: 1000, 
+              easing: 'cubicInOut' 
+          }
+      );
+
+      // 4. MOSTRAR DETALLES (USANDO DATOS LÓGICOS)
+      this.showNodeDetails({ 
+          id: nodeId, 
+          type: attrs.node_type, 
+          val: attrs.val, 
+          desc: attrs.desc, 
+          file_paths: attrs.file_paths,
+          source_id: attrs.source_id
+      });
+  }
+
+
+// --- MOTOR 2D (SIGMA.JS) ---
   render2D(container: HTMLElement, nodes: any[], edges: any[]) {
-    // 1. Graphology
+    // 1. Crear Grafo
     this.graph = new Graph();
     
     nodes.forEach(n => {
         if (!this.graph?.hasNode(n.id)) {
             this.graph?.addNode(n.id, {
-                label: '', // MUDO POR DEFECTO
+                label: '', // Mudo por defecto
                 size: Math.max(3, Math.min(n.val * 1.5, 20)),
                 color: '#00d4ff', 
                 type: 'circle', 
@@ -212,21 +298,25 @@ export class NativeGraphView extends ItemView {
     });
 
     edges.forEach(e => {
-        if (this.graph?.hasNode(e.source) && this.graph?.hasNode(e.target)) {
-             if (!this.graph.hasEdge(e.source, e.target)) {
-                 this.graph.addEdge(e.source, e.target, { color: '#333', size: 0.5, hidden: false });
+        // Usamos normalizedSource si existe (del filtro en render), si no source
+        const src = e.normalizedSource || e.source;
+        const tgt = e.normalizedTarget || e.target;
+        
+        if (this.graph?.hasNode(src) && this.graph?.hasNode(tgt)) {
+             if (!this.graph.hasEdge(src, tgt)) {
+                 this.graph.addEdge(src, tgt, { color: '#333', size: 0.5, hidden: false });
              }
         }
     });
 
-    // 2. Sigma
+    // 2. Inicializar Sigma
     this.sigmaInstance = new Sigma(this.graph, container, {
-        minCameraRatio: 0.1,
+        minCameraRatio: 0.05, 
         maxCameraRatio: 10,
         renderLabels: true,
         labelFont: "monospace",
         labelColor: { color: "#fff" },
-        labelSize: 12,
+        labelSize: 14,
         labelWeight: "bold"
     });
 
@@ -238,70 +328,58 @@ export class NativeGraphView extends ItemView {
     this.fa2Layout.start();
     setTimeout(() => { if(this.fa2Layout?.isRunning()) this.fa2Layout.stop(); }, 4000);
 
-    // 4. Interacción
-    this.sigmaInstance.on("clickNode", (event) => {
-        const nodeId = event.node;
-        const attrs = this.graph?.getNodeAttributes(nodeId);
-        
-        if (!this.graph) return;
+       // --- EVENTOS DE INTERACCIÓN 2D ---
 
-        // Reset Visual
-        this.graph.forEachNode((n) => {
-            this.graph?.setNodeAttribute(n, 'color', '#222');
-            this.graph?.setNodeAttribute(n, 'label', '');
-            this.graph?.setNodeAttribute(n, 'zIndex', 0);
-        });
-        this.graph.forEachEdge((e) => {
-            this.graph?.setEdgeAttribute(e, 'hidden', true);
-        });
+      // CLICK: Delega a la función centralizada
+      this.sigmaInstance.on("clickNode", (event) => {
+          this.focusOnNode2D(event.node);
+      });
 
-        // Highlight Vecinos
-        this.graph.forEachNeighbor(nodeId, (neighbor) => {
-            this.graph?.setNodeAttribute(neighbor, 'color', '#ff0055');
-            this.graph?.setNodeAttribute(neighbor, 'label', neighbor);
-            this.graph?.setNodeAttribute(neighbor, 'zIndex', 1);
-        });
-        
-        this.graph.forEachEdge(nodeId, (edge) => {
-            this.graph?.setEdgeAttribute(edge, 'hidden', false);
-            this.graph?.setEdgeAttribute(edge, 'color', '#ff0055');
-        });
+      // HOVER (ENTRAR): Muestra etiqueta temporalmente
+      this.sigmaInstance.on("enterNode", (event) => {
+          // Solo mostramos si el grafo no está en "Modo Foco" (si el nodo sigue siendo azul)
+          const color = this.graph?.getNodeAttribute(event.node, 'color');
+          if (color === '#00d4ff') {
+              this.graph?.setNodeAttribute(event.node, 'label', event.node);
+          }
+      });
 
-        // Highlight Central
-        this.graph.setNodeAttribute(nodeId, 'color', '#fff');
-        this.graph.setNodeAttribute(nodeId, 'label', nodeId); // Mostrar etiqueta al clic
-        
-        if (attrs) {
-            // Pasamos file_paths explícitamente
-            this.showNodeDetails({ 
-                id: nodeId, 
-                type: attrs.node_type, 
-                val: attrs.val, 
-                desc: attrs.desc, 
-                file_paths: attrs.file_paths 
-            });
-        }
-    });
+      // HOVER (SALIR): Oculta etiqueta
+      this.sigmaInstance.on("leaveNode", (event) => {
+          const color = this.graph?.getNodeAttribute(event.node, 'color');
+          if (color === '#00d4ff') {
+              this.graph?.setNodeAttribute(event.node, 'label', '');
+          }
+      });
 
-    this.sigmaInstance.on("clickStage", () => {
-        if (!this.graph) return;
-        this.graph.forEachNode((n) => {
-            this.graph?.setNodeAttribute(n, 'color', '#00d4ff');
-            this.graph?.setNodeAttribute(n, 'label', '');
-        });
-        this.graph.forEachEdge((e) => {
-            this.graph?.setEdgeAttribute(e, 'hidden', false);
-            this.graph?.setEdgeAttribute(e, 'color', '#333');
-        });
-        if(this.detailsPanel) this.detailsPanel.style.display = 'none';
-    });
+      // CLIC EN EL FONDO: Resetear grafo a estado inicial
+      this.sigmaInstance.on("clickStage", () => {
+          if (!this.graph) return;
+          this.graph.forEachNode(n => {
+              this.graph?.setNodeAttribute(n, 'color', '#00d4ff'); // Volver a Azul
+              this.graph?.setNodeAttribute(n, 'label', ''); // Silencio
+          });
+          this.graph.forEachEdge(e => {
+              this.graph?.setEdgeAttribute(e, 'hidden', false);
+              this.graph?.setEdgeAttribute(e, 'color', '#333');
+          });
+          if(this.detailsPanel) this.detailsPanel.style.display = 'none';
+      });
   }
 
   // --- MOTOR 3D ---
   render3D(container: HTMLElement, nodes: any[], edges: any[]) {
       const gData = {
-          nodes: nodes.map(n => ({ ...n, type: n.type })),
-          links: edges.map((e: any) => ({ source: e.source, target: e.target }))
+          nodes: nodes.map(n => ({ 
+              ...n, 
+              // Aseguramos que ForceGraph tenga el tipo para colorear
+              type: n.type 
+          })),
+          links: edges.map((e: any) => ({ 
+              // ¡CLAVE! Usamos los IDs normalizados y verificados
+              source: e.normalizedSource, 
+              target: e.normalizedTarget 
+          }))
       };
       
       this.graph3D = (ForceGraph3D as any)()(container)
@@ -494,8 +572,7 @@ export class NativeGraphView extends ItemView {
           const info = row.createDiv(); info.style.flex = '1'; info.style.marginLeft = '8px'; info.style.cursor = 'pointer';
           const degree = node.val > 0 ? node.val - 1 : 0;
           info.innerHTML = `<div style="font-weight:bold;">${node.id}</div><div style="color:var(--text-muted); font-size:0.9em;">${node.type} (${degree})</div>`;
-          //info.onclick = () => this.searchNode(node.id); 
-          info.onclick = () => this.focusNodeById(node.id);
+          info.onclick = () => this.focusNodeById(node.id); 
       });
       if (this.filteredNodes.length > 100) {
           const more = this.sidebarListEl.createDiv();
@@ -541,27 +618,19 @@ export class NativeGraphView extends ItemView {
       } catch (e) { console.error(e); }
   }
 
-// --- NUEVO MÉTODO: ENFOQUE QUIRÚRGICO (ID EXACTO) ---
-  // Úsalo cuando sabemos exactamente a quién queremos ver (clic en lista, clic en nodo)
+// --- ENFOQUE QUIRÚRGICO (ID EXACTO 2D/3D) ---
   focusNodeById(nodeId: string) {
       if (!nodeId) return;
       
       // 1. LÓGICA 3D
       if (this.plugin.settings.graphViewMode === '3d' && this.graph3D) {
           const { nodes } = this.graph3D.graphData();
-          // BÚSQUEDA EXACTA (===)
-          const target = nodes.find((n: any) => n.id === nodeId);
-          
+          const target = nodes.find((n: any) => n.id === nodeId); // Búsqueda exacta
           if (target) {
               this.showNodeDetails(target);
               const dist = 40;
               const ratio = 1 + dist/Math.hypot(target.x, target.y, target.z);
-              this.graph3D.cameraPosition(
-                  { x: target.x * ratio, y: target.y * ratio, z: target.z * ratio }, 
-                  target, 
-                  2000
-              );
-              // Feedback visual (Highlight) se maneja en showNodeDetails o podríamos forzarlo aquí
+              this.graph3D.cameraPosition({ x: target.x * ratio, y: target.y * ratio, z: target.z * ratio }, target, 2000);
           }
       } 
       // 2. LÓGICA 2D (SIGMA)
@@ -569,47 +638,49 @@ export class NativeGraphView extends ItemView {
           if (this.graph.hasNode(nodeId)) {
               const attrs = this.graph.getNodeAttributes(nodeId);
               
-              // Trigger visual changes
-              this.sigmaInstance.getCamera().animate({ 
-                  x: attrs.x, 
-                  y: attrs.y, 
-                  ratio: 0.05 
-              }, { duration: 1000 });
+              // A. Mover Cámara (El "Viaje")
+              this.sigmaInstance.getCamera().animate(
+                  { x: attrs.x, y: attrs.y, ratio: 0.1 }, 
+                  { duration: 1000, easing: 'cubicInOut' }
+              );
 
-              // Simular el evento de click para activar el highlight rojo
-              // (Reutilizamos la lógica visual que ya programamos en el evento clickNode)
-              // Como no podemos disparar el evento nativo fácilmente, lo hacemos manual:
+              // B. Aplicar Colores y Filtros Visuales
               this.highlightNodeVisuals(nodeId); 
               
-              // Mostrar panel
+              // C. Mostrar Panel
               this.showNodeDetails({ id: nodeId, ...attrs, type: attrs.node_type });
           }
       }
   }
 
-  // --- HELPER PARA HIGHLIGHT MANUAL EN 2D ---
+  // --- HELPER 2D: LÓGICA DE COLORES Y OPACIDAD ---
   highlightNodeVisuals(nodeId: string) {
       if (!this.graph) return;
       
+      // 1. Oscurecer todo el grafo (Gris medio #444)
       this.graph.forEachNode(n => {
-          this.graph?.setNodeAttribute(n, 'color', '#222');
+          this.graph?.setNodeAttribute(n, 'color', '#444');
           this.graph?.setNodeAttribute(n, 'label', '');
           this.graph?.setNodeAttribute(n, 'zIndex', 0);
       });
       this.graph.forEachEdge(e => this.graph?.setEdgeAttribute(e, 'hidden', true));
 
+      // 2. Resaltar Vecinos (Rojo Neón #ff0055)
       this.graph.forEachNeighbor(nodeId, n => {
           this.graph?.setNodeAttribute(n, 'color', '#ff0055');
-          this.graph?.setNodeAttribute(n, 'label', n);
+          this.graph?.setNodeAttribute(n, 'label', n); // Mostramos el nombre del vecino
           this.graph?.setNodeAttribute(n, 'zIndex', 1);
       });
+      
+      // 3. Resaltar Aristas Conectadas
       this.graph.forEachEdge(nodeId, e => {
           this.graph?.setEdgeAttribute(e, 'hidden', false);
           this.graph?.setEdgeAttribute(e, 'color', '#ff0055');
       });
 
+      // 4. Resaltar Nodo Central (Blanco)
       this.graph.setNodeAttribute(nodeId, 'color', '#fff');
-      this.graph.setNodeAttribute(nodeId, 'label', nodeId);
+      this.graph.setNodeAttribute(nodeId, 'label', nodeId); // Mostramos el nombre del seleccionado
   }
 
   // --- MÉTODO DE BÚSQUEDA (INPUT DE TEXTO) ---

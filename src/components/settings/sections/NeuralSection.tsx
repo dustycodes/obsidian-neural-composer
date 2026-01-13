@@ -336,8 +336,8 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
       .setName('Graph Rendering Engine')
       .setDesc('Choose 2D for performance/clarity or 3D for immersion (requires GPU).')
       .addDropdown((dropdown) => {
-        dropdown.addOption('2d', '2D (Cytoscape) - Fast & Clean')
-        dropdown.addOption('3d', '3D (WebGL) - Immersive')
+        dropdown.addOption('2d', '2D - Fast & Clean')
+        dropdown.addOption('3d', '3D - Immersive - uses GPU')
         dropdown.setValue(plugin.settings.graphViewMode)
         dropdown.onChange(async (value) => {
           await plugin.setSettings({
