@@ -2,8 +2,6 @@ import { ItemView, WorkspaceLeaf, Notice, setIcon, TextComponent, ButtonComponen
 import * as fs from 'fs';
 import * as path from 'path';
 import { XMLParser } from 'fast-xml-parser';
-
-// Librerías Gráficas
 import Graph from 'graphology';
 import { parse } from 'graphology-graphml';
 import Sigma from 'sigma';
@@ -11,8 +9,6 @@ import { circular } from 'graphology-layout';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import FA2Layout from 'graphology-layout-forceatlas2/worker'; 
 import ForceGraph3D from '3d-force-graph'; 
-
-// --- IMPORT FALTANTE AGREGADO ---
 import { MergeSelectionModal } from '../components/modals/MergeSelectionModal';
 
 export const NATIVE_GRAPH_VIEW_TYPE = 'neural-native-graph';
@@ -32,15 +28,14 @@ export class NativeGraphView extends ItemView {
   private graphDataPath: string;
   private workDir: string;
   
-  // Motores
   private sigmaInstance: Sigma | null = null;
   private fa2Layout: any = null;
   private graph3D: any = null;
   
-  // Estado
   private graph: Graph | null = null;
-  
-  // UI
+  private chunkToDocMap: Record<string, any> = {};
+  private docToNameMap: Record<string, any> = {};
+
   private detailsPanel: HTMLElement | null = null;
   private sidebarListEl: HTMLElement | null = null;
   private searchInputEl: HTMLInputElement | null = null;
@@ -72,7 +67,9 @@ export class NativeGraphView extends ItemView {
     const is3D = this.plugin.settings.graphViewMode === '3d';
     container.style.backgroundColor = is3D ? '#000005' : '#111111';
 
-    // ZONA IZQUIERDA (GRAFO)
+    await this.loadReferenceMaps();
+
+    // IZQUIERDA
     const graphZone = container.createDiv();
     graphZone.style.flex = '1';
     graphZone.style.position = 'relative';
@@ -85,11 +82,9 @@ export class NativeGraphView extends ItemView {
     graphContainer.style.height = '100%';
     
     this.createGraphToolbar(graphZone, graphContainer);
-    
-    // --- FUNCIÓN RECUPERADA ---
     this.createDetailsPanel(graphZone);
 
-    // ZONA DERECHA (GESTOR)
+    // DERECHA
     const sidebar = container.createDiv();
     sidebar.style.width = '320px';
     sidebar.style.display = 'flex';
@@ -102,7 +97,30 @@ export class NativeGraphView extends ItemView {
     setTimeout(() => this.render(graphContainer), 100);
   }
 
-// --- RENDERIZADO PRINCIPAL ---
+  async loadReferenceMaps() {
+      try {
+          const chunksPath = path.join(this.workDir, 'kv_store_text_chunks.json');
+          const docsPath = path.join(this.workDir, 'kv_store_doc_status.json');
+          if (fs.existsSync(chunksPath)) this.chunkToDocMap = JSON.parse(fs.readFileSync(chunksPath, 'utf-8'));
+          if (fs.existsSync(docsPath)) this.docToNameMap = JSON.parse(fs.readFileSync(docsPath, 'utf-8'));
+      } catch (e) { console.error("Error loading maps", e); }
+  }
+
+  getFilenames(sourceIds: string): string[] {
+      if (!sourceIds) return [];
+      const chunks = sourceIds.split(new RegExp('<SEP>|,')).map(s => s.trim().replace(/['"\[\]]/g, '')).filter(Boolean);
+      const fileNames = new Set<string>();
+      chunks.forEach(chunkId => {
+          const chunkData = this.chunkToDocMap[chunkId];
+          if (chunkData && chunkData.full_doc_id) {
+              const docData = this.docToNameMap[chunkData.full_doc_id];
+              if (docData) fileNames.add(docData.file_name || docData.id || "Unknown");
+          }
+      });
+      return Array.from(fileNames);
+  }
+
+  // --- RENDERIZADO PRINCIPAL ---
   async render(container: HTMLElement, label?: HTMLElement) {
     this.cleanup();
     container.empty();
@@ -115,7 +133,6 @@ export class NativeGraphView extends ItemView {
     try {
         const xmlData = fs.readFileSync(this.graphDataPath, 'utf-8');
         
-        // 1. Parser XML
         const parser = new XMLParser({ 
             ignoreAttributes: false, 
             attributeNamePrefix: "", 
@@ -123,7 +140,6 @@ export class NativeGraphView extends ItemView {
         });
         const jsonObj = parser.parse(xmlData);
         
-        // 2. Mapeo de Claves
         const keys = Array.isArray(jsonObj.graphml?.key) ? jsonObj.graphml.key : [jsonObj.graphml.key];
         const keyMap: Record<string, string> = {};
         keys.forEach((k: any) => { if (k['attr.name']) keyMap[k['id']] = k['attr.name']; });
@@ -138,7 +154,6 @@ export class NativeGraphView extends ItemView {
             nodeDegrees.set(tgt, (nodeDegrees.get(tgt) || 0) + 1);
         });
 
-        // 3. Procesar Nodos (Esto ya lo tenías)
         this.allNodes = rawNodes
             .filter((n: any) => !n.id.startsWith('chunk-') && !n.id.startsWith('doc-'))
             .map((n: any) => {
@@ -171,19 +186,11 @@ export class NativeGraphView extends ItemView {
                 };
             });
         
-        // --- [AQUÍ] INSERTAMOS EL CÓDIGO NUEVO ---
-        
-        // Creamos un Set de IDs válidos para búsqueda rápida
         const validNodeIds = new Set(this.allNodes.map(n => n.id));
-        
-        // Filtramos las aristas: Solo permitimos las que conectan dos nodos que existen
         const validEdges = rawEdges.filter((e: any) => {
-            // Normalizamos para atrapar 'source' o '@_source' según el parser
             const src = e.source || e['@_source'];
             const tgt = e.target || e['@_target'];
-            
             if (validNodeIds.has(src) && validNodeIds.has(tgt)) {
-                // Guardamos la versión limpia para que los motores no sufran
                 e.normalizedSource = src;
                 e.normalizedTarget = tgt;
                 return true;
@@ -191,27 +198,22 @@ export class NativeGraphView extends ItemView {
             return false;
         });
 
-        // ----------------------------------------
-
         this.allNodes.sort((a, b) => b.val - a.val);
         this.filteredNodes = this.allNodes;
         this.updateSidebarList();
 
         const mode = this.plugin.settings.graphViewMode;
-        
-        // Actualizamos la etiqueta para mostrar Links válidos
         if(label) label.innerText = `${this.allNodes.length} Nodes | ${validEdges.length} Links | ${mode.toUpperCase()}`;
 
         if (mode === '3d') {
-            // ¡OJO! Aquí pasamos validEdges, NO rawEdges
             this.render3D(container, this.allNodes, validEdges);
         } else {
-            // Aquí también
             this.render2D(container, this.allNodes, validEdges);
         }
 
     } catch (e) { console.error(e); }
   }
+
 
 // --- HELPER 2D: NAVEGACIÓN PRECISA ---
   focusOnNode2D(nodeId: string) {
@@ -271,7 +273,7 @@ export class NativeGraphView extends ItemView {
       });
 
       // Encender Objetivo
-      this.graph.setNodeAttribute(nodeId, 'color', '#fff'); // Blanco
+      this.graph.setNodeAttribute(nodeId, 'color', "#5957c2"); // Blanco
       this.graph.setNodeAttribute(nodeId, 'label', nodeId);
       this.graph.setNodeAttribute(nodeId, 'size', (visualData.size || 5) * 1.5);
 
@@ -287,15 +289,18 @@ export class NativeGraphView extends ItemView {
   }
 
 
-// --- MOTOR 2D (SIGMA.JS) - FIRMA CORRECTA Y VISUALIZACIÓN ---
+  // --- MOTOR 2D (SIGMA.JS) ---
   render2D(container: HTMLElement, nodes: any[], edges: any[]) {
-    // 1. Crear Grafo (Usando los argumentos recibidos)
     this.graph = new Graph();
     
+    // DEFINIR UMBRAL
+    const LABEL_THRESHOLD = 4;
+
     nodes.forEach(n => {
         if (!this.graph?.hasNode(n.id)) {
+            const showLabel = n.val > LABEL_THRESHOLD;
             this.graph?.addNode(n.id, {
-                label: '', // Mudo por defecto
+                label: showLabel ? n.id : '',
                 size: Math.max(3, Math.min(n.val * 1.5, 20)),
                 color: '#00d4ff', 
                 type: 'circle', 
@@ -303,6 +308,7 @@ export class NativeGraphView extends ItemView {
                 desc: n.desc,
                 file_paths: n.file_paths,
                 val: n.val,
+                forceLabel: showLabel, // Estado original
                 x: Math.random() * 100, 
                 y: Math.random() * 100
             });
@@ -312,7 +318,6 @@ export class NativeGraphView extends ItemView {
     edges.forEach(e => {
         const src = e.normalizedSource || e.source;
         const tgt = e.normalizedTarget || e.target;
-        
         if (this.graph?.hasNode(src) && this.graph?.hasNode(tgt)) {
              if (!this.graph.hasEdge(src, tgt)) {
                  this.graph.addEdge(src, tgt, { color: '#333', size: 0.5, hidden: false });
@@ -320,69 +325,62 @@ export class NativeGraphView extends ItemView {
         }
     });
 
-    // 2. Inicializar Sigma (Con espera de frame para seguridad)
     const initSigma = () => {
         if (container.clientWidth === 0) { requestAnimationFrame(initSigma); return; }
         if (!this.graph) return;
         if (this.sigmaInstance) this.sigmaInstance.kill();
 
         this.sigmaInstance = new Sigma(this.graph, container, {
-            minCameraRatio: 0.05, 
-            maxCameraRatio: 10,
-            renderLabels: true,
-            labelFont: "monospace",
-            labelColor: { color: "#fff" },
-            labelSize: 14,
-            labelWeight: "bold",
-            allowInvalidContainer: true,
-            zIndex: true
+            minCameraRatio: 0.001, maxCameraRatio: 10, renderLabels: true,
+            labelFont: "monospace", labelColor: { color: "#5957c2" }, labelSize: 14, labelWeight: "bold",
+            allowInvalidContainer: true, zIndex: true
         });
 
-        // 3. Física
         const settings = forceAtlas2.inferSettings(this.graph);
-        this.fa2Layout = new FA2Layout(this.graph, {
-            settings: { ...settings, gravity: 1, slowDown: 5 }
-        });
+        this.fa2Layout = new FA2Layout(this.graph, { settings: { ...settings, gravity: 1, slowDown: 5 } });
         this.fa2Layout.start();
         setTimeout(() => { if(this.fa2Layout?.isRunning()) this.fa2Layout.stop(); }, 4000);
 
-        // --- EVENTOS (EL AJUSTE VISUAL) ---
+        // --- EVENTOS CORREGIDOS (TS SAFE) ---
 
-        // A. CLICK: Enfocar
         this.sigmaInstance.on("clickNode", (event) => {
             this.focusOnNode2D(event.node);
         });
 
-        // B. HOVER: Rojo Neón + Texto Visible
         this.sigmaInstance.on("enterNode", (event) => {
-            const color = this.graph?.getNodeAttribute(event.node, 'color');
-            // Si es azul (normal), lo ponemos rojo para leer el texto
-            if (color === '#00d4ff') {
+            // Verificación de seguridad
+            const attrs = this.graph?.getNodeAttributes(event.node);
+            if (!attrs) return;
+
+            if (attrs.color !== '#ffffff') {
                 this.graph?.setNodeAttribute(event.node, 'label', event.node);
                 this.graph?.setNodeAttribute(event.node, 'color', '#ff0055');
                 this.graph?.setNodeAttribute(event.node, 'zIndex', 10);
             }
         });
 
-        // C. LEAVE: Restaurar Azul y Silencio
         this.sigmaInstance.on("leaveNode", (event) => {
-            const color = this.graph?.getNodeAttribute(event.node, 'color');
-            // Si sigue siendo rojo (no fue clicado), restaurar
-            if (color === '#ff0055') {
-                this.graph?.setNodeAttribute(event.node, 'label', '');
+            const attrs = this.graph?.getNodeAttributes(event.node);
+            if (!attrs) return;
+
+            if (attrs.color === '#ff0055') {
                 this.graph?.setNodeAttribute(event.node, 'color', '#00d4ff');
                 this.graph?.setNodeAttribute(event.node, 'zIndex', 0);
+                // Restaurar etiqueta según importancia
+                if (attrs.forceLabel) {
+                    this.graph?.setNodeAttribute(event.node, 'label', event.node);
+                } else {
+                    this.graph?.setNodeAttribute(event.node, 'label', '');
+                }
             }
         });
 
-        // D. CLIC FONDO: Reset Total
         this.sigmaInstance.on("clickStage", () => {
             if (!this.graph) return;
-            this.graph.forEachNode(n => {
-                this.graph?.setNodeAttribute(n, 'color', '#00d4ff'); 
-                this.graph?.setNodeAttribute(n, 'label', ''); 
-                this.graph?.setNodeAttribute(n, 'size', Math.max(3, Math.min((this.graph?.getNodeAttribute(n, 'val')||1) * 1.5, 20)));
+            this.graph.forEachNode((n, a) => {
+                this.graph?.setNodeAttribute(n, 'color', '#00d4ff');
                 this.graph?.setNodeAttribute(n, 'zIndex', 0);
+                this.graph?.setNodeAttribute(n, 'label', a.forceLabel ? n : '');
             });
             this.graph.forEachEdge(e => {
                 this.graph?.setEdgeAttribute(e, 'hidden', false);
@@ -391,33 +389,20 @@ export class NativeGraphView extends ItemView {
             if(this.detailsPanel) this.detailsPanel.style.display = 'none';
         });
     };
-
     requestAnimationFrame(initSigma);
   }
 
   // --- MOTOR 3D ---
   render3D(container: HTMLElement, nodes: any[], edges: any[]) {
       const gData = {
-          nodes: nodes.map(n => ({ 
-              ...n, 
-              // Aseguramos que ForceGraph tenga el tipo para colorear
-              type: n.type 
-          })),
-          links: edges.map((e: any) => ({ 
-              // ¡CLAVE! Usamos los IDs normalizados y verificados
-              source: e.normalizedSource, 
-              target: e.normalizedTarget 
-          }))
+          nodes: nodes.map(n => ({ ...n, type: n.type })),
+          links: edges.map((e: any) => ({ source: e.normalizedSource || e.source, target: e.normalizedTarget || e.target }))
       };
-      
       this.graph3D = (ForceGraph3D as any)()(container)
           .graphData(gData)
           .backgroundColor('#000005')
           .nodeAutoColorBy('type')
-          .nodeVal('val') 
-          .nodeRelSize(4)
-          .nodeLabel('id') 
-          .nodeOpacity(0.9)
+          .nodeVal('val') .nodeRelSize(4) .nodeLabel('id') .nodeOpacity(0.9)
           .linkWidth(0.6).linkOpacity(0.2).cooldownTicks(100)
           .onNodeClick((node: any) => {
               this.showNodeDetails(node);
@@ -425,9 +410,33 @@ export class NativeGraphView extends ItemView {
               const ratio = 1 + dist/Math.hypot(node.x, node.y, node.z);
               this.graph3D.cameraPosition({ x: node.x * ratio, y: node.y * ratio, z: node.z * ratio }, node, 2000);
           });
-      
       this.graph3D.width(container.clientWidth);
       this.graph3D.height(container.clientHeight);
+  }
+
+
+  searchNode(query: string) {
+      if(!query) return;
+      const lower = query.toLowerCase();
+      
+      if (this.plugin.settings.graphViewMode === '3d' && this.graph3D) {
+          const { nodes } = this.graph3D.graphData();
+          const target = nodes.find((n: any) => n.id.toLowerCase().includes(lower));
+          if (target) {
+              this.showNodeDetails(target);
+              const dist = 40;
+              const ratio = 1 + dist/Math.hypot(target.x, target.y, target.z);
+              this.graph3D.cameraPosition({ x: target.x * ratio, y: target.y * ratio, z: target.z * ratio }, target, 2000);
+              new Notice(`Found: ${target.id}`);
+          } else { new Notice("Node not found"); }
+      } 
+      else if (this.sigmaInstance && this.graph) {
+          const target = this.graph.nodes().find(n => n.toLowerCase().includes(lower));
+          if (target) {
+              this.focusOnNode2D(target);
+              new Notice(`Found: ${target}`);
+          } else { new Notice("Node not found"); }
+      }
   }
 
   cleanup() {
@@ -437,96 +446,68 @@ export class NativeGraphView extends ItemView {
   }
 
   updateSidebarList() {
-      // Usamos this.allNodes que ya está poblado
+      if (!this.graph && this.allNodes.length === 0) return;
       this.sortAscending = false;
       this.allNodes.sort((a, b) => b.val - a.val);
       this.filteredNodes = this.allNodes;
       this.renderList();
   }
 
-  // --- UI COMPONENTS ---
+  // ... UI HELPERS (buildSidebar, createDetailsPanel, createGraphToolbar, etc) ...
+  // Pega aquí el resto de funciones UI que ya tenías y funcionaban bien.
+  // (Asegúrate de copiar: createDetailsPanel, showNodeDetails (la corregida), createGraphToolbar, buildSidebar, toggleSort, filterOrphans, filterList, renderList, mergeSelectedNodes, deleteSelectedNodes)
   createDetailsPanel(container: HTMLElement) {
       this.detailsPanel = container.createDiv();
-      this.detailsPanel.style.cssText = `
-        position: absolute; top: 60px; right: 20px; width: 340px; max-height: 80%;
-        background: rgba(20, 20, 25, 0.98); border: 1px solid #444;
-        border-radius: 8px; padding: 0; z-index: 20;
-        color: #eee; overflow-y: auto; display: none;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.8); backdrop-filter: blur(10px);
-        font-family: monospace; font-size: 13px;
-      `;
+      this.detailsPanel.style.cssText = `position: absolute; top: 60px; right: 20px; width: 340px; max-height: 80%; background: rgba(20, 20, 25, 0.98); border: 1px solid #444; border-radius: 8px; padding: 0; z-index: 20; color: #eee; overflow-y: auto; display: none; box-shadow: 0 10px 40px rgba(0,0,0,0.8); backdrop-filter: blur(10px); font-family: monospace; font-size: 13px;`;
   }
 
   showNodeDetails(node: any) {
     if (!this.detailsPanel) return;
-    
-    // Usamos los paths que ya extrajimos del XML
     const files = node.file_paths || [];
-    
-    const sourceHtml = files.length > 0 
-        ? files.map((f: string) => `<li style="margin-bottom:4px; color:#66fcf1; display:flex; gap:6px;"><span>📄</span> <span>${f}</span></li>`).join('') 
-        : '<li style="color:#666;">No explicit source found in metadata</li>';
+    const sourceHtml = files.length > 0 ? files.map((f: string) => `<li style="margin-bottom:4px; color:#66fcf1;">📄 ${f}</li>`).join('') : '<li style="color:#666;">No explicit source</li>';
+    const type = node.node_type || node.type || "Unknown";
 
     this.detailsPanel.innerHTML = `
         <div style="background:var(--interactive-accent); padding:10px 15px; display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-weight:bold; color:white; font-size:0.9em;">${(node.type || 'Unknown').toUpperCase()}</span>
+            <span style="font-weight:bold; color:white; font-size:0.9em;">${type.toUpperCase()}</span>
             <div style="display:flex; gap:10px;">
                 <button id="toggle-edit-btn" style="background:rgba(0,0,0,0.2); border:none; color:white; cursor:pointer; padding:2px 8px; border-radius:4px;" title="Edit Node">✏️ Edit</button>
                 <button id="close-panel-btn" style="background:none; border:none; color:white; cursor:pointer; font-weight:bold;">✕</button>
             </div>
         </div>
-
         <div id="view-mode" style="padding:15px;">
-            <div style="margin-bottom:10px;">
-                <span style="color:#aaa; font-size:0.8em;">Links: <b style="color:#fff">${node.val}</b></span>
-            </div>
-            <h2 style="margin:0 0 15px 0; color:#fff; word-break:break-word; line-height:1.2;">${node.id}</h2>
-            <div style="font-size:0.9em; line-height:1.6; color:#ccc; background:rgba(255,255,255,0.05); padding:10px; border-radius:6px; margin-bottom:15px; max-height:150px; overflow-y:auto;">
-                ${node.desc || "No description."}
-            </div>
+            <h2 style="margin:0 0 15px 0; color:#fff; word-break:break-word;">${node.id}</h2>
+            <div style="font-size:0.9em; line-height:1.6; color:#ccc; background:rgba(255,255,255,0.05); padding:10px; border-radius:6px; margin-bottom:15px; max-height:150px; overflow-y:auto;">${node.desc || "No description."}</div>
             <div style="border-top:1px solid #333; padding-top:15px;">
-                <h4 style="margin:0 0 10px 0; color:#666; font-size:0.75em; letter-spacing:1px; text-transform:uppercase;">Context Sources</h4>
+                <h4 style="margin:0 0 10px 0; color:#666; font-size:0.75em; text-transform:uppercase;">Context Sources</h4>
                 <ul style="list-style:none; padding-left:0; margin:0;">${sourceHtml}</ul>
             </div>
         </div>
-
-        <!-- MODO EDICIÓN -->
         <div id="edit-mode" style="padding:15px; display:none;">
-            <label style="color:#aaa; font-size:0.8em;">Name (ID)</label>
-            <input type="text" id="edit-name" value="${node.id}" style="width:100%; margin-bottom:10px; background:#333; color:white; border:1px solid #555; padding:4px;">
-            <label style="color:#aaa; font-size:0.8em;">Type</label>
-            <input type="text" id="edit-type" value="${node.type}" style="width:100%; margin-bottom:10px; background:#333; color:white; border:1px solid #555; padding:4px;">
-            <label style="color:#aaa; font-size:0.8em;">Description</label>
-            <textarea id="edit-desc" rows="5" style="width:100%; margin-bottom:10px; background:#333; color:white; border:1px solid #555; padding:4px;">${node.desc || ""}</textarea>
-            <div style="display:flex; justify-content:flex-end; gap:5px;">
-                <button id="cancel-edit-btn">Cancel</button>
-                <button id="save-edit-btn" style="background:var(--interactive-accent); color:white; border:none;">💾 Save</button>
-            </div>
+            <input type="text" id="edit-name" value="${node.id}" style="width:100%; margin-bottom:10px; background:#333; color:white; border:1px solid #555;">
+            <input type="text" id="edit-type" value="${type}" style="width:100%; margin-bottom:10px; background:#333; color:white; border:1px solid #555;">
+            <textarea id="edit-desc" rows="5" style="width:100%; margin-bottom:10px; background:#333; color:white; border:1px solid #555;">${node.desc || ""}</textarea>
+            <button id="save-edit-btn" style="background:var(--interactive-accent); color:white; border:none; width:100%;">💾 Save</button>
+            <button id="cancel-edit-btn" style="width:100%; margin-top:5px;">Cancel</button>
         </div>
     `;
-
-    // Listeners UI
+    
     const viewDiv = this.detailsPanel.querySelector('#view-mode') as HTMLElement;
     const editDiv = this.detailsPanel.querySelector('#edit-mode') as HTMLElement;
-    const nameInput = this.detailsPanel.querySelector('#edit-name') as HTMLInputElement;
-    const typeInput = this.detailsPanel.querySelector('#edit-type') as HTMLInputElement;
-    const descInput = this.detailsPanel.querySelector('#edit-desc') as HTMLTextAreaElement;
-
-    this.detailsPanel.querySelector('#close-panel-btn')?.addEventListener('click', () => { if(this.detailsPanel) this.detailsPanel.style.display='none'; });
     this.detailsPanel.querySelector('#toggle-edit-btn')?.addEventListener('click', () => { viewDiv.style.display='none'; editDiv.style.display='block'; });
     this.detailsPanel.querySelector('#cancel-edit-btn')?.addEventListener('click', () => { editDiv.style.display='none'; viewDiv.style.display='block'; });
-    
+    this.detailsPanel.querySelector('#close-panel-btn')?.addEventListener('click', () => { if(this.detailsPanel) this.detailsPanel.style.display='none'; });
     this.detailsPanel.querySelector('#save-edit-btn')?.addEventListener('click', async () => {
-        const newName = nameInput.value.trim();
-        if(newName) {
-            await this.updateNode(node.id, { entity_name: newName, entity_type: typeInput.value.trim(), description: descInput.value.trim() });
-            if(this.detailsPanel) this.detailsPanel.style.display = 'none';
-        }
+        const newName = (this.detailsPanel!.querySelector('#edit-name') as HTMLInputElement).value.trim();
+        const newType = (this.detailsPanel!.querySelector('#edit-type') as HTMLInputElement).value.trim();
+        const newDesc = (this.detailsPanel!.querySelector('#edit-desc') as HTMLTextAreaElement).value.trim();
+        await this.updateNode(node.id, { entity_name: newName, entity_type: newType, description: newDesc });
+        if(this.detailsPanel) this.detailsPanel.style.display = 'none';
     });
     this.detailsPanel.style.display = 'block';
   }
-
-  async updateNode(oldName: string, data: { entity_name: string, entity_type: string, description: string }) {
+  
+  async updateNode(oldName: string, data: any) {
       new Notice(`Updating node "${oldName}"...`);
       try {
           const response = await fetch("http://localhost:9621/graph/entity/edit", {
@@ -539,7 +520,6 @@ export class NativeGraphView extends ItemView {
           } else { new Notice(`Error: ${await response.text()}`); }
       } catch (e) { console.error(e); new Notice("API connection error"); }
   }
-
   createGraphToolbar(container: HTMLElement, graphContainer: HTMLElement) {
       const tb = container.createDiv();
       tb.style.cssText = "position:absolute; top:15px; left:15px; z-index:10; display:flex; gap:8px; align-items:center;";
@@ -547,23 +527,18 @@ export class NativeGraphView extends ItemView {
       searchInput.type = 'text'; searchInput.placeholder = '🚀 Search...';
       searchInput.style.cssText = `background: rgba(0, 0, 0, 0.6); border: 1px solid var(--text-accent); color: #fff; padding: 6px 10px; border-radius: 6px; outline: none; width: 200px; backdrop-filter: blur(4px); font-family: monospace;`;
       searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') this.searchNode(searchInput.value); });
-      searchInput.onfocus = () => { searchInput.style.width = '250px'; searchInput.style.background = 'rgba(0,0,0,0.8)'; };
-      searchInput.onblur = () => { searchInput.style.width = '200px'; searchInput.style.background = 'rgba(0,0,0,0.6)'; };
-
       const btnReload = tb.createEl('button');
       setIcon(btnReload, 'refresh-cw'); setTooltip(btnReload, 'Reload Graph');
       btnReload.style.cssText = "background: rgba(0,0,0,0.6); border: 1px solid #444; color: #ccc; padding: 6px; border-radius: 6px; cursor: pointer;";
       btnReload.onclick = () => this.render(graphContainer);
-      
       const btnReset = tb.createEl('button');
       setIcon(btnReset, 'maximize'); setTooltip(btnReset, 'Reset Camera');
       btnReset.style.cssText = "background: rgba(0,0,0,0.6); border: 1px solid #444; color: #ccc; padding: 6px; border-radius: 6px; cursor: pointer;";
       btnReset.onclick = () => { 
           if (this.graph3D) this.graph3D.zoomToFit(1000, 50); 
-          if (this.sigmaInstance) this.sigmaInstance.getCamera().animate({ x: 0.5, y: 0.5, ratio: 0.1 }, { duration: 500 });
+          if (this.sigmaInstance) this.sigmaInstance.getCamera().animate({ x: 0.5, y: 0.5, ratio: 0.1}, {duration: 500 }); 
       };
   }
-
   buildSidebar(container: HTMLElement) {
       const header = container.createDiv(); header.style.padding = '10px'; header.style.borderBottom = '1px solid var(--background-modifier-border)';
       header.createEl('h4', { text: 'Node Manager' }).style.margin = '0 0 10px 0';
@@ -582,11 +557,9 @@ export class NativeGraphView extends ItemView {
       orphansBtn.onclick = () => this.filterOrphans();
       this.sidebarListEl = container.createDiv(); this.sidebarListEl.style.flex = '1'; this.sidebarListEl.style.overflowY = 'auto';
   }
-
   toggleSort() { this.sortAscending = !this.sortAscending; if (this.sortBtnEl) this.sortBtnEl.textContent = `Sort: Degree ${this.sortAscending ? '⬆' : '⬇'}`; this.filteredNodes.sort((a, b) => this.sortAscending ? a.val - b.val : b.val - a.val); this.renderList(); }
-  filterOrphans() { if (this.searchInputEl) this.searchInputEl.value = ''; this.filteredNodes = this.allNodes.filter(n => n.val === 1); this.renderList(); new Notice(`Found ${this.filteredNodes.length} orphan nodes.`); }
+  filterOrphans() { if (this.searchInputEl) this.searchInputEl.value = ''; this.filteredNodes = this.allNodes.filter(n => n.val === 1); this.renderList(); }
   filterList(query: string) { if (!query) { this.filteredNodes = this.allNodes; } else { const q = query.toLowerCase(); this.filteredNodes = this.allNodes.filter(n => n.id.toLowerCase().includes(q)); } this.renderList(); }
-  
   renderList() {
       if (!this.sidebarListEl) return;
       this.sidebarListEl.empty();
@@ -600,20 +573,16 @@ export class NativeGraphView extends ItemView {
           const info = row.createDiv(); info.style.flex = '1'; info.style.marginLeft = '8px'; info.style.cursor = 'pointer';
           const degree = node.val > 0 ? node.val - 1 : 0;
           info.innerHTML = `<div style="font-weight:bold;">${node.id}</div><div style="color:var(--text-muted); font-size:0.9em;">${node.type} (${degree})</div>`;
-          info.onclick = () => this.focusNodeById(node.id); 
+          info.onclick = () => this.searchNode(node.id); 
       });
       if (this.filteredNodes.length > 100) {
           const more = this.sidebarListEl.createDiv();
           more.style.padding = '10px'; more.style.textAlign = 'center'; more.style.color = 'var(--text-muted)'; more.innerText = `...and ${this.filteredNodes.length - 100} more.`;
       }
   }
-
-  // --- API ACTIONS (Con Modal de Selección de Destino) ---
   async mergeSelectedNodes() {
       const targets = Array.from(this.selectedNodes);
       if (targets.length < 2) { new Notice("Select 2+ nodes"); return; }
-      
-      // Corregimos tipos: pasamos el callback con tipos explícitos
       new MergeSelectionModal(this.plugin.app, targets, async (targetNode: string, sourceNodes: string[]) => {
           new Notice(`Merging into ${targetNode}...`);
           try {
@@ -629,7 +598,6 @@ export class NativeGraphView extends ItemView {
           } catch (e) { console.error(e); new Notice("API Error"); }
       }).open();
   }
-
   async deleteSelectedNodes() {
       const targets = Array.from(this.selectedNodes);
       if (targets.length === 0) return;
@@ -645,173 +613,4 @@ export class NativeGraphView extends ItemView {
           setTimeout(() => this.render(this.contentEl.querySelector('#sigma-container') as HTMLElement), 1000);
       } catch (e) { console.error(e); }
   }
-
-// --- NAVEGACIÓN UNIFICADA (3D + 2D) ---
-  focusNodeById(nodeId: string) {
-      if (!nodeId) return;
-
-      // =========================================================
-      // CASO 1: MODO 3D (Recuperado y Restaurado)
-      // =========================================================
-      if (this.plugin.settings.graphViewMode === '3d' && this.graph3D) {
-          const { nodes } = this.graph3D.graphData();
-          // Búsqueda exacta en los datos del motor 3D
-          const target = nodes.find((n: any) => n.id === nodeId);
-          
-          if (target) {
-              // 1. Mostrar Panel
-              this.showNodeDetails(target);
-              
-              // 2. Calcular Coordenadas de Vuelo
-              // (La lógica matemática que ya funcionaba)
-              const dist = 40;
-              const ratio = 1 + dist/Math.hypot(target.x, target.y, target.z);
-              
-              // 3. Ejecutar Vuelo
-              this.graph3D.cameraPosition(
-                  { x: target.x * ratio, y: target.y * ratio, z: target.z * ratio }, // Destino
-                  target, // Mirar al nodo
-                  2000    // Duración (ms)
-              );
-          }
-          return; // ¡Terminamos aquí si es 3D!
-      } 
-
-      // =========================================================
-      // CASO 2: MODO 2D (Sigma con GPS Robusto)
-      // =========================================================
-      if (this.sigmaInstance && this.graph && this.graph.hasNode(nodeId)) {
-          
-          // 1. DETENER FÍSICA (Vital para que no se mueva el objetivo)
-          if (this.fa2Layout && this.fa2Layout.isRunning()) {
-              this.fa2Layout.stop();
-          }
-
-          const attrs = this.graph.getNodeAttributes(nodeId);
-          const visualData = this.sigmaInstance.getNodeDisplayData(nodeId);
-
-          // 2. ESTRATEGIA DE COORDENADAS (Visual > Lógica)
-          let targetX = attrs.x;
-          let targetY = attrs.y;
-
-          // Si Sigma ya lo pintó, usamos esa coordenada exacta
-          if (visualData && typeof visualData.x === 'number' && !isNaN(visualData.x)) {
-              targetX = visualData.x;
-              targetY = visualData.y;
-          }
-
-          // 3. MOVER CÁMARA
-          this.sigmaInstance.getCamera().animate(
-              { 
-                  x: targetX, 
-                  y: targetY, 
-                  ratio: 0.15, // Zoom seguro
-                  angle: 0
-              }, 
-              { 
-                  duration: 1500, 
-                  easing: 'cubicInOut' 
-              }
-          );
-
-          // 4. HIGHLIGHT ROJO (Tu lógica visual favorita)
-          // A. Apagar todo
-          this.graph.forEachNode(n => {
-              this.graph?.setNodeAttribute(n, 'color', '#444');
-              this.graph?.setNodeAttribute(n, 'label', '');
-              this.graph?.setNodeAttribute(n, 'zIndex', 0);
-          });
-          this.graph.forEachEdge(e => {
-              this.graph?.setEdgeAttribute(e, 'hidden', true);
-          });
-
-          // B. Encender Vecinos
-          this.graph.forEachNeighbor(nodeId, n => {
-              this.graph?.setNodeAttribute(n, 'color', '#ff0055');
-              this.graph?.setNodeAttribute(n, 'label', n); 
-              this.graph?.setNodeAttribute(n, 'zIndex', 1);
-          });
-          
-          // C. Encender Aristas
-          this.graph.forEachEdge(nodeId, e => {
-              this.graph?.setEdgeAttribute(e, 'hidden', false);
-              this.graph?.setEdgeAttribute(e, 'color', '#ff0055');
-              this.graph?.setEdgeAttribute(e, 'size', 2);
-          });
-
-          // D. Encender Objetivo Central
-          this.graph.setNodeAttribute(nodeId, 'color', '#fff');
-          this.graph.setNodeAttribute(nodeId, 'label', nodeId);
-          const size = (visualData?.size || attrs.size || 5) * 1.5;
-          this.graph.setNodeAttribute(nodeId, 'size', size);
-
-          // 5. MOSTRAR DETALLES
-          this.showNodeDetails({ 
-              id: nodeId, 
-              type: attrs.node_type || attrs.type, 
-              val: attrs.val, 
-              desc: attrs.desc, 
-              file_paths: attrs.file_paths,
-              source_id: attrs.source_id
-          });
-      }
-  }
-
-  // --- HELPER 2D: LÓGICA DE COLORES Y OPACIDAD ---
-  highlightNodeVisuals(nodeId: string) {
-      if (!this.graph) return;
-      
-      // 1. Oscurecer todo el grafo (Gris medio #444)
-      this.graph.forEachNode(n => {
-          this.graph?.setNodeAttribute(n, 'color', '#444');
-          this.graph?.setNodeAttribute(n, 'label', '');
-          this.graph?.setNodeAttribute(n, 'zIndex', 0);
-      });
-      this.graph.forEachEdge(e => this.graph?.setEdgeAttribute(e, 'hidden', true));
-
-      // 2. Resaltar Vecinos (Rojo Neón #ff0055)
-      this.graph.forEachNeighbor(nodeId, n => {
-          this.graph?.setNodeAttribute(n, 'color', '#ff0055');
-          this.graph?.setNodeAttribute(n, 'label', n); // Mostramos el nombre del vecino
-          this.graph?.setNodeAttribute(n, 'zIndex', 1);
-      });
-      
-      // 3. Resaltar Aristas Conectadas
-      this.graph.forEachEdge(nodeId, e => {
-          this.graph?.setEdgeAttribute(e, 'hidden', false);
-          this.graph?.setEdgeAttribute(e, 'color', '#ff0055');
-      });
-
-      // 4. Resaltar Nodo Central (Blanco)
-      this.graph.setNodeAttribute(nodeId, 'color', '#fff');
-      this.graph.setNodeAttribute(nodeId, 'label', nodeId); // Mostramos el nombre del seleccionado
-  }
-
-  // --- MÉTODO DE BÚSQUEDA (INPUT DE TEXTO) ---
-  searchNode(query: string) {
-      if(!query) return;
-      const lower = query.toLowerCase();
-      let foundId: string | null = null;
-      
-      // Buscar el ID que mejor coincida
-      if (this.plugin.settings.graphViewMode === '3d' && this.graph3D) {
-          const { nodes } = this.graph3D.graphData();
-          const target = nodes.find((n: any) => n.id.toLowerCase().includes(lower));
-          if (target) foundId = target.id;
-      } 
-      else if (this.graph) {
-          const target = this.graph.nodes().find(n => n.toLowerCase().includes(lower));
-          if (target) foundId = target;
-      }
-
-      if (foundId) {
-          new Notice(`🚀 Flying to: ${foundId}`);
-          this.focusNodeById(foundId); // Delegar al método exacto
-      } else {
-          new Notice("Node not found");
-      }
-  }
 }
-
-// Helper function al final del archivo para simplificar
-function validEdgesCount(edges: any[], nodes: any[]) { return edges.length; } // Simplificado
