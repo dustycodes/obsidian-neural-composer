@@ -54,7 +54,32 @@ export default class NeuralComposerPlugin extends Plugin {
 async onload() {
     await this.loadSettings()
 
-    this.registerView(CHAT_VIEW_TYPE, (leaf) => new ChatView(leaf, this))
+    // --- CORA MOD: ZERO-CONFIG & PORTABILIDAD ---
+    // Si el usuario no ha definido una ruta, creamos una por defecto DENTRO del Vault.
+    // Usamos '.neural_memory' (con punto) para que Obsidian la ignore y no se ponga lento.
+    if (!this.settings.lightRagWorkDir) {
+        // @ts-ignore: getBasePath es parte de la API de escritorio de Obsidian
+        const vaultRoot = this.app.vault.adapter.getBasePath(); 
+        const defaultPath = path.join(vaultRoot, '.neural_memory');
+        
+        // 1. Crear la carpeta físicamente si no existe
+        if (!fs.existsSync(defaultPath)) {
+            try {
+                fs.mkdirSync(defaultPath, { recursive: true });
+                console.log(`🧠 Neural Composer: Created default memory at ${defaultPath}`);
+            } catch (e) {
+                console.error("Failed to create default folder:", e);
+            }
+        }
+        
+        // 2. Guardar la configuración automáticamente
+        this.settings.lightRagWorkDir = defaultPath;
+        await this.saveData(this.settings);
+        
+        console.log(`🧠 Neural Composer: Auto-configured portable path.`);
+    }
+    // -----------------------------------------------------------
+
     this.registerView(APPLY_VIEW_TYPE, (leaf) => new ApplyView(leaf))
     // CORA MOD: REGISTRAR VISUALIZADOR
     this.registerView(GRAPH_VIEW_TYPE, (leaf) => new GraphDashboardView(leaf)); 
