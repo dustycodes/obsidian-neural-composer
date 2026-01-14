@@ -79,7 +79,7 @@ async onload() {
         console.log(`🧠 Neural Composer: Auto-configured portable path.`);
     }
     // -----------------------------------------------------------
-
+    this.registerView(CHAT_VIEW_TYPE, (leaf) => new ChatView(leaf, this))
     this.registerView(APPLY_VIEW_TYPE, (leaf) => new ApplyView(leaf))
     // CORA MOD: REGISTRAR VISUALIZADOR
     this.registerView(GRAPH_VIEW_TYPE, (leaf) => new GraphDashboardView(leaf)); 
