@@ -273,7 +273,7 @@ export class NativeGraphView extends ItemView {
       });
 
       // Encender Objetivo
-      this.graph.setNodeAttribute(nodeId, 'color', "#5957c2"); // Blanco
+      this.graph.setNodeAttribute(nodeId, 'color', "#ffffff"); // Blanco
       this.graph.setNodeAttribute(nodeId, 'label', nodeId);
       this.graph.setNodeAttribute(nodeId, 'size', (visualData.size || 5) * 1.5);
 
@@ -354,7 +354,8 @@ export class NativeGraphView extends ItemView {
 
             if (attrs.color !== '#ffffff') {
                 this.graph?.setNodeAttribute(event.node, 'label', event.node);
-                this.graph?.setNodeAttribute(event.node, 'color', '#ff0055');
+                //this.graph?.setNodeAttribute(event.node, 'color', '#ff0055');
+                this.graph?.setNodeAttribute(event.node, 'color', '#ffffff');
                 this.graph?.setNodeAttribute(event.node, 'zIndex', 10);
             }
         });
