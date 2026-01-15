@@ -52,6 +52,8 @@ We wanted the experience to be as smooth as possible:
 
 ## 🚀 Getting Started
 
+> Full documentation (in construction) on [wiki](https://github.com/oscampo/obsidian-neural-composer/wiki)
+
 This plugin requires a small backend setup (Python) to run the LightRAG engine.
 
 ### 1. One-time Setup
