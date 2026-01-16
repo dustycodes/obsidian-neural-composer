@@ -300,6 +300,57 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
         }
     }
 
+    // --- SECCIÓN AVANZADA: RENDIMIENTO ---
+    container.createEl('h4', { text: '⚙️ Performance & Tuning' });
+    
+    // Usamos un details/summary nativo para que no ocupe tanto espacio
+    const details = container.createEl('details');
+    details.createEl('summary', { text: 'Show Advanced Options (Async, Chunks)' }).style.cursor = 'pointer';
+    const advancedContainer = details.createDiv();
+    advancedContainer.style.paddingLeft = '10px';
+    advancedContainer.style.borderLeft = '2px solid var(--interactive-accent)';
+
+    new Setting(advancedContainer)
+      .setName('Max Async Requests')
+      .setDesc('How many parallel requests to send to the LLM/Embedding provider. Reduce to 1 if you hit Rate Limits (429).')
+      .addSlider(slider => slider
+          .setLimits(1, 16, 1)
+          .setValue(plugin.settings.lightRagMaxAsync)
+          .setDynamicTooltip()
+          .onChange(async (value) => {
+              await plugin.setSettings({ ...plugin.settings, lightRagMaxAsync: value });
+              await plugin.updateEnvFile();
+          })
+      );
+
+    new Setting(advancedContainer)
+      .setName('Max Parallel Insert')
+      .setDesc('How many files to process in parallel. Keep low (1-2) for stability.')
+      .addSlider(slider => slider
+          .setLimits(1, 8, 1)
+          .setValue(plugin.settings.lightRagMaxParallelInsert)
+          .setDynamicTooltip()
+          .onChange(async (value) => {
+              await plugin.setSettings({ ...plugin.settings, lightRagMaxParallelInsert: value });
+              await plugin.updateEnvFile();
+          })
+      );
+      
+     new Setting(advancedContainer)
+      .setName('Chunk Size')
+      .setDesc('Token size for splitting documents. (Default: 1200).')
+      .addText(text => text
+          .setValue(String(plugin.settings.lightRagChunkSize))
+          .onChange(async (value) => {
+              const num = parseInt(value);
+              if (!isNaN(num)) {
+                  await plugin.setSettings({ ...plugin.settings, lightRagChunkSize: num });
+                  await plugin.updateEnvFile();
+              }
+          })
+      );
+
+
     // 7. RESTART BUTTON (CON ÉNFASIS VISUAL)
     // Creamos un contenedor estilizado para llamar la atención
     const restartSetting = new Setting(container)
@@ -313,6 +364,8 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
             await plugin.restartLightRagServer();
           }),
       );
+
+
 
     // 8. ADVANCED CONFIG & RESTART
     new Setting(container)

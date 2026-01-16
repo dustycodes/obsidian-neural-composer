@@ -95,7 +95,15 @@ export const NeuralComposerSettingsSchema = z.object({
 
   graphViewMode: z.enum(['2d', '3d']).catch('2d'),
 
+  
+  // --- PERFORMANCE TUNING (NUEVO) ---
+  lightRagMaxAsync: z.number().catch(4),
+  lightRagMaxParallelInsert: z.number().catch(1),
+  lightRagChunkSize: z.number().catch(1200),
+  lightRagChunkOverlap: z.number().catch(100),
+  // ----------------------------------
 })
+
 
 export type NeuralComposerSettings = z.infer<typeof NeuralComposerSettingsSchema>
 
@@ -122,6 +130,7 @@ export const DEFAULT_SETTINGS: NeuralComposerSettings = {
     limit: 10,
     excludePatterns: [],
     includePatterns: [],
+    
   },
   
   mcp: { servers: [] },
@@ -155,9 +164,12 @@ export const DEFAULT_SETTINGS: NeuralComposerSettings = {
   lightRagOntologyFolder: '', 
   // NUEVO DEFAULT:
   useCustomEntityTypes: false, 
-
   graphViewMode: '2d', // Default seguro para todos
-
+  // DEFAULTS NUEVOS
+  lightRagMaxAsync: 4,
+  lightRagMaxParallelInsert: 1,
+  lightRagChunkSize: 1200,
+  lightRagChunkOverlap: 100,
 }
 
 

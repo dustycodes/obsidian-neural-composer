@@ -411,10 +411,10 @@ this.addCommand({
         
         // --- TUS VARIABLES DE TUNING (Agregadas para que el usuario las vea y edite) ---
         envContent += `\n# --- Performance Tuning ---\n`;
-        envContent += `MAX_ASYNC=4\n`;
-        envContent += `MAX_PARALLEL_INSERT=1\n`; // Conservador por defecto
-        envContent += `CHUNK_SIZE=1200\n`;       // Estándar LightRAG
-        envContent += `CHUNK_OVERLAP_SIZE=100\n\n`;
+        //envContent += `MAX_ASYNC=4\n`;
+        //envContent += `MAX_PARALLEL_INSERT=1\n`; // Conservador por defecto
+        //envContent += `CHUNK_SIZE=1200\n`;       // Estándar LightRAG
+        //envContent += `CHUNK_OVERLAP_SIZE=100\n\n`;
 
         // LLM
         if (llmModelObj && llmProvider) {
@@ -490,6 +490,14 @@ this.addCommand({
                 envContent += `\nENTITY_TYPES='${JSON.stringify(typeList)}'\n`;
             }
         }
+
+        // --- USAMOS LOS SETTINGS GUARDADOS ---
+        envContent += `\n# --- Performance Tuning ---\n`;
+        envContent += `MAX_ASYNC=${this.settings.lightRagMaxAsync}\n`;
+        envContent += `MAX_PARALLEL_INSERT=${this.settings.lightRagMaxParallelInsert}\n`;
+        envContent += `CHUNK_SIZE=${this.settings.lightRagChunkSize}\n`;
+        envContent += `CHUNK_OVERLAP_SIZE=${this.settings.lightRagChunkOverlap}\n\n`;
+        // -------------------------------------
 
         return envContent;
 
@@ -581,50 +589,44 @@ async startLightRagServer() {
         });
 
         this.serverProcess.stdout?.on('data', (data) => console.log(`[LightRAG]: ${data}`));
-// --- CORA MOD: MONITOR DE SIGNOS VITALES (LOGS INTELIGENTE) ---
+// --- CORA MOD: MONITOR DE SIGNOS VITALES MEJORADO ---
         this.serverProcess.stderr?.on('data', (data) => {
             const msg = data.toString();
             const now = Date.now();
             
-            // Solo notificamos si no hemos molestado al usuario en los últimos 5s
+            // Debounce de 5 segundos para no llenar la pantalla
             if (!this.lastErrorTime || (now - this.lastErrorTime > 5000)) {
                 
-                // 1. Errores de API Key (General)
-                if (msg.includes("Invalid API key") || msg.includes("401")) {
-                    // Intentamos adivinar de quién es
+                // 1. NUEVO: DETECCIÓN DE SOBRECARGA (503)
+                if (msg.includes("503") || msg.includes("overloaded") || msg.includes("UNAVAILABLE")) {
+                    new Notice("⚠️ Provider Error: Model Overloaded (503).\nServer is busy, please wait a moment.", 0);
+                    this.lastErrorTime = now;
+                }
+                
+                // 2. Errores de API Key (401)
+                else if (msg.includes("Invalid API key") || msg.includes("401")) {
                     if (msg.includes("Rerank")) new Notice("⚠️ Rerank Error: Invalid API Key.", 0);
                     else new Notice("⚠️ LLM/Embed Error: Invalid API Key.", 0);
                     this.lastErrorTime = now;
                 }
                 
-                // 2. Errores de Cuota / Límites (429)
+                // 3. Errores de Cuota (429)
                 else if (msg.includes("Quota") || msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED")) {
-                    
-                    if (msg.includes("Rerank") || msg.includes("jina") || msg.includes("cohere")) {
-                        new Notice("⚠️ Rerank Quota Exceeded.\nCheck your Reranking credits.", 0);
-                    } 
-                    else if (msg.includes("google") || msg.includes("gemini")) {
-                        new Notice("⚠️ Gemini Quota Exceeded.\nTry reducing MAX_ASYNC in settings.", 0);
-                    }
-                    else if (msg.includes("openai")) {
-                        new Notice("⚠️ OpenAI Quota Exceeded.\nCheck your billing.", 0);
-                    }
-                    else {
-                        new Notice("⚠️ API Rate Limit Hit.\nServer is busy.", 0);
-                    }
-                    
+                    if (msg.includes("Rerank")) new Notice("⚠️ Rerank Quota Exceeded.", 0);
+                    else if (msg.includes("google") || msg.includes("gemini")) new Notice("⚠️ Gemini Quota Exceeded.\nReduce MAX_ASYNC in settings.", 0);
+                    else new Notice("⚠️ API Rate Limit Hit.", 0);
                     this.lastErrorTime = now;
                 }
             }
 
-            // 3. LOGGING A LA CONSOLA (CON FILTRO DE COLOR)
+            // Logging en consola
             if (msg.includes('INFO:') || msg.includes('WARNING:')) {
                 console.log(`[LightRAG Log]: ${msg}`);
             } else {
                 console.error(`[LightRAG Error]: ${msg}`);
             }
         });
-        
+//-----------------------------------------------------        
         this.serverProcess.on('close', (code) => {
             console.log(`[LightRAG] Finished (Code ${code})`);
             this.serverProcess = null;
