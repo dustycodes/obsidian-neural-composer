@@ -581,39 +581,49 @@ async startLightRagServer() {
         });
 
         this.serverProcess.stdout?.on('data', (data) => console.log(`[LightRAG]: ${data}`));
-// --- CORA MOD: MONITOR DE SIGNOS VITALES (LOGS) ---
+// --- CORA MOD: MONITOR DE SIGNOS VITALES (LOGS INTELIGENTE) ---
         this.serverProcess.stderr?.on('data', (data) => {
-            const message = data.toString();
-            
-            // 1. DETECTOR DE ERRORES CRÍTICOS PARA EL USUARIO
-            // Usamos un debounce simple (solo avisar si no hemos avisado en los últimos 5s)
-            // para no spammear al usuario si el log sale muchas veces.
+            const msg = data.toString();
             const now = Date.now();
+            
+            // Solo notificamos si no hemos molestado al usuario en los últimos 5s
             if (!this.lastErrorTime || (now - this.lastErrorTime > 5000)) {
                 
-                if (message.includes("Invalid API key") || message.includes("401")) {
-                    new Notice("⚠️ Rerank Error: Invalid API Key.\nCheck your settings.", 0);
+                // 1. Errores de API Key (General)
+                if (msg.includes("Invalid API key") || msg.includes("401")) {
+                    // Intentamos adivinar de quién es
+                    if (msg.includes("Rerank")) new Notice("⚠️ Rerank Error: Invalid API Key.", 0);
+                    else new Notice("⚠️ LLM/Embed Error: Invalid API Key.", 0);
                     this.lastErrorTime = now;
                 }
                 
-                else if (message.includes("Quota") || message.includes("429")) {
-                    new Notice("⚠️ Rerank Error: Out of Credits / Quota Exceeded.", 0);
+                // 2. Errores de Cuota / Límites (429)
+                else if (msg.includes("Quota") || msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED")) {
+                    
+                    if (msg.includes("Rerank") || msg.includes("jina") || msg.includes("cohere")) {
+                        new Notice("⚠️ Rerank Quota Exceeded.\nCheck your Reranking credits.", 0);
+                    } 
+                    else if (msg.includes("google") || msg.includes("gemini")) {
+                        new Notice("⚠️ Gemini Quota Exceeded.\nTry reducing MAX_ASYNC in settings.", 0);
+                    }
+                    else if (msg.includes("openai")) {
+                        new Notice("⚠️ OpenAI Quota Exceeded.\nCheck your billing.", 0);
+                    }
+                    else {
+                        new Notice("⚠️ API Rate Limit Hit.\nServer is busy.", 0);
+                    }
+                    
                     this.lastErrorTime = now;
-                }
-                
-                else if (message.includes("Connection refused") || message.includes("WinError 10061")) {
-                    // Este a veces es ruido al cerrar, lo ignoramos o mostramos suave
                 }
             }
 
-            // 2. LOGGING A LA CONSOLA (CON FILTRO DE COLOR)
-            if (message.includes('INFO:') || message.includes('WARNING:')) {
-                console.log(`[LightRAG Log]: ${message}`);
+            // 3. LOGGING A LA CONSOLA (CON FILTRO DE COLOR)
+            if (msg.includes('INFO:') || msg.includes('WARNING:')) {
+                console.log(`[LightRAG Log]: ${msg}`);
             } else {
-                console.error(`[LightRAG Error]: ${message}`);
+                console.error(`[LightRAG Error]: ${msg}`);
             }
         });
-        // --------------------------------------------
         
         this.serverProcess.on('close', (code) => {
             console.log(`[LightRAG] Finished (Code ${code})`);
