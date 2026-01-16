@@ -300,55 +300,76 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
         }
     }
 
-    // --- SECCIÓN AVANZADA: RENDIMIENTO ---
-    container.createEl('h4', { text: '⚙️ Performance & Tuning' });
+    // --- SECCIÓN: ADVANCED ENVIRONMENT CONFIGURATION ---
+    container.createEl('h4', { text: '⚙️ Advanced Configuration (Total Control)' });
     
-    // Usamos un details/summary nativo para que no ocupe tanto espacio
     const details = container.createEl('details');
-    details.createEl('summary', { text: 'Show Advanced Options (Async, Chunks)' }).style.cursor = 'pointer';
+    details.createEl('summary', { text: 'Edit Custom .env Variables' }).style.cursor = 'pointer';
     const advancedContainer = details.createDiv();
     advancedContainer.style.paddingLeft = '10px';
     advancedContainer.style.borderLeft = '2px solid var(--interactive-accent)';
+    advancedContainer.style.marginTop = '10px';
 
-    new Setting(advancedContainer)
-      .setName('Max Async Requests')
-      .setDesc('How many parallel requests to send to the LLM/Embedding provider. Reduce to 1 if you hit Rate Limits (429).')
-      .addSlider(slider => slider
-          .setLimits(1, 16, 1)
-          .setValue(plugin.settings.lightRagMaxAsync)
-          .setDynamicTooltip()
-          .onChange(async (value) => {
-              await plugin.setSettings({ ...plugin.settings, lightRagMaxAsync: value });
-              await plugin.updateEnvFile();
-          })
-      );
+    advancedContainer.createEl('p', { 
+        text: 'Variables defined here will be appended to the .env file and will OVERRIDE any plugin defaults. Use this for advanced tuning (Context limits, Timeouts, Chunking strategies).',
+        cls: 'setting-item-description'
+    });
 
+    // TEXT AREA DE CONFIGURACIÓN
+    const envTextArea = new Setting(advancedContainer)
+        .setClass('neural-env-textarea') // Clase para CSS si quieres
+        .addTextArea(text => {
+            text
+                .setPlaceholder('MAX_TOTAL_TOKENS=30000\nLLM_TIMEOUT=180\n...')
+                .setValue(plugin.settings.lightRagCustomEnv)
+                .onChange(async (value) => {
+                    await plugin.setSettings({ ...plugin.settings, lightRagCustomEnv: value });
+                    // No reiniciamos todavía, el usuario debe dar click al botón final
+                });
+            text.inputEl.rows = 10;
+            text.inputEl.style.width = '100%';
+            text.inputEl.style.fontFamily = 'monospace';
+            text.inputEl.style.fontSize = '0.85em';
+            text.inputEl.style.whiteSpace = 'pre';
+        });
+
+    // BOTÓN PARA CARGAR PLANTILLA
     new Setting(advancedContainer)
-      .setName('Max Parallel Insert')
-      .setDesc('How many files to process in parallel. Keep low (1-2) for stability.')
-      .addSlider(slider => slider
-          .setLimits(1, 8, 1)
-          .setValue(plugin.settings.lightRagMaxParallelInsert)
-          .setDynamicTooltip()
-          .onChange(async (value) => {
-              await plugin.setSettings({ ...plugin.settings, lightRagMaxParallelInsert: value });
-              await plugin.updateEnvFile();
-          })
-      );
-      
-     new Setting(advancedContainer)
-      .setName('Chunk Size')
-      .setDesc('Token size for splitting documents. (Default: 1200).')
-      .addText(text => text
-          .setValue(String(plugin.settings.lightRagChunkSize))
-          .onChange(async (value) => {
-              const num = parseInt(value);
-              if (!isNaN(num)) {
-                  await plugin.setSettings({ ...plugin.settings, lightRagChunkSize: num });
-                  await plugin.updateEnvFile();
-              }
-          })
-      );
+        .setName('Load Full Configuration Template')
+        .setDesc('Paste the full list of available LightRAG variables (commented out) into the box above.')
+        .addButton(btn => btn
+            .setButtonText('📥 Insert Template')
+            .onClick(async () => {
+                if (plugin.settings.lightRagCustomEnv.length > 50 && !confirm("Overwrite current custom config?")) return;
+                
+                // LA PLANTILLA COMPLETA (Resumida para el chat, pero tú pones todo el contenido del txt)
+                const template = `# --- Query Configuration ---
+# ENABLE_LLM_CACHE=true
+# TOP_K=40
+# CHUNK_TOP_K=20
+# MAX_TOTAL_TOKENS=30000
+# KG_CHUNK_PICK_METHOD=VECTOR
+
+# --- Document Processing ---
+# CHUNK_SIZE=1200
+# CHUNK_OVERLAP_SIZE=100
+# ENABLE_LLM_CACHE_FOR_EXTRACT=true
+
+# --- Timeouts ---
+# LLM_TIMEOUT=180
+# EMBEDDING_TIMEOUT=30
+
+# --- Storage Selection (Advanced) ---
+# LIGHTRAG_KV_STORAGE=JsonKVStorage
+# LIGHTRAG_VECTOR_STORAGE=NanoVectorDBStorage
+`;
+                // Guardar y actualizar UI
+                await plugin.setSettings({ ...plugin.settings, lightRagCustomEnv: template });
+                // Truco sucio para refrescar el textarea sin reactividad compleja
+                const ta = advancedContainer.querySelector('textarea');
+                if(ta) ta.value = template;
+            })
+        );
 
 
     // 7. RESTART BUTTON (CON ÉNFASIS VISUAL)

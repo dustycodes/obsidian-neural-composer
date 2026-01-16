@@ -95,6 +95,8 @@ export const NeuralComposerSettingsSchema = z.object({
 
   graphViewMode: z.enum(['2d', '3d']).catch('2d'),
 
+    // --- NUEVO CAMPO: CONFIGURACIÓN LIBRE ---
+  lightRagCustomEnv: z.string().catch(''), 
   
   // --- PERFORMANCE TUNING (NUEVO) ---
   lightRagMaxAsync: z.number().catch(4),
@@ -170,6 +172,9 @@ export const DEFAULT_SETTINGS: NeuralComposerSettings = {
   lightRagMaxParallelInsert: 1,
   lightRagChunkSize: 1200,
   lightRagChunkOverlap: 100,
+
+    // DEFAULT NUEVO
+  lightRagCustomEnv: '', 
 }
 
 

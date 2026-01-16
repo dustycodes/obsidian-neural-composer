@@ -411,10 +411,11 @@ this.addCommand({
         
         // --- TUS VARIABLES DE TUNING (Agregadas para que el usuario las vea y edite) ---
         envContent += `\n# --- Performance Tuning ---\n`;
-        //envContent += `MAX_ASYNC=4\n`;
-        //envContent += `MAX_PARALLEL_INSERT=1\n`; // Conservador por defecto
-        //envContent += `CHUNK_SIZE=1200\n`;       // Estándar LightRAG
-        //envContent += `CHUNK_OVERLAP_SIZE=100\n\n`;
+        envContent += `MAX_ASYNC=${this.settings.lightRagMaxAsync}\n`;
+        envContent += `MAX_PARALLEL_INSERT=${this.settings.lightRagMaxParallelInsert}\n`;
+        envContent += `CHUNK_SIZE=${this.settings.lightRagChunkSize}\n`;
+        envContent += `CHUNK_OVERLAP_SIZE=${this.settings.lightRagChunkOverlap}\n\n`;
+        // -------------------------------------
 
         // LLM
         if (llmModelObj && llmProvider) {
@@ -491,17 +492,20 @@ this.addCommand({
             }
         }
 
-        // --- USAMOS LOS SETTINGS GUARDADOS ---
-        envContent += `\n# --- Performance Tuning ---\n`;
-        envContent += `MAX_ASYNC=${this.settings.lightRagMaxAsync}\n`;
-        envContent += `MAX_PARALLEL_INSERT=${this.settings.lightRagMaxParallelInsert}\n`;
-        envContent += `CHUNK_SIZE=${this.settings.lightRagChunkSize}\n`;
-        envContent += `CHUNK_OVERLAP_SIZE=${this.settings.lightRagChunkOverlap}\n\n`;
-        // -------------------------------------
+        // INYECCIÓN DE VARIABLES PERSONALIZADAS
+        if (this.settings.lightRagCustomEnv) {
+            envContent += `\n\n#####################################\n`;
+            envContent += `### USER CUSTOM CONFIGURATION     ###\n`;
+            envContent += `### (Overrides defaults above)    ###\n`;
+            envContent += `#####################################\n`;
+            envContent += this.settings.lightRagCustomEnv;
+            envContent += `\n`;
+        }
 
         return envContent;
 
-    } catch (err) {
+    
+      } catch (err) {
         console.error("❌ Error generando config:", err);
         return "";
     }
