@@ -153,11 +153,15 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
         warningDiv.style.color = 'var(--text-normal)';
         warningDiv.style.fontSize = '0.9em';
         
-        warningDiv.innerHTML = `
-            <strong>⚠️ CRITICAL WARNING:</strong><br>
-            Changing Entity Types fundamentally alters how the Graph is built.<br>
-            If you already have data ingested, you <strong>MUST delete your Graph Data folder</strong> and re-ingest all documents.<br>
-        `;
+        // --- CORRECCIÓN SEGURA ---
+        const wTitle = warningDiv.createEl('strong', { text: '⚠️ CRITICAL WARNING:' });
+        warningDiv.createEl('br');
+        warningDiv.createSpan({ text: 'Changing Entity Types fundamentally alters how the Graph is built.' });
+        warningDiv.createEl('br');
+        warningDiv.createSpan({ text: 'If you already have data ingested, you ' });
+        warningDiv.createEl('strong', { text: 'MUST delete your Graph Data folder' });
+        warningDiv.createSpan({ text: ' and re-ingest all documents.' });
+        // -------------------------
 
         new Setting(container)
           .setName('Ontology Source Folder')

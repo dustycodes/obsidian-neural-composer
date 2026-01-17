@@ -26,9 +26,10 @@ export class MergeSelectionModal extends Modal {
     });
 
     // 2. Caja de Advertencia (Más visible)
+    
     const warningBox = contentEl.createDiv();
     warningBox.style.cssText = `
-        background-color: rgba(230, 160, 0, 0.15); /* Naranja suave */
+        background-color: rgba(230, 160, 0, 0.15);
         border: 1px solid var(--text-warning);
         border-radius: 5px;
         padding: 8px 12px;
@@ -37,11 +38,16 @@ export class MergeSelectionModal extends Modal {
         color: var(--text-normal);
     `;
     
-    // Usamos innerHTML para poner negritas
-    warningBox.innerHTML = `
-        <strong>⚠️ NOTE:</strong> This action <strong>cannot be undone</strong>.<br>
-        Merging nodes with a high number of relations involves heavy processing and <strong>may take a while</strong>. Please be patient.
-    `;
+    // --- CORRECCIÓN SEGURA ---
+    const strongTitle = warningBox.createEl("strong", { text: "⚠️ NOTE: " });
+    warningBox.createSpan({ text: "This action " });
+    warningBox.createEl("strong", { text: "cannot be undone" });
+    warningBox.createSpan({ text: "." });
+    warningBox.createEl("br");
+    warningBox.createSpan({ text: "Merging nodes with a high number of relations involves heavy processing and " });
+    warningBox.createEl("strong", { text: "may take a while" });
+    warningBox.createSpan({ text: ". Please be patient." });
+    // -------------------------
 
 
 

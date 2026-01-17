@@ -66,7 +66,6 @@ async onload() {
         if (!fs.existsSync(defaultPath)) {
             try {
                 fs.mkdirSync(defaultPath, { recursive: true });
-                console.log(`🧠 Neural Composer: Created default memory at ${defaultPath}`);
             } catch (e) {
                 console.error("Failed to create default folder:", e);
             }
@@ -76,7 +75,6 @@ async onload() {
         this.settings.lightRagWorkDir = defaultPath;
         await this.saveData(this.settings);
         
-        console.log(`🧠 Neural Composer: Auto-configured portable path.`);
     }
     // -----------------------------------------------------------
     this.registerView(CHAT_VIEW_TYPE, (leaf) => new ChatView(leaf, this))
@@ -226,7 +224,6 @@ this.addCommand({
     this.app.workspace.onLayoutReady(async () => {
         if (this.settings.enableAutoStartServer) {
             // TRANSLATED LOG
-            console.log("⚡ Obsidian ready. Executing Clean Start Protocol...");
             
             // 1. Kill any zombie process
             this.stopLightRagServer();
@@ -365,7 +362,6 @@ this.addCommand({
   }
 
   public stopLightRagServer() {
-    console.log("🛑 Stopping LightRAG services...");
     if (this.serverProcess) {
         this.serverProcess.kill();
         this.serverProcess = null;
@@ -519,7 +515,6 @@ this.addCommand({
       try {
           const envPath = path.join(workDir, '.env');
           fs.writeFileSync(envPath, content);
-          console.log(`📝 .env guardado manualmente en: ${envPath}`);
           
           // Reiniciar servidor para aplicar cambios
           await this.restartLightRagServer();
@@ -577,12 +572,10 @@ async startLightRagServer() {
     const isAlive = await this.isPortInUse(9621);
     
     if (isAlive) {
-        console.log("✅ LightRAG Server ya estaba activo (Puerto 9621 ocupado).");
         return;
     }
     // ------------------------------------
 
-    console.log(`🚀 Starting LightRAG at: ${workDir}`);
     new Notice("🚀 Starting LightRAG...");
 
     try {
@@ -592,7 +585,7 @@ async startLightRagServer() {
             env: { ...process.env, PYTHONIOENCODING: 'utf-8', FORCE_COLOR: '1' }
         });
 
-        this.serverProcess.stdout?.on('data', (data) => console.log(`[LightRAG]: ${data}`));
+        // this.serverProcess.stdout?.on('data', (data) => console.log(`[LightRAG]: ${data}`));
 // --- CORA MOD: MONITOR DE SIGNOS VITALES MEJORADO ---
         this.serverProcess.stderr?.on('data', (data) => {
             const msg = data.toString();
@@ -625,14 +618,12 @@ async startLightRagServer() {
 
             // Logging en consola
             if (msg.includes('INFO:') || msg.includes('WARNING:')) {
-                console.log(`[LightRAG Log]: ${msg}`);
             } else {
                 console.error(`[LightRAG Error]: ${msg}`);
             }
         });
 //-----------------------------------------------------        
         this.serverProcess.on('close', (code) => {
-            console.log(`[LightRAG] Finished (Code ${code})`);
             this.serverProcess = null;
         });
 

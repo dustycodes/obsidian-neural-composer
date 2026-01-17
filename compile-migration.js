@@ -9,7 +9,6 @@ async function compileMigrations() {
     JSON.stringify(migrations),
   )
 
-  console.log('Migrations compiled!')
 }
 
 compileMigrations().catch(console.error)

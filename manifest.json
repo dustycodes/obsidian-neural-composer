@@ -1,7 +1,7 @@
 {
   "id": "neural-composer",
   "name": "Neural Composer",
-  "version": "1.0.0",
+  "version": "1.1.4",
   "minAppVersion": "1.0.0",
   "description": "The neural evolution of Smart Composer. Integrates Obsidian with a local LightRAG server to create a Graph-based Memory system. Features deep context retrieval, knowledge graph connections, and enhanced chat capabilities. A specialized fork of Smart Composer by glowingjade.",
   "author": "Oscar Campo (w/ Cora AI)",

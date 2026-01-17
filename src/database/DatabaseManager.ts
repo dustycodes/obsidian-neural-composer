@@ -56,7 +56,6 @@ export class DatabaseManager {
 
     DatabaseManager.managers.set(dbManager, managers)
 
-    console.log('Smart composer database initialized.', dbManager)
 
     return dbManager
   }
@@ -113,7 +112,7 @@ export class DatabaseManager {
       const db = drizzle(this.pgClient)
       return db
     } catch (error) {
-      console.log('createNewDatabase error', error)
+
       if (
         error instanceof Error &&
         error.message.includes(
@@ -149,7 +148,7 @@ export class DatabaseManager {
       })
       return drizzle(this.pgClient)
     } catch (error) {
-      console.log('loadExistingDatabase error', error)
+
       if (
         error instanceof Error &&
         error.message.includes(

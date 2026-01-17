@@ -416,51 +416,178 @@ export class NativeGraphView extends ItemView {
       `;
   }
 
+// --- REFACTORIZADO: DOM API ---
   showNodeDetails(node: any) {
     if (!this.detailsPanel) return;
-    const files = node.file_paths || [];
-    const sourceHtml = files.length > 0 ? files.map((f: string) => `<li style="margin-bottom:4px; color:#66fcf1;">📄 ${f}</li>`).join('') : '<li style="color:#666;">No explicit source</li>';
-    const type = node.node_type || node.type || "Unknown";
+    this.detailsPanel.empty(); // Limpiar el panel de forma segura
 
-    this.detailsPanel.innerHTML = `
-        <div style="background:var(--interactive-accent); padding:10px 15px; display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-weight:bold; color:white; font-size:0.9em;">${type.toUpperCase()}</span>
-            <div style="display:flex; gap:10px;">
-                <button id="toggle-edit-btn" style="background:rgba(0,0,0,0.2); border:none; color:white; cursor:pointer; padding:2px 8px; border-radius:4px;" title="Edit Node">✏️ Edit</button>
-                <button id="close-panel-btn" style="background:none; border:none; color:white; cursor:pointer; font-weight:bold;">✕</button>
-            </div>
-        </div>
-        <div id="view-mode" style="padding:15px;">
-            <h2 style="margin:0 0 15px 0; color:#fff; word-break:break-word;">${node.id}</h2>
-            <div style="margin-bottom:15px; color:#aaa; font-size:0.9em;">Degree: <b style="color:#fff">${node.val}</b></div>
-            <div style="font-size:0.9em; line-height:1.6; color:#ccc; background:rgba(255,255,255,0.05); padding:10px; border-radius:6px; margin-bottom:15px; max-height:150px; overflow-y:auto;">${node.desc || "No description."}</div>
-            <div style="border-top:1px solid #333; padding-top:15px;">
-                <h4 style="margin:0 0 10px 0; color:#666; font-size:0.75em; text-transform:uppercase;">Context Sources</h4>
-                <ul style="list-style:none; padding-left:0; margin:0;">${sourceHtml}</ul>
-            </div>
-        </div>
-        <div id="edit-mode" style="padding:15px; display:none;">
-            <input type="text" id="edit-name" value="${node.id}" style="width:100%; margin-bottom:10px; background:#333; color:white; border:1px solid #555;">
-            <input type="text" id="edit-type" value="${type}" style="width:100%; margin-bottom:10px; background:#333; color:white; border:1px solid #555;">
-            <textarea id="edit-desc" rows="5" style="width:100%; margin-bottom:10px; background:#333; color:white; border:1px solid #555;">${node.desc || ""}</textarea>
-            <button id="save-edit-btn" style="background:var(--interactive-accent); color:white; border:none; width:100%;">💾 Save</button>
-            <button id="cancel-edit-btn" style="width:100%; margin-top:5px;">Cancel</button>
-        </div>
-    `;
+    // Preparar datos
+    const files = node.file_paths || [];
+    const type = node.node_type || node.type || "Unknown";
+    const desc = node.desc || "No description.";
+
+    // ============================================================
+    // 1. HEADER (Barra superior)
+    // ============================================================
+    const header = this.detailsPanel.createDiv();
+    header.style.cssText = "background:var(--interactive-accent); padding:10px 15px; display:flex; justify-content:space-between; align-items:center;";
+
+    const typeSpan = header.createSpan();
+    typeSpan.style.cssText = "font-weight:bold; color:white; font-size:0.9em;";
+    typeSpan.setText(type.toUpperCase());
+
+    const btnGroup = header.createDiv();
+    btnGroup.style.cssText = "display:flex; gap:10px;";
+
+    const editBtn = btnGroup.createEl("button");
+    editBtn.setText("✏️ Edit");
+    editBtn.title = "Edit Node";
+    editBtn.style.cssText = "background:rgba(0,0,0,0.2); border:none; color:white; cursor:pointer; padding:2px 8px; border-radius:4px;";
+
+    const closeBtn = btnGroup.createEl("button");
+    closeBtn.setText("✕");
+    closeBtn.style.cssText = "background:none; border:none; color:white; cursor:pointer; font-weight:bold;";
+    // Evento directo (sin querySelector)
+    closeBtn.onclick = () => { if (this.detailsPanel) this.detailsPanel.style.display = 'none'; };
+
+    // Contenedor general del cuerpo
+    const contentContainer = this.detailsPanel.createDiv();
+    contentContainer.style.padding = "15px";
+
+    // ============================================================
+    // 2. MODO LECTURA (VIEW MODE)
+    // ============================================================
+    const viewMode = contentContainer.createDiv();
     
-    const viewDiv = this.detailsPanel.querySelector('#view-mode') as HTMLElement;
-    const editDiv = this.detailsPanel.querySelector('#edit-mode') as HTMLElement;
-    this.detailsPanel.querySelector('#close-panel-btn')?.addEventListener('click', () => { if(this.detailsPanel) this.detailsPanel.style.display='none'; });
-    this.detailsPanel.querySelector('#toggle-edit-btn')?.addEventListener('click', () => { viewDiv.style.display='none'; editDiv.style.display='block'; });
-    this.detailsPanel.querySelector('#cancel-edit-btn')?.addEventListener('click', () => { editDiv.style.display='none'; viewDiv.style.display='block'; });
+    // Grado / Conexiones
+    const linksDiv = viewMode.createDiv();
+    linksDiv.style.marginBottom = "10px";
+    const linksLabel = linksDiv.createSpan();
+    linksLabel.setText("Degree: ");
+    linksLabel.style.cssText = "color:#aaa; font-size:0.8em;";
+    const linksVal = linksDiv.createEl("b");
+    linksVal.setText(String(node.val));
+    linksVal.style.color = "#fff";
+
+    // Título (ID)
+    const title = viewMode.createEl("h2");
+    title.setText(node.id);
+    title.style.cssText = "margin:0 0 15px 0; color:#fff; word-break:break-word; line-height:1.2;";
+
+    // Descripción
+    const descBox = viewMode.createDiv();
+    descBox.style.cssText = "font-size:0.9em; line-height:1.6; color:#ccc; background:rgba(255,255,255,0.05); padding:10px; border-radius:6px; margin-bottom:15px; max-height:150px; overflow-y:auto; white-space: pre-wrap;";
+    descBox.setText(desc);
+
+    // Sección de Fuentes
+    const sourcesDiv = viewMode.createDiv();
+    sourcesDiv.style.cssText = "border-top:1px solid #333; padding-top:15px;";
     
-    this.detailsPanel.querySelector('#save-edit-btn')?.addEventListener('click', async () => {
-        const newName = (this.detailsPanel!.querySelector('#edit-name') as HTMLInputElement).value.trim();
-        const newType = (this.detailsPanel!.querySelector('#edit-type') as HTMLInputElement).value.trim();
-        const newDesc = (this.detailsPanel!.querySelector('#edit-desc') as HTMLTextAreaElement).value.trim();
-        await this.updateNode(node.id, { entity_name: newName, entity_type: newType, description: newDesc });
-        if(this.detailsPanel) this.detailsPanel.style.display = 'none';
-    });
+    const sourceHeader = sourcesDiv.createEl("h4");
+    sourceHeader.setText("Context Sources");
+    sourceHeader.style.cssText = "margin:0 0 10px 0; color:#666; font-size:0.75em; text-transform:uppercase; letter-spacing:1px;";
+
+    const ul = sourcesDiv.createEl("ul");
+    ul.style.cssText = "list-style:none; padding-left:0; margin:0;";
+
+    if (files.length > 0) {
+        files.forEach((f: string) => {
+            const li = ul.createEl("li");
+            li.style.cssText = "margin-bottom:4px; color:#66fcf1; display:flex; gap:6px; align-items:center;";
+            
+            // Icono y Texto separados (Más seguro)
+            const icon = li.createSpan();
+            icon.setText("📄");
+            const text = li.createSpan();
+            text.setText(f);
+        });
+    } else {
+        const li = ul.createEl("li");
+        li.setText("No explicit source");
+        li.style.color = "#666";
+    }
+
+    // ============================================================
+    // 3. MODO EDICIÓN (EDIT MODE) - Inicialmente oculto
+    // ============================================================
+    const editMode = contentContainer.createDiv();
+    editMode.style.display = "none";
+
+    // Helper para crear inputs rápidamente
+    const createField = (labelText: string, initialValue: string, isTextarea = false) => {
+        const label = editMode.createEl("label");
+        label.setText(labelText);
+        label.style.cssText = "color:#aaa; font-size:0.8em; display:block; margin-bottom:4px;";
+        
+        let input: HTMLInputElement | HTMLTextAreaElement;
+        if (isTextarea) {
+            input = editMode.createEl("textarea");
+            input.rows = 5;
+        } else {
+            input = editMode.createEl("input");
+            input.type = "text";
+        }
+        input.value = initialValue;
+        input.style.cssText = "width:100%; margin-bottom:10px; background:#333; color:white; border:1px solid #555; padding:4px;";
+        return input;
+    };
+
+    const nameInput = createField("Name (ID)", node.id);
+    const typeInput = createField("Type", type);
+    const descInput = createField("Description", desc, true); // true = textarea
+
+    // Botones de acción
+    const actionDiv = editMode.createDiv();
+    actionDiv.style.cssText = "display:flex; justify-content:flex-end; gap:5px; margin-top:10px;";
+
+    const cancelBtn = actionDiv.createEl("button");
+    cancelBtn.setText("Cancel");
+
+    const saveBtn = actionDiv.createEl("button");
+    saveBtn.setText("💾 Save");
+    saveBtn.style.cssText = "background:var(--interactive-accent); color:white; border:none;";
+
+    // ============================================================
+    // 4. LÓGICA DE INTERACCIÓN (Event Wiring)
+    // ============================================================
+
+    // Cambiar a Modo Edición
+    editBtn.onclick = () => {
+        viewMode.style.display = 'none';
+        editMode.style.display = 'block';
+    };
+
+    // Cancelar Edición
+    cancelBtn.onclick = () => {
+        editMode.style.display = 'none';
+        viewMode.style.display = 'block';
+    };
+
+    // Guardar Cambios
+    saveBtn.onclick = async () => {
+        const newName = nameInput.value.trim();
+        const newType = typeInput.value.trim();
+        const newDesc = descInput.value.trim();
+
+        if (newName) {
+            // Deshabilitar botón para feedback visual
+            saveBtn.setText("Saving...");
+            saveBtn.disabled = true;
+
+            await this.updateNode(node.id, { 
+                entity_name: newName, 
+                entity_type: newType, 
+                description: newDesc 
+            });
+
+            // Cerrar panel tras éxito (el grafo se recargará)
+            if (this.detailsPanel) this.detailsPanel.style.display = 'none';
+        } else {
+            new Notice("Name cannot be empty");
+        }
+    };
+
+    // Mostrar el panel
     this.detailsPanel.style.display = 'block';
   }
   
@@ -519,24 +646,47 @@ export class NativeGraphView extends ItemView {
   toggleSort() { this.sortAscending = !this.sortAscending; if (this.sortBtnEl) this.sortBtnEl.textContent = `Sort: Degree ${this.sortAscending ? '⬆' : '⬇'}`; this.filteredNodes.sort((a, b) => this.sortAscending ? a.val - b.val : b.val - a.val); this.renderList(); }
   filterOrphans() { if (this.searchInputEl) this.searchInputEl.value = ''; this.filteredNodes = this.allNodes.filter(n => n.val === 1); this.renderList(); }
   filterList(query: string) { if (!query) { this.filteredNodes = this.allNodes; } else { const q = query.toLowerCase(); this.filteredNodes = this.allNodes.filter(n => n.id.toLowerCase().includes(q)); } this.renderList(); }
-  renderList() {
+renderList() {
       if (!this.sidebarListEl) return;
       this.sidebarListEl.empty();
       const visibleNodes = this.filteredNodes.slice(0, 50);
+      
       visibleNodes.forEach(node => {
           const row = this.sidebarListEl!.createDiv();
-          row.style.display = 'flex'; row.style.alignItems = 'center'; row.style.padding = '6px'; row.style.borderBottom = '1px solid var(--background-modifier-border)'; row.style.fontSize = '0.85em';
+          row.style.display = 'flex'; 
+          row.style.alignItems = 'center'; 
+          row.style.padding = '6px'; 
+          row.style.borderBottom = '1px solid var(--background-modifier-border)'; 
+          row.style.fontSize = '0.85em';
+          
           const cb = row.createEl('input', { type: 'checkbox' });
           cb.checked = this.selectedNodes.has(node.id);
           cb.onclick = (e) => { e.stopPropagation(); if (cb.checked) this.selectedNodes.add(node.id); else this.selectedNodes.delete(node.id); };
-          const info = row.createDiv(); info.style.flex = '1'; info.style.marginLeft = '8px'; info.style.cursor = 'pointer';
+          
+          const info = row.createDiv(); 
+          info.style.flex = '1'; 
+          info.style.marginLeft = '8px'; 
+          info.style.cursor = 'pointer';
+          
+          // --- CORRECCIÓN SEGURA ---
+          const title = info.createDiv();
+          title.style.fontWeight = 'bold';
+          title.setText(node.id);
+          
+          const meta = info.createDiv();
+          meta.style.color = 'var(--text-muted)';
+          meta.style.fontSize = '0.9em';
           const degree = node.val > 0 ? node.val - 1 : 0;
-          info.innerHTML = `<div style="font-weight:bold;">${node.id}</div><div style="color:var(--text-muted); font-size:0.9em;">${node.type} (${degree})</div>`;
+          meta.setText(`${node.type} (${degree})`);
+          // -------------------------
+
           info.onclick = () => this.searchNode(node.id); 
       });
+      
       if (this.filteredNodes.length > 100) {
           const more = this.sidebarListEl.createDiv();
-          more.style.padding = '10px'; more.style.textAlign = 'center'; more.style.color = 'var(--text-muted)'; more.innerText = `...and ${this.filteredNodes.length - 100} more.`;
+          more.style.padding = '10px'; more.style.textAlign = 'center'; more.style.color = 'var(--text-muted)'; 
+          more.setText(`...and ${this.filteredNodes.length - 100} more.`);
       }
   }
   async mergeSelectedNodes() {

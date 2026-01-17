@@ -58,7 +58,7 @@ async function transferChatHistoryFromLegacy(app: App): Promise<void> {
     }
   }
 
-  console.log('Chat history migration to JSON database completed')
+  //console.log('Chat history migration to JSON database completed')
 }
 
 async function transferTemplatesFromDrizzle(
@@ -91,14 +91,14 @@ async function transferTemplatesFromDrizzle(
       await drizzleTemplateManager.deleteTemplate(template.id)
     } catch (error) {
       if (error instanceof DuplicateTemplateException) {
-        console.log(`Duplicate template found: ${template.name}. Skipping...`)
+        //console.log(`Duplicate template found: ${template.name}. Skipping...`)
       } else {
         console.error(`Error migrating template ${template.name}:`, error)
       }
     }
   }
 
-  console.log('Templates migration to JSON database completed')
+  //console.log('Templates migration to JSON database completed')
 }
 
 export async function migrateToJsonDatabase(

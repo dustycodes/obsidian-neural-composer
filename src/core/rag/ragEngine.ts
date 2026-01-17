@@ -54,7 +54,6 @@ export class RAGEngine {
   // --- 1. INGESTA TEXTO ---
   async insertDocument(content: string, description?: string): Promise<boolean> {
     const safeName = description && description.trim() ? description : `Note_${Date.now()}.md`;
-    console.log(`🕸️ Ingesting Text: ${safeName}...`);
     try {
       const response = await fetch("http://localhost:9621/documents/texts", {
         method: "POST",
@@ -65,7 +64,6 @@ export class RAGEngine {
         const errText = await response.text();
         throw new Error(`Error ${response.status}: ${errText}`);
       }
-      console.log("✅ Text input successful.");
       return true;
     } catch (error) {
       console.error("❌ Error in input of text:", error);
@@ -76,7 +74,6 @@ export class RAGEngine {
 
   // --- 2. INGESTA BINARIA ---
   async uploadDocument(file: TFile): Promise<boolean> {
-    console.log(`🕸️ Uploading binary: ${file.name}...`);
     try {
       const arrayBuffer = await this.app.vault.readBinary(file);
       const blob = new Blob([arrayBuffer]);
@@ -91,7 +88,7 @@ export class RAGEngine {
         const errText = await response.text();
         throw new Error(`Error ${response.status}: ${errText}`);
       }
-      console.log("✅ Binary upload successful.");
+
       return true;
     } catch (error) {
       console.error("❌ Error uploading file:", error);
@@ -139,7 +136,7 @@ export class RAGEngine {
     }
 
     // 2. ESTRATEGIA GLOBAL
-    console.log("🕸️ Consulting the Global Graph...");
+  
     onQueryProgressChange?.({ type: 'querying' })
 
     const performQuery = async () => {
@@ -187,7 +184,7 @@ export class RAGEngine {
       }
 
       // ... (Procesamiento de respuesta igual que antes) ...
-      console.log("✅ Data received:", data);
+
       const results: any[] = [];
       const graphAnswer = typeof data === 'string' ? data : (data.response || "");
       
