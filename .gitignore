@@ -20,4 +20,13 @@ meta.json
 data.json
 
 # Exclude macOS Finder (System Explorer) View States
+
 .DS_Store
+
+# Environment variables (CRÍTICO)
+.env
+.env.*
+
+# Local Graph Data
+.neural_memory/
+graph_data/
