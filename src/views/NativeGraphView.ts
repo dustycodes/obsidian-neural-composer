@@ -17,10 +17,10 @@ interface GraphNode {
     id: string;
     type: string;
     desc: string;
-    // Ahora guardamos los paths directos si existen en el XML
-    file_paths: string[];
+    source_id: string;
     val: number; 
     degree?: number;
+    file_paths?: string[];
 }
 
 export class NativeGraphView extends ItemView {
@@ -69,7 +69,6 @@ export class NativeGraphView extends ItemView {
 
     await this.loadReferenceMaps();
 
-    // IZQUIERDA
     const graphZone = container.createDiv();
     graphZone.style.flex = '1';
     graphZone.style.position = 'relative';
@@ -84,7 +83,6 @@ export class NativeGraphView extends ItemView {
     this.createGraphToolbar(graphZone, graphContainer);
     this.createDetailsPanel(graphZone);
 
-    // DERECHA
     const sidebar = container.createDiv();
     sidebar.style.width = '320px';
     sidebar.style.display = 'flex';
@@ -106,18 +104,38 @@ export class NativeGraphView extends ItemView {
       } catch (e) { console.error("Error loading maps", e); }
   }
 
+  // --- DETECTIVE ESTRICTO (SOLO ARCHIVOS) ---
   getFilenames(sourceIds: string): string[] {
-      if (!sourceIds) return [];
+      if (!sourceIds || typeof sourceIds !== 'string') return [];
+      
       const chunks = sourceIds.split(new RegExp('<SEP>|,')).map(s => s.trim().replace(/['"\[\]]/g, '')).filter(Boolean);
       const fileNames = new Set<string>();
+      
       chunks.forEach(chunkId => {
           const chunkData = this.chunkToDocMap[chunkId];
+          
+          // 1. Intento directo: ¿Es un nombre de archivo?
+          if (chunkId.includes('.') && !chunkId.startsWith('chunk-') && !chunkId.startsWith('doc-')) {
+               fileNames.add(chunkId);
+               return;
+          }
+
+          // 2. Intento vía Mapa
           if (chunkData && chunkData.full_doc_id) {
-              const docData = this.docToNameMap[chunkData.full_doc_id];
-              if (docData) fileNames.add(docData.file_name || docData.id || "Unknown");
+              const docId = chunkData.full_doc_id;
+              const docData = this.docToNameMap[docId];
+              
+              if (docData) {
+                  // Solo aceptamos nombres reales
+                  if (docData.file_name) fileNames.add(docData.file_name);
+                  else if (docData.source_uri) fileNames.add(docData.source_uri);
+                  // ELIMINADO EL FALLBACK A 'content_summary'
+              }
           }
       });
-      return Array.from(fileNames);
+      
+      // Filtro final: Solo dejar lo que parece un archivo
+      return Array.from(fileNames).filter(f => f.includes('.'));
   }
 
   // --- RENDERIZADO PRINCIPAL ---
@@ -132,7 +150,6 @@ export class NativeGraphView extends ItemView {
 
     try {
         const xmlData = fs.readFileSync(this.graphDataPath, 'utf-8');
-        
         const parser = new XMLParser({ 
             ignoreAttributes: false, 
             attributeNamePrefix: "", 
@@ -155,12 +172,13 @@ export class NativeGraphView extends ItemView {
         });
 
         this.allNodes = rawNodes
-            .filter((n: any) => !n.id.startsWith('chunk-') && !n.id.startsWith('doc-'))
+            .filter((n: any) => {
+                if (n.id.startsWith('chunk-') || n.id.startsWith('doc-')) return false;
+                if (n.id.length > 50 && !n.id.includes(' ')) return false;
+                return true;
+            })
             .map((n: any) => {
-                let type = "Unknown";
-                let desc = "";
-                let files: string[] = []; 
-                
+                let type = "Concept"; let desc = ""; let files: string[] = [];
                 const dataArr = Array.isArray(n.data) ? n.data : (n.data ? [n.data] : []);
                 
                 dataArr.forEach((d: any) => { 
@@ -168,11 +186,11 @@ export class NativeGraphView extends ItemView {
                     if (mappedKey === "entity_type" || d.key === "d0") type = d.value;
                     if (mappedKey === "description" || d.key === "d1") desc = d.value;
                     
+                    // EXTRACCIÓN DE FUENTES (CORREGIDA)
                     if (mappedKey === "file_path" || mappedKey === "source_id") {
-                         const val = String(d.value);
-                         if (val.includes('.md') || val.includes('.pdf') || val.includes('.txt')) {
-                             files = val.split('<SEP>').filter(s => s.trim().length > 0);
-                         }
+                        // Llamamos al detective estricto
+                        const found = this.getFilenames(String(d.value));
+                        files = [...files, ...found];
                     }
                 });
 
@@ -181,7 +199,7 @@ export class NativeGraphView extends ItemView {
                     type: type,
                     desc: desc,
                     source_id: "", 
-                    file_paths: files, 
+                    file_paths: [...new Set(files)], // Deduplicar
                     val: (nodeDegrees.get(n.id) || 0) + 1
                 };
             });
@@ -214,86 +232,9 @@ export class NativeGraphView extends ItemView {
     } catch (e) { console.error(e); }
   }
 
-
-// --- HELPER 2D: NAVEGACIÓN PRECISA ---
-  focusOnNode2D(nodeId: string) {
-      if (!this.graph || !this.sigmaInstance) return;
-
-      // 1. CONGELAR FÍSICA (Vital para que el objetivo no se mueva)
-      if (this.fa2Layout && this.fa2Layout.isRunning()) {
-          this.fa2Layout.stop();
-      }
-
-      // 2. OBTENER COORDENADAS VISUALES (La verdad absoluta de la pantalla)
-      // Sigma sabe dónde pintó el nodo, independientemente de la DB
-      const visualData = this.sigmaInstance.getNodeDisplayData(nodeId);
-      const attrs = this.graph.getNodeAttributes(nodeId);
-      
-      if (!visualData || !attrs) return;
-
-      // 3. MOVER CÁMARA
-      // Usamos visualData.x / y porque ahí es donde está el nodo AHORA.
-      this.sigmaInstance.getCamera().animate(
-          { 
-              x: visualData.x, 
-              y: visualData.y, 
-              ratio: 0.15, // Zoom un poco menos agresivo para no perder contexto
-              angle: 0
-          }, 
-          { 
-              duration: 1000, 
-              easing: 'cubicInOut' 
-          }
-      );
-
-      // 4. HIGHLIGHT (Encender luces)
-      
-      // Apagar todo
-      this.graph.forEachNode(n => {
-          this.graph?.setNodeAttribute(n, 'color', '#333'); 
-          this.graph?.setNodeAttribute(n, 'label', '');
-          this.graph?.setNodeAttribute(n, 'zIndex', 0);
-      });
-      this.graph.forEachEdge(e => {
-          this.graph?.setEdgeAttribute(e, 'hidden', true);
-      });
-
-      // Encender Vecinos
-      this.graph.forEachNeighbor(nodeId, n => {
-          this.graph?.setNodeAttribute(n, 'color', '#ff0055');
-          this.graph?.setNodeAttribute(n, 'label', n); 
-          this.graph?.setNodeAttribute(n, 'zIndex', 1);
-      });
-      
-      // Encender Aristas
-      this.graph.forEachEdge(nodeId, e => {
-          this.graph?.setEdgeAttribute(e, 'hidden', false);
-          this.graph?.setEdgeAttribute(e, 'color', '#ff0055');
-          this.graph?.setEdgeAttribute(e, 'size', 2);
-      });
-
-      // Encender Objetivo
-      this.graph.setNodeAttribute(nodeId, 'color', "#ffffff"); // Blanco
-      this.graph.setNodeAttribute(nodeId, 'label', nodeId);
-      this.graph.setNodeAttribute(nodeId, 'size', (visualData.size || 5) * 1.5);
-
-      // 5. MOSTRAR PANEL
-      this.showNodeDetails({ 
-          id: nodeId, 
-          type: attrs.node_type, 
-          val: attrs.val, 
-          desc: attrs.desc, 
-          file_paths: attrs.file_paths,
-          source_id: attrs.source_id
-      });
-  }
-
-
   // --- MOTOR 2D (SIGMA.JS) ---
   render2D(container: HTMLElement, nodes: any[], edges: any[]) {
     this.graph = new Graph();
-    
-    // DEFINIR UMBRAL
     const LABEL_THRESHOLD = 4;
 
     nodes.forEach(n => {
@@ -308,7 +249,7 @@ export class NativeGraphView extends ItemView {
                 desc: n.desc,
                 file_paths: n.file_paths,
                 val: n.val,
-                forceLabel: showLabel, // Estado original
+                forceLabel: showLabel,
                 x: Math.random() * 100, 
                 y: Math.random() * 100
             });
@@ -332,7 +273,7 @@ export class NativeGraphView extends ItemView {
 
         this.sigmaInstance = new Sigma(this.graph, container, {
             minCameraRatio: 0.001, maxCameraRatio: 10, renderLabels: true,
-            labelFont: "monospace", labelColor: { color: "#5957c2" }, labelSize: 14, labelWeight: "bold",
+            labelFont: "monospace", labelColor: { color: "#fff" }, labelSize: 14, labelWeight: "bold",
             allowInvalidContainer: true, zIndex: true
         });
 
@@ -341,21 +282,16 @@ export class NativeGraphView extends ItemView {
         this.fa2Layout.start();
         setTimeout(() => { if(this.fa2Layout?.isRunning()) this.fa2Layout.stop(); }, 4000);
 
-        // --- EVENTOS CORREGIDOS (TS SAFE) ---
-
         this.sigmaInstance.on("clickNode", (event) => {
             this.focusOnNode2D(event.node);
         });
 
         this.sigmaInstance.on("enterNode", (event) => {
-            // Verificación de seguridad
             const attrs = this.graph?.getNodeAttributes(event.node);
             if (!attrs) return;
-
             if (attrs.color !== '#ffffff') {
                 this.graph?.setNodeAttribute(event.node, 'label', event.node);
-                //this.graph?.setNodeAttribute(event.node, 'color', '#ff0055');
-                this.graph?.setNodeAttribute(event.node, 'color', '#ffffff');
+                this.graph?.setNodeAttribute(event.node, 'color', '#ff0055');
                 this.graph?.setNodeAttribute(event.node, 'zIndex', 10);
             }
         });
@@ -363,11 +299,9 @@ export class NativeGraphView extends ItemView {
         this.sigmaInstance.on("leaveNode", (event) => {
             const attrs = this.graph?.getNodeAttributes(event.node);
             if (!attrs) return;
-
             if (attrs.color === '#ff0055') {
                 this.graph?.setNodeAttribute(event.node, 'color', '#00d4ff');
                 this.graph?.setNodeAttribute(event.node, 'zIndex', 0);
-                // Restaurar etiqueta según importancia
                 if (attrs.forceLabel) {
                     this.graph?.setNodeAttribute(event.node, 'label', event.node);
                 } else {
@@ -415,29 +349,45 @@ export class NativeGraphView extends ItemView {
       this.graph3D.height(container.clientHeight);
   }
 
+  // --- HELPER 2D ---
+  focusOnNode2D(nodeId: string) {
+      if (!this.graph || !this.sigmaInstance) return;
 
-  searchNode(query: string) {
-      if(!query) return;
-      const lower = query.toLowerCase();
-      
-      if (this.plugin.settings.graphViewMode === '3d' && this.graph3D) {
-          const { nodes } = this.graph3D.graphData();
-          const target = nodes.find((n: any) => n.id.toLowerCase().includes(lower));
-          if (target) {
-              this.showNodeDetails(target);
-              const dist = 40;
-              const ratio = 1 + dist/Math.hypot(target.x, target.y, target.z);
-              this.graph3D.cameraPosition({ x: target.x * ratio, y: target.y * ratio, z: target.z * ratio }, target, 2000);
-              new Notice(`Found: ${target.id}`);
-          } else { new Notice("Node not found"); }
-      } 
-      else if (this.sigmaInstance && this.graph) {
-          const target = this.graph.nodes().find(n => n.toLowerCase().includes(lower));
-          if (target) {
-              this.focusOnNode2D(target);
-              new Notice(`Found: ${target}`);
-          } else { new Notice("Node not found"); }
+      if (this.fa2Layout && this.fa2Layout.isRunning()) {
+          this.fa2Layout.stop();
       }
+
+      const attrs = this.graph.getNodeAttributes(nodeId);
+      const visualData = this.sigmaInstance.getNodeDisplayData(nodeId);
+      if (!visualData || !attrs) return;
+
+      let targetX = attrs.x;
+      let targetY = attrs.y;
+      if (visualData && typeof visualData.x === 'number' && !isNaN(visualData.x)) {
+          targetX = visualData.x; targetY = visualData.y;
+      }
+
+      this.sigmaInstance.getCamera().animate({ x: targetX, y: targetY, ratio: 0.15, angle: 0 }, { duration: 1500, easing: 'cubicInOut' });
+
+      this.graph.forEachNode(n => { this.graph?.setNodeAttribute(n, 'color', '#444'); this.graph?.setNodeAttribute(n, 'label', ''); this.graph?.setNodeAttribute(n, 'zIndex', 0); });
+      this.graph.forEachEdge(e => this.graph?.setEdgeAttribute(e, 'hidden', true));
+
+      this.graph.forEachNeighbor(nodeId, n => {
+          this.graph?.setNodeAttribute(n, 'color', '#ff0055');
+          this.graph?.setNodeAttribute(n, 'label', n); 
+          this.graph?.setNodeAttribute(n, 'zIndex', 1);
+      });
+      this.graph.forEachEdge(nodeId, e => {
+          this.graph?.setEdgeAttribute(e, 'hidden', false);
+          this.graph?.setEdgeAttribute(e, 'color', '#ff0055');
+          this.graph?.setEdgeAttribute(e, 'size', 2);
+      });
+
+      this.graph.setNodeAttribute(nodeId, 'color', '#ffffff');
+      this.graph.setNodeAttribute(nodeId, 'label', nodeId);
+      this.graph.setNodeAttribute(nodeId, 'size', (visualData.size || attrs.size || 5) * 1.5);
+
+      this.showNodeDetails({ id: nodeId, ...attrs, type: attrs.node_type });
   }
 
   cleanup() {
@@ -454,12 +404,16 @@ export class NativeGraphView extends ItemView {
       this.renderList();
   }
 
-  // ... UI HELPERS (buildSidebar, createDetailsPanel, createGraphToolbar, etc) ...
-  // Pega aquí el resto de funciones UI que ya tenías y funcionaban bien.
-  // (Asegúrate de copiar: createDetailsPanel, showNodeDetails (la corregida), createGraphToolbar, buildSidebar, toggleSort, filterOrphans, filterList, renderList, mergeSelectedNodes, deleteSelectedNodes)
   createDetailsPanel(container: HTMLElement) {
       this.detailsPanel = container.createDiv();
-      this.detailsPanel.style.cssText = `position: absolute; top: 60px; right: 20px; width: 340px; max-height: 80%; background: rgba(20, 20, 25, 0.98); border: 1px solid #444; border-radius: 8px; padding: 0; z-index: 20; color: #eee; overflow-y: auto; display: none; box-shadow: 0 10px 40px rgba(0,0,0,0.8); backdrop-filter: blur(10px); font-family: monospace; font-size: 13px;`;
+      this.detailsPanel.style.cssText = `
+        position: absolute; top: 60px; right: 20px; width: 340px; max-height: 80%;
+        background: rgba(20, 20, 25, 0.98); border: 1px solid #444;
+        border-radius: 8px; padding: 0; z-index: 20;
+        color: #eee; overflow-y: auto; display: none;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.8); backdrop-filter: blur(10px);
+        font-family: monospace; font-size: 13px;
+      `;
   }
 
   showNodeDetails(node: any) {
@@ -478,6 +432,7 @@ export class NativeGraphView extends ItemView {
         </div>
         <div id="view-mode" style="padding:15px;">
             <h2 style="margin:0 0 15px 0; color:#fff; word-break:break-word;">${node.id}</h2>
+            <div style="margin-bottom:15px; color:#aaa; font-size:0.9em;">Degree: <b style="color:#fff">${node.val}</b></div>
             <div style="font-size:0.9em; line-height:1.6; color:#ccc; background:rgba(255,255,255,0.05); padding:10px; border-radius:6px; margin-bottom:15px; max-height:150px; overflow-y:auto;">${node.desc || "No description."}</div>
             <div style="border-top:1px solid #333; padding-top:15px;">
                 <h4 style="margin:0 0 10px 0; color:#666; font-size:0.75em; text-transform:uppercase;">Context Sources</h4>
@@ -495,9 +450,10 @@ export class NativeGraphView extends ItemView {
     
     const viewDiv = this.detailsPanel.querySelector('#view-mode') as HTMLElement;
     const editDiv = this.detailsPanel.querySelector('#edit-mode') as HTMLElement;
+    this.detailsPanel.querySelector('#close-panel-btn')?.addEventListener('click', () => { if(this.detailsPanel) this.detailsPanel.style.display='none'; });
     this.detailsPanel.querySelector('#toggle-edit-btn')?.addEventListener('click', () => { viewDiv.style.display='none'; editDiv.style.display='block'; });
     this.detailsPanel.querySelector('#cancel-edit-btn')?.addEventListener('click', () => { editDiv.style.display='none'; viewDiv.style.display='block'; });
-    this.detailsPanel.querySelector('#close-panel-btn')?.addEventListener('click', () => { if(this.detailsPanel) this.detailsPanel.style.display='none'; });
+    
     this.detailsPanel.querySelector('#save-edit-btn')?.addEventListener('click', async () => {
         const newName = (this.detailsPanel!.querySelector('#edit-name') as HTMLInputElement).value.trim();
         const newType = (this.detailsPanel!.querySelector('#edit-type') as HTMLInputElement).value.trim();
@@ -528,6 +484,8 @@ export class NativeGraphView extends ItemView {
       searchInput.type = 'text'; searchInput.placeholder = '🚀 Search...';
       searchInput.style.cssText = `background: rgba(0, 0, 0, 0.6); border: 1px solid var(--text-accent); color: #fff; padding: 6px 10px; border-radius: 6px; outline: none; width: 200px; backdrop-filter: blur(4px); font-family: monospace;`;
       searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') this.searchNode(searchInput.value); });
+      searchInput.onfocus = () => { searchInput.style.width = '250px'; searchInput.style.background = 'rgba(0,0,0,0.8)'; };
+      searchInput.onblur = () => { searchInput.style.width = '200px'; searchInput.style.background = 'rgba(0,0,0,0.6)'; };
       const btnReload = tb.createEl('button');
       setIcon(btnReload, 'refresh-cw'); setTooltip(btnReload, 'Reload Graph');
       btnReload.style.cssText = "background: rgba(0,0,0,0.6); border: 1px solid #444; color: #ccc; padding: 6px; border-radius: 6px; cursor: pointer;";
@@ -613,5 +571,28 @@ export class NativeGraphView extends ItemView {
           new Notice("Deleted!"); this.selectedNodes.clear();
           setTimeout(() => this.render(this.contentEl.querySelector('#sigma-container') as HTMLElement), 1000);
       } catch (e) { console.error(e); }
+  }
+  searchNode(query: string) {
+      if(!query) return;
+      const lower = query.toLowerCase();
+      
+      if (this.plugin.settings.graphViewMode === '3d' && this.graph3D) {
+          const { nodes } = this.graph3D.graphData();
+          const target = nodes.find((n: any) => n.id.toLowerCase().includes(lower));
+          if (target) {
+              this.showNodeDetails(target);
+              const dist = 40;
+              const ratio = 1 + dist/Math.hypot(target.x, target.y, target.z);
+              this.graph3D.cameraPosition({ x: target.x * ratio, y: target.y * ratio, z: target.z * ratio }, target, 2000);
+              new Notice(`Found: ${target.id}`);
+          } else { new Notice("Node not found"); }
+      } 
+      else if (this.sigmaInstance && this.graph) {
+          const target = this.graph.nodes().find(n => n.toLowerCase().includes(lower));
+          if (target) {
+              this.focusOnNode2D(target);
+              new Notice(`Found: ${target}`);
+          } else { new Notice("Node not found"); }
+      }
   }
 }
