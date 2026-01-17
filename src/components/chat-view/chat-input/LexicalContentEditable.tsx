@@ -107,7 +107,7 @@ export default function LexicalContentEditable({
       <RichTextPlugin
         contentEditable={
           <ContentEditable
-            className="obsidian-default-textarea"
+            className="nrlcmp-textarea"
             style={{
               background: 'transparent',
             }}

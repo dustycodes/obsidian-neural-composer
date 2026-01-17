@@ -160,7 +160,7 @@
   }
 }
 
-.obsidian-default-textarea {
+.nrlcmp-textarea {
   -webkit-app-region: no-drag;
   background: var(--background-modifier-form-field);
   color: var(--text-normal);
@@ -176,24 +176,24 @@
 }
 
 @media (hover: hover) {
-  .obsidian-default-textarea:hover {
+  .nrlcmp-textarea:hover {
     border-color: var(--background-modifier-border-hover);
     transition:
       box-shadow 0.15s ease-in-out,
       border 0.15s ease-in-out;
   }
 }
-.obsidian-default-textarea:active {
+.nrlcmp-textarea:active {
   border-color: var(--background-modifier-border-focus);
   transition:
     box-shadow 0.15s ease-in-out,
     border 0.15s ease-in-out;
 }
 
-/* .obsidian-default-textarea::placeholder {
+/* .nrlcmp-textarea::placeholder {
   color: var(--text-faint);
 } */
-.obsidian-default-textarea {
+.nrlcmp-textarea {
   line-height: var(--line-height-tight);
 }
 
