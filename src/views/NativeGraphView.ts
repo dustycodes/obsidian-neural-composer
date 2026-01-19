@@ -69,6 +69,7 @@ export class NativeGraphView extends ItemView {
 
     await this.loadReferenceMaps();
 
+    // IZQUIERDA
     const graphZone = container.createDiv();
     graphZone.style.flex = '1';
     graphZone.style.position = 'relative';
@@ -83,6 +84,7 @@ export class NativeGraphView extends ItemView {
     this.createGraphToolbar(graphZone, graphContainer);
     this.createDetailsPanel(graphZone);
 
+    // DERECHA
     const sidebar = container.createDiv();
     sidebar.style.width = '320px';
     sidebar.style.display = 'flex';
@@ -95,6 +97,7 @@ export class NativeGraphView extends ItemView {
     setTimeout(() => this.render(graphContainer), 100);
   }
 
+  // --- LÓGICA DE DATOS ---
   async loadReferenceMaps() {
       try {
           const chunksPath = path.join(this.workDir, 'kv_store_text_chunks.json');
@@ -104,38 +107,18 @@ export class NativeGraphView extends ItemView {
       } catch (e) { console.error("Error loading maps", e); }
   }
 
-  // --- DETECTIVE ESTRICTO (SOLO ARCHIVOS) ---
   getFilenames(sourceIds: string): string[] {
-      if (!sourceIds || typeof sourceIds !== 'string') return [];
-      
+      if (!sourceIds) return [];
       const chunks = sourceIds.split(new RegExp('<SEP>|,')).map(s => s.trim().replace(/['"\[\]]/g, '')).filter(Boolean);
       const fileNames = new Set<string>();
-      
       chunks.forEach(chunkId => {
           const chunkData = this.chunkToDocMap[chunkId];
-          
-          // 1. Intento directo: ¿Es un nombre de archivo?
-          if (chunkId.includes('.') && !chunkId.startsWith('chunk-') && !chunkId.startsWith('doc-')) {
-               fileNames.add(chunkId);
-               return;
-          }
-
-          // 2. Intento vía Mapa
           if (chunkData && chunkData.full_doc_id) {
-              const docId = chunkData.full_doc_id;
-              const docData = this.docToNameMap[docId];
-              
-              if (docData) {
-                  // Solo aceptamos nombres reales
-                  if (docData.file_name) fileNames.add(docData.file_name);
-                  else if (docData.source_uri) fileNames.add(docData.source_uri);
-                  // ELIMINADO EL FALLBACK A 'content_summary'
-              }
+              const docData = this.docToNameMap[chunkData.full_doc_id];
+              if (docData) fileNames.add(docData.file_name || docData.id || "Unknown");
           }
       });
-      
-      // Filtro final: Solo dejar lo que parece un archivo
-      return Array.from(fileNames).filter(f => f.includes('.'));
+      return Array.from(fileNames);
   }
 
   // --- RENDERIZADO PRINCIPAL ---
@@ -150,6 +133,7 @@ export class NativeGraphView extends ItemView {
 
     try {
         const xmlData = fs.readFileSync(this.graphDataPath, 'utf-8');
+        
         const parser = new XMLParser({ 
             ignoreAttributes: false, 
             attributeNamePrefix: "", 
@@ -186,11 +170,11 @@ export class NativeGraphView extends ItemView {
                     if (mappedKey === "entity_type" || d.key === "d0") type = d.value;
                     if (mappedKey === "description" || d.key === "d1") desc = d.value;
                     
-                    // EXTRACCIÓN DE FUENTES (CORREGIDA)
                     if (mappedKey === "file_path" || mappedKey === "source_id") {
-                        // Llamamos al detective estricto
-                        const found = this.getFilenames(String(d.value));
-                        files = [...files, ...found];
+                         const val = String(d.value);
+                         if (val.includes('.md') || val.includes('.pdf') || val.includes('.txt')) {
+                             files = val.split('<SEP>').filter(s => s.trim().length > 0);
+                         }
                     }
                 });
 
@@ -199,7 +183,7 @@ export class NativeGraphView extends ItemView {
                     type: type,
                     desc: desc,
                     source_id: "", 
-                    file_paths: [...new Set(files)], // Deduplicar
+                    file_paths: files, 
                     val: (nodeDegrees.get(n.id) || 0) + 1
                 };
             });
@@ -230,6 +214,47 @@ export class NativeGraphView extends ItemView {
         }
 
     } catch (e) { console.error(e); }
+  }
+
+  // --- HELPER 2D: NAVEGACIÓN PRECISA ---
+  focusOnNode2D(nodeId: string) {
+      if (!this.graph || !this.sigmaInstance) return;
+
+      if (this.fa2Layout && this.fa2Layout.isRunning()) {
+          this.fa2Layout.stop();
+      }
+
+      const attrs = this.graph.getNodeAttributes(nodeId);
+      const visualData = this.sigmaInstance.getNodeDisplayData(nodeId);
+      if (!attrs) return;
+
+      let targetX = attrs.x;
+      let targetY = attrs.y;
+      if (visualData && typeof visualData.x === 'number' && !isNaN(visualData.x)) {
+          targetX = visualData.x; targetY = visualData.y;
+      }
+
+      this.sigmaInstance.getCamera().animate({ x: targetX, y: targetY, ratio: 0.15, angle: 0 }, { duration: 1500, easing: 'cubicInOut' });
+
+      this.graph.forEachNode(n => { this.graph?.setNodeAttribute(n, 'color', '#444'); this.graph?.setNodeAttribute(n, 'label', ''); this.graph?.setNodeAttribute(n, 'zIndex', 0); });
+      this.graph.forEachEdge(e => this.graph?.setEdgeAttribute(e, 'hidden', true));
+
+      this.graph.forEachNeighbor(nodeId, n => {
+          this.graph?.setNodeAttribute(n, 'color', '#ff0055');
+          this.graph?.setNodeAttribute(n, 'label', n); 
+          this.graph?.setNodeAttribute(n, 'zIndex', 1);
+      });
+      this.graph.forEachEdge(nodeId, e => {
+          this.graph?.setEdgeAttribute(e, 'hidden', false);
+          this.graph?.setEdgeAttribute(e, 'color', '#ff0055');
+          this.graph?.setEdgeAttribute(e, 'size', 2);
+      });
+
+      this.graph.setNodeAttribute(nodeId, 'color', '#ffffff');
+      this.graph.setNodeAttribute(nodeId, 'label', nodeId);
+      this.graph.setNodeAttribute(nodeId, 'size', (visualData?.size || attrs.size || 5) * 1.5);
+
+      this.showNodeDetails({ id: nodeId, ...attrs, type: attrs.node_type });
   }
 
   // --- MOTOR 2D (SIGMA.JS) ---
@@ -282,6 +307,7 @@ export class NativeGraphView extends ItemView {
         this.fa2Layout.start();
         setTimeout(() => { if(this.fa2Layout?.isRunning()) this.fa2Layout.stop(); }, 4000);
 
+        // --- EVENTOS ---
         this.sigmaInstance.on("clickNode", (event) => {
             this.focusOnNode2D(event.node);
         });
@@ -349,47 +375,6 @@ export class NativeGraphView extends ItemView {
       this.graph3D.height(container.clientHeight);
   }
 
-  // --- HELPER 2D ---
-  focusOnNode2D(nodeId: string) {
-      if (!this.graph || !this.sigmaInstance) return;
-
-      if (this.fa2Layout && this.fa2Layout.isRunning()) {
-          this.fa2Layout.stop();
-      }
-
-      const attrs = this.graph.getNodeAttributes(nodeId);
-      const visualData = this.sigmaInstance.getNodeDisplayData(nodeId);
-      if (!visualData || !attrs) return;
-
-      let targetX = attrs.x;
-      let targetY = attrs.y;
-      if (visualData && typeof visualData.x === 'number' && !isNaN(visualData.x)) {
-          targetX = visualData.x; targetY = visualData.y;
-      }
-
-      this.sigmaInstance.getCamera().animate({ x: targetX, y: targetY, ratio: 0.15, angle: 0 }, { duration: 1500, easing: 'cubicInOut' });
-
-      this.graph.forEachNode(n => { this.graph?.setNodeAttribute(n, 'color', '#444'); this.graph?.setNodeAttribute(n, 'label', ''); this.graph?.setNodeAttribute(n, 'zIndex', 0); });
-      this.graph.forEachEdge(e => this.graph?.setEdgeAttribute(e, 'hidden', true));
-
-      this.graph.forEachNeighbor(nodeId, n => {
-          this.graph?.setNodeAttribute(n, 'color', '#ff0055');
-          this.graph?.setNodeAttribute(n, 'label', n); 
-          this.graph?.setNodeAttribute(n, 'zIndex', 1);
-      });
-      this.graph.forEachEdge(nodeId, e => {
-          this.graph?.setEdgeAttribute(e, 'hidden', false);
-          this.graph?.setEdgeAttribute(e, 'color', '#ff0055');
-          this.graph?.setEdgeAttribute(e, 'size', 2);
-      });
-
-      this.graph.setNodeAttribute(nodeId, 'color', '#ffffff');
-      this.graph.setNodeAttribute(nodeId, 'label', nodeId);
-      this.graph.setNodeAttribute(nodeId, 'size', (visualData.size || attrs.size || 5) * 1.5);
-
-      this.showNodeDetails({ id: nodeId, ...attrs, type: attrs.node_type });
-  }
-
   cleanup() {
       if (this.sigmaInstance) { this.sigmaInstance.kill(); this.sigmaInstance = null; }
       if (this.fa2Layout) { this.fa2Layout.stop(); this.fa2Layout = null; }
@@ -404,193 +389,122 @@ export class NativeGraphView extends ItemView {
       this.renderList();
   }
 
+  // --- UI COMPONENTS (SANITIZADOS) ---
   createDetailsPanel(container: HTMLElement) {
       this.detailsPanel = container.createDiv();
-      this.detailsPanel.style.cssText = `
-        position: absolute; top: 60px; right: 20px; width: 340px; max-height: 80%;
-        background: rgba(20, 20, 25, 0.98); border: 1px solid #444;
-        border-radius: 8px; padding: 0; z-index: 20;
-        color: #eee; overflow-y: auto; display: none;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.8); backdrop-filter: blur(10px);
-        font-family: monospace; font-size: 13px;
-      `;
+      this.detailsPanel.style.cssText = `position: absolute; top: 60px; right: 20px; width: 340px; max-height: 80%; background: rgba(20, 20, 25, 0.98); border: 1px solid #444; border-radius: 8px; padding: 0; z-index: 20; color: #eee; overflow-y: auto; display: none; box-shadow: 0 10px 40px rgba(0,0,0,0.8); backdrop-filter: blur(10px); font-family: monospace; font-size: 13px;`;
   }
 
-// --- REFACTORIZADO: DOM API ---
+  // --- REFACTORIZADO PARA OBSIDIAN REVIEW ---
   showNodeDetails(node: any) {
     if (!this.detailsPanel) return;
-    this.detailsPanel.empty(); // Limpiar el panel de forma segura
+    this.detailsPanel.empty();
 
-    // Preparar datos
     const files = node.file_paths || [];
     const type = node.node_type || node.type || "Unknown";
     const desc = node.desc || "No description.";
 
-    // ============================================================
-    // 1. HEADER (Barra superior)
-    // ============================================================
+    // HEADER
     const header = this.detailsPanel.createDiv();
     header.style.cssText = "background:var(--interactive-accent); padding:10px 15px; display:flex; justify-content:space-between; align-items:center;";
-
+    
     const typeSpan = header.createSpan();
-    typeSpan.style.cssText = "font-weight:bold; color:white; font-size:0.9em;";
     typeSpan.setText(type.toUpperCase());
+    typeSpan.style.cssText = "font-weight:bold; color:white; font-size:0.9em;";
 
     const btnGroup = header.createDiv();
-    btnGroup.style.cssText = "display:flex; gap:10px;";
+    btnGroup.style.display = "flex";
+    btnGroup.style.gap = "10px";
 
     const editBtn = btnGroup.createEl("button");
     editBtn.setText("✏️ Edit");
-    editBtn.title = "Edit Node";
     editBtn.style.cssText = "background:rgba(0,0,0,0.2); border:none; color:white; cursor:pointer; padding:2px 8px; border-radius:4px;";
-
+    
     const closeBtn = btnGroup.createEl("button");
     closeBtn.setText("✕");
     closeBtn.style.cssText = "background:none; border:none; color:white; cursor:pointer; font-weight:bold;";
-    // Evento directo (sin querySelector)
     closeBtn.onclick = () => { if (this.detailsPanel) this.detailsPanel.style.display = 'none'; };
 
-    // Contenedor general del cuerpo
-    const contentContainer = this.detailsPanel.createDiv();
-    contentContainer.style.padding = "15px";
+    // BODY CONTAINER
+    const content = this.detailsPanel.createDiv();
+    content.style.padding = "15px";
 
-    // ============================================================
-    // 2. MODO LECTURA (VIEW MODE)
-    // ============================================================
-    const viewMode = contentContainer.createDiv();
+    // VIEW MODE
+    const viewMode = content.createDiv();
     
-    // Grado / Conexiones
-    const linksDiv = viewMode.createDiv();
-    linksDiv.style.marginBottom = "10px";
-    const linksLabel = linksDiv.createSpan();
-    linksLabel.setText("Degree: ");
-    linksLabel.style.cssText = "color:#aaa; font-size:0.8em;";
-    const linksVal = linksDiv.createEl("b");
-    linksVal.setText(String(node.val));
-    linksVal.style.color = "#fff";
+    const meta = viewMode.createDiv();
+    meta.style.marginBottom = "10px";
+    meta.createSpan({ text: "Links: ", attr: { style: "color:#aaa; font-size:0.8em;" } });
+    meta.createEl("b", { text: String(node.val), attr: { style: "color:#fff" } });
 
-    // Título (ID)
     const title = viewMode.createEl("h2");
     title.setText(node.id);
     title.style.cssText = "margin:0 0 15px 0; color:#fff; word-break:break-word; line-height:1.2;";
 
-    // Descripción
     const descBox = viewMode.createDiv();
-    descBox.style.cssText = "font-size:0.9em; line-height:1.6; color:#ccc; background:rgba(255,255,255,0.05); padding:10px; border-radius:6px; margin-bottom:15px; max-height:150px; overflow-y:auto; white-space: pre-wrap;";
+    descBox.style.cssText = "font-size:0.9em; line-height:1.6; color:#ccc; background:rgba(255,255,255,0.05); padding:10px; border-radius:6px; margin-bottom:15px; max-height:150px; overflow-y:auto; white-space:pre-wrap;";
     descBox.setText(desc);
 
-    // Sección de Fuentes
-    const sourcesDiv = viewMode.createDiv();
-    sourcesDiv.style.cssText = "border-top:1px solid #333; padding-top:15px;";
+    const sourcesSection = viewMode.createDiv();
+    sourcesSection.style.cssText = "border-top:1px solid #333; padding-top:15px;";
+    sourcesSection.createEl("h4", { text: "CONTEXT SOURCES", attr: { style: "margin:0 0 10px 0; color:#666; font-size:0.75em; letter-spacing:1px;" } });
     
-    const sourceHeader = sourcesDiv.createEl("h4");
-    sourceHeader.setText("Context Sources");
-    sourceHeader.style.cssText = "margin:0 0 10px 0; color:#666; font-size:0.75em; text-transform:uppercase; letter-spacing:1px;";
-
-    const ul = sourcesDiv.createEl("ul");
+    const ul = sourcesSection.createEl("ul");
     ul.style.cssText = "list-style:none; padding-left:0; margin:0;";
 
     if (files.length > 0) {
         files.forEach((f: string) => {
             const li = ul.createEl("li");
-            li.style.cssText = "margin-bottom:4px; color:#66fcf1; display:flex; gap:6px; align-items:center;";
-            
-            // Icono y Texto separados (Más seguro)
-            const icon = li.createSpan();
-            icon.setText("📄");
-            const text = li.createSpan();
-            text.setText(f);
+            li.style.cssText = "margin-bottom:4px; color:#66fcf1; display:flex; gap:6px;";
+            li.createSpan({ text: "📄" });
+            li.createSpan({ text: f });
         });
     } else {
-        const li = ul.createEl("li");
-        li.setText("No explicit source");
-        li.style.color = "#666";
+        ul.createEl("li", { text: "No explicit source", attr: { style: "color:#666" } });
     }
 
-    // ============================================================
-    // 3. MODO EDICIÓN (EDIT MODE) - Inicialmente oculto
-    // ============================================================
-    const editMode = contentContainer.createDiv();
+    // EDIT MODE
+    const editMode = content.createDiv();
     editMode.style.display = "none";
-
-    // Helper para crear inputs rápidamente
-    const createField = (labelText: string, initialValue: string, isTextarea = false) => {
-        const label = editMode.createEl("label");
-        label.setText(labelText);
-        label.style.cssText = "color:#aaa; font-size:0.8em; display:block; margin-bottom:4px;";
-        
-        let input: HTMLInputElement | HTMLTextAreaElement;
-        if (isTextarea) {
-            input = editMode.createEl("textarea");
-            input.rows = 5;
-        } else {
-            input = editMode.createEl("input");
-            input.type = "text";
-        }
-        input.value = initialValue;
-        input.style.cssText = "width:100%; margin-bottom:10px; background:#333; color:white; border:1px solid #555; padding:4px;";
-        return input;
+    
+    const makeInput = (lbl: string, val: string) => {
+        editMode.createEl("label", { text: lbl, attr: { style: "color:#aaa; font-size:0.8em; display:block; margin-bottom:4px;" } });
+        const i = editMode.createEl("input");
+        i.type = "text"; i.value = val;
+        i.style.cssText = "width:100%; margin-bottom:10px; background:#333; color:white; border:1px solid #555; padding:4px;";
+        return i;
     };
 
-    const nameInput = createField("Name (ID)", node.id);
-    const typeInput = createField("Type", type);
-    const descInput = createField("Description", desc, true); // true = textarea
+    const nameInput = makeInput("Name (ID)", node.id);
+    const typeInput = makeInput("Type", type);
+    
+    editMode.createEl("label", { text: "Description", attr: { style: "color:#aaa; font-size:0.8em; display:block; margin-bottom:4px;" } });
+    const descInput = editMode.createEl("textarea");
+    descInput.value = desc; descInput.rows = 5;
+    descInput.style.cssText = "width:100%; margin-bottom:10px; background:#333; color:white; border:1px solid #555; padding:4px;";
 
-    // Botones de acción
-    const actionDiv = editMode.createDiv();
-    actionDiv.style.cssText = "display:flex; justify-content:flex-end; gap:5px; margin-top:10px;";
+    const actions = editMode.createDiv();
+    actions.style.cssText = "display:flex; justify-content:flex-end; gap:5px;";
+    
+    const cancelBtn = new ButtonComponent(actions).setButtonText("Cancel");
+    const saveBtn = new ButtonComponent(actions).setButtonText("💾 Save");
+    saveBtn.buttonEl.style.cssText = "background:var(--interactive-accent); color:white; border:none;";
 
-    const cancelBtn = actionDiv.createEl("button");
-    cancelBtn.setText("Cancel");
-
-    const saveBtn = actionDiv.createEl("button");
-    saveBtn.setText("💾 Save");
-    saveBtn.style.cssText = "background:var(--interactive-accent); color:white; border:none;";
-
-    // ============================================================
-    // 4. LÓGICA DE INTERACCIÓN (Event Wiring)
-    // ============================================================
-
-    // Cambiar a Modo Edición
-    editBtn.onclick = () => {
-        viewMode.style.display = 'none';
-        editMode.style.display = 'block';
-    };
-
-    // Cancelar Edición
-    cancelBtn.onclick = () => {
-        editMode.style.display = 'none';
-        viewMode.style.display = 'block';
-    };
-
-    // Guardar Cambios
-    saveBtn.onclick = async () => {
+    // Wiring
+    editBtn.onclick = () => { viewMode.style.display='none'; editMode.style.display='block'; };
+    cancelBtn.buttonEl.onclick = () => { editMode.style.display='none'; viewMode.style.display='block'; };
+    
+    saveBtn.buttonEl.onclick = async () => {
         const newName = nameInput.value.trim();
-        const newType = typeInput.value.trim();
-        const newDesc = descInput.value.trim();
-
-        if (newName) {
-            // Deshabilitar botón para feedback visual
-            saveBtn.setText("Saving...");
-            saveBtn.disabled = true;
-
-            await this.updateNode(node.id, { 
-                entity_name: newName, 
-                entity_type: newType, 
-                description: newDesc 
-            });
-
-            // Cerrar panel tras éxito (el grafo se recargará)
-            if (this.detailsPanel) this.detailsPanel.style.display = 'none';
-        } else {
-            new Notice("Name cannot be empty");
+        if(newName) {
+            await this.updateNode(node.id, { entity_name: newName, entity_type: typeInput.value.trim(), description: descInput.value.trim() });
+            if(this.detailsPanel) this.detailsPanel.style.display = 'none';
         }
     };
 
-    // Mostrar el panel
     this.detailsPanel.style.display = 'block';
   }
-  
+
   async updateNode(oldName: string, data: any) {
       new Notice(`Updating node "${oldName}"...`);
       try {
@@ -604,6 +518,7 @@ export class NativeGraphView extends ItemView {
           } else { new Notice(`Error: ${await response.text()}`); }
       } catch (e) { console.error(e); new Notice("API connection error"); }
   }
+
   createGraphToolbar(container: HTMLElement, graphContainer: HTMLElement) {
       const tb = container.createDiv();
       tb.style.cssText = "position:absolute; top:15px; left:15px; z-index:10; display:flex; gap:8px; align-items:center;";
@@ -646,19 +561,14 @@ export class NativeGraphView extends ItemView {
   toggleSort() { this.sortAscending = !this.sortAscending; if (this.sortBtnEl) this.sortBtnEl.textContent = `Sort: Degree ${this.sortAscending ? '⬆' : '⬇'}`; this.filteredNodes.sort((a, b) => this.sortAscending ? a.val - b.val : b.val - a.val); this.renderList(); }
   filterOrphans() { if (this.searchInputEl) this.searchInputEl.value = ''; this.filteredNodes = this.allNodes.filter(n => n.val === 1); this.renderList(); }
   filterList(query: string) { if (!query) { this.filteredNodes = this.allNodes; } else { const q = query.toLowerCase(); this.filteredNodes = this.allNodes.filter(n => n.id.toLowerCase().includes(q)); } this.renderList(); }
-renderList() {
+  
+  renderList() {
       if (!this.sidebarListEl) return;
       this.sidebarListEl.empty();
       const visibleNodes = this.filteredNodes.slice(0, 50);
-      
       visibleNodes.forEach(node => {
           const row = this.sidebarListEl!.createDiv();
-          row.style.display = 'flex'; 
-          row.style.alignItems = 'center'; 
-          row.style.padding = '6px'; 
-          row.style.borderBottom = '1px solid var(--background-modifier-border)'; 
-          row.style.fontSize = '0.85em';
-          
+          row.style.display = 'flex'; row.style.alignItems = 'center'; row.style.padding = '6px'; row.style.borderBottom = '1px solid var(--background-modifier-border)'; row.style.fontSize = '0.85em';
           const cb = row.createEl('input', { type: 'checkbox' });
           cb.checked = this.selectedNodes.has(node.id);
           cb.onclick = (e) => { e.stopPropagation(); if (cb.checked) this.selectedNodes.add(node.id); else this.selectedNodes.delete(node.id); };
@@ -668,7 +578,7 @@ renderList() {
           info.style.marginLeft = '8px'; 
           info.style.cursor = 'pointer';
           
-          // --- CORRECCIÓN SEGURA ---
+          // --- REFACTORIZADO (SECURITY): DOM API ---
           const title = info.createDiv();
           title.style.fontWeight = 'bold';
           title.setText(node.id);
@@ -676,9 +586,9 @@ renderList() {
           const meta = info.createDiv();
           meta.style.color = 'var(--text-muted)';
           meta.style.fontSize = '0.9em';
+          // Fix visual
           const degree = node.val > 0 ? node.val - 1 : 0;
           meta.setText(`${node.type} (${degree})`);
-          // -------------------------
 
           info.onclick = () => this.searchNode(node.id); 
       });
@@ -689,6 +599,7 @@ renderList() {
           more.setText(`...and ${this.filteredNodes.length - 100} more.`);
       }
   }
+  
   async mergeSelectedNodes() {
       const targets = Array.from(this.selectedNodes);
       if (targets.length < 2) { new Notice("Select 2+ nodes"); return; }
