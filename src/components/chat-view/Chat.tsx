@@ -343,7 +343,7 @@ const Chat = forwardRef<ChatRef, ChatProps>((props, ref) => {
   )
 
   const handleToolMessageUpdate = useCallback(
-    async (toolMessage: ChatToolMessage) => {
+   (toolMessage: ChatToolMessage) => {
       const toolMessageIndex = chatMessages.findIndex(
         (message) => message.id === toolMessage.id,
       )

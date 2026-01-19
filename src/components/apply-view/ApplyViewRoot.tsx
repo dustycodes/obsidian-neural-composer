@@ -77,7 +77,7 @@ export default function ApplyViewRoot({
     close()
   }
 
-  const handleReject = async () => {
+  const handleReject = () => {
     close()
   }
 

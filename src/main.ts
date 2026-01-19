@@ -1,16 +1,4 @@
-import { 
-    Plugin, 
-    Notice, 
-    Setting, 
-    addIcon, 
-    requestUrl, 
-    // --- TIPOS QUE FALTABAN ---
-    Editor, 
-    MarkdownView, 
-    TFile, 
-    TFolder,
-    View 
-} from 'obsidian';
+import { Plugin, Notice, Setting, addIcon, requestUrl, Editor, MarkdownView, TFile, TFolder, View } from 'obsidian';
 import { spawn, execSync, ChildProcess } from 'child_process'
 import * as fs from 'fs'
 import * as path from 'path'
