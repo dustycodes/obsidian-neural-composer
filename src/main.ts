@@ -1,4 +1,16 @@
-import { Editor, MarkdownView, Notice, Plugin, TFolder, TFile } from 'obsidian'
+import { 
+    Plugin, 
+    Notice, 
+    Setting, 
+    addIcon, 
+    requestUrl, 
+    // --- TIPOS QUE FALTABAN ---
+    Editor, 
+    MarkdownView, 
+    TFile, 
+    TFolder,
+    View 
+} from 'obsidian';
 import { spawn, execSync, ChildProcess } from 'child_process'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -238,7 +250,7 @@ this.addCommand({
   }
 
   // --- LÓGICA DE MONITOREO (TRANSPARENCIA) ---
-  async monitorPipeline(notice: Notice) {
+ async monitorPipeline(notice: Notice) {
     let isBusy = true;
     let errors = 0;
     // Esperar un momento para que el servidor registre la tarea
@@ -246,13 +258,15 @@ this.addCommand({
 
     while (isBusy) {
         try {
-            const response = await fetch("http://localhost:9621/documents/pipeline_status");
-            if (!response.ok) throw new Error("Status error");
+            // REEMPLAZO: requestUrl en lugar de fetch
+            const response = await requestUrl({
+                url: "http://localhost:9621/documents/pipeline_status",
+                method: "GET"
+            });
             
-            const status = await response.json();
+            // Obsidian lanza error si status != 200, así que si llegamos aquí, está OK
+            const status = response.json; // .json es propiedad, no función
             
-            // Si hay documentos en cola (docs > 0) y busy es false, puede que haya terminado o no empezado.
-            // Pero generalmente 'busy' es el indicador clave.
             isBusy = status.busy;
             
             if (isBusy) {
@@ -263,7 +277,7 @@ this.addCommand({
                 notice.setMessage(
                     `🧠 System processing...\n` +
                     `⚙️ Progress: ${percent}% (${current}/${total})\n` +
-                    `📝 ${status.latest_message || "Analizing..."}`
+                    `📝 ${status.latest_message || "Analyzing..."}`
                 );
             }
 
@@ -840,7 +854,7 @@ public async generateEntityTypes(): Promise<string | null> {
   }
 
   // Pequeño ayudante para llamar al LLM sin toda la maquinaria del ChatView
-  async simpleLLMCall(prompt: string): Promise<string> {
+async simpleLLMCall(prompt: string): Promise<string> {
       // Identificar proveedor actual
       const chatModelId = this.settings.chatModelId;
       const modelObj = this.settings.chatModels.find(m => m.id === chatModelId);
@@ -848,21 +862,28 @@ public async generateEntityTypes(): Promise<string | null> {
       
       if (!provider || !modelObj) throw new Error("Modelo no configurado");
 
-      // Lógica simple para Gemini y OpenAI (Ollama similar)
+      // Lógica simple para Gemini
       if (provider.id === 'gemini') {
           const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelObj.model}:generateContent?key=${provider.apiKey}`;
-          const response = await fetch(url, {
+          
+          // REEMPLAZO 1: Gemini con requestUrl
+          const response = await requestUrl({
+              url: url,
               method: 'POST',
               headers: {'Content-Type': 'application/json'},
               body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
           });
-          const data = await response.json();
+          
+          const data = response.json;
           return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
       } 
       
       // Fallback genérico para OpenAI/Ollama/Compatible
       const baseUrl = provider.baseUrl || (provider.id === 'openai' ? 'https://api.openai.com/v1' : 'http://localhost:11434/v1');
-      const response = await fetch(`${baseUrl}/chat/completions`, {
+      
+      // REEMPLAZO 2: OpenAI/Ollama con requestUrl
+      const response = await requestUrl({
+          url: `${baseUrl}/chat/completions`,
           method: 'POST',
           headers: {
               'Content-Type': 'application/json',
@@ -874,8 +895,8 @@ public async generateEntityTypes(): Promise<string | null> {
               temperature: 0.1
           })
       });
-      const data = await response.json();
+      
+      const data = response.json;
       return data.choices?.[0]?.message?.content || "";
   }
-
 }

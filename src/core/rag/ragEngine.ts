@@ -1,4 +1,4 @@
-import { App, TFile, Notice } from 'obsidian'
+import { App, TFile, Notice, requestUrl } from 'obsidian'
 
 import { QueryProgressState } from '../../components/chat-view/QueryProgress'
 import { VectorManager } from '../../database/modules/vector/VectorManager'
@@ -52,17 +52,20 @@ export class RAGEngine {
   }
 
   // --- 1. INGESTA TEXTO ---
-  async insertDocument(content: string, description?: string): Promise<boolean> {
+async insertDocument(content: string, description?: string): Promise<boolean> {
     const safeName = description && description.trim() ? description : `Note_${Date.now()}.md`;
     try {
-      const response = await fetch("http://localhost:9621/documents/texts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ "texts": [content], "file_sources": [safeName] })
+      // REEMPLAZO: requestUrl
+      const response = await requestUrl({
+          url: "http://localhost:9621/documents/texts",
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ "texts": [content], "file_sources": [safeName] }),
+          throw: false // Para manejar errores manualmente abajo
       });
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`Error ${response.status}: ${errText}`);
+
+      if (response.status >= 400) {
+        throw new Error(`Error ${response.status}: ${response.text}`);
       }
       return true;
     } catch (error) {
@@ -73,20 +76,39 @@ export class RAGEngine {
   }
 
   // --- 2. INGESTA BINARIA ---
-  async uploadDocument(file: TFile): Promise<boolean> {
+async uploadDocument(file: TFile): Promise<boolean> {
     try {
-      const arrayBuffer = await this.app.vault.readBinary(file);
-      const blob = new Blob([arrayBuffer]);
-      const formData = new FormData();
-      formData.append('file', blob, file.name); 
+      const fileData = await this.app.vault.readBinary(file);
       
-      const response = await fetch("http://localhost:9621/documents/upload", {
+      // 1. Crear Boundary para Multipart
+      const boundary = "----ObsidianBoundary" + Date.now().toString(16);
+      
+      // 2. Construir encabezado y pie del body
+      const prePart = `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${file.name}"\r\nContent-Type: application/octet-stream\r\n\r\n`;
+      const postPart = `\r\n--${boundary}--\r\n`;
+
+      // 3. Unir todo en un solo Uint8Array
+      const preBuffer = new TextEncoder().encode(prePart);
+      const postBuffer = new TextEncoder().encode(postPart);
+      const bodyBuffer = new Uint8Array(preBuffer.length + fileData.byteLength + postBuffer.length);
+
+      bodyBuffer.set(preBuffer, 0);
+      bodyBuffer.set(new Uint8Array(fileData), preBuffer.length);
+      bodyBuffer.set(postBuffer, preBuffer.length + fileData.byteLength);
+
+      // 4. Enviar con requestUrl
+      const response = await requestUrl({
+        url: "http://localhost:9621/documents/upload",
         method: "POST",
-        body: formData 
+        headers: {
+            "Content-Type": `multipart/form-data; boundary=${boundary}`
+        },
+        body: bodyBuffer.buffer, // Enviar el ArrayBuffer
+        throw: false
       });
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`Error ${response.status}: ${errText}`);
+
+      if (response.status >= 400) {
+        throw new Error(`Error ${response.status}: ${response.text}`);
       }
 
       return true;
@@ -140,21 +162,24 @@ export class RAGEngine {
     onQueryProgressChange?.({ type: 'querying' })
 
     const performQuery = async () => {
-        const response = await fetch("http://localhost:9621/query", {
+        // REEMPLAZO: requestUrl
+        const response = await requestUrl({
+            url: "http://localhost:9621/query",
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ 
                 query: query, mode: "hybrid", stream: false, only_need_context: false
-            })
+            }),
+            throw: false // Manejamos errores abajo
         });
         
         // --- DETECCIÓN DE ERRORES DEL SERVIDOR ---
-        if (!response.ok) {
-            const errorText = await response.text();
+        if (response.status >= 400) {
+            const errorText = response.text; // Propiedad, no promesa
             
             // Detectar problemas de Reranking comunes
             if (errorText.toLowerCase().includes("quota") || errorText.toLowerCase().includes("credit") || errorText.toLowerCase().includes("429")) {
-                new Notice("⚠️ RERANK ERROR: Quota Exceeded.\nPlease check your Jina/Cohere API Key.", 0); // 0 = Se queda pegado hasta que lo cierren
+                new Notice("⚠️ RERANK ERROR: Quota Exceeded.\nPlease check your Jina/Cohere API Key.", 0);
             }
             else if (errorText.toLowerCase().includes("rerank")) {
                 new Notice(`⚠️ Reranking Error: ${errorText}`, 5000);
@@ -162,7 +187,7 @@ export class RAGEngine {
             
             throw new Error(`Status ${response.status}: ${errorText}`);
         }
-        return await response.json();
+        return response.json; // Propiedad .json directa
     };
 
     try {

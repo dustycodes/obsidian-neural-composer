@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, Notice, setIcon, TextComponent, ButtonComponent, setTooltip } from 'obsidian';
+import { ItemView, WorkspaceLeaf, Notice, setIcon, TextComponent, ButtonComponent, setTooltip, requestUrl} from 'obsidian';
 import * as fs from 'fs';
 import * as path from 'path';
 import { XMLParser } from 'fast-xml-parser';
@@ -505,18 +505,33 @@ export class NativeGraphView extends ItemView {
     this.detailsPanel.style.display = 'block';
   }
 
-  async updateNode(oldName: string, data: any) {
+async updateNode(oldName: string, data: any) {
       new Notice(`Updating node "${oldName}"...`);
       try {
-          const response = await fetch("http://localhost:9621/graph/entity/edit", {
-              method: "POST", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ "entity_name": oldName, "updated_data": data, "allow_rename": true, "allow_merge": true })
+          const response = await requestUrl({
+              url: "http://localhost:9621/graph/entity/edit",
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ 
+                  "entity_name": oldName, 
+                  "updated_data": data, 
+                  "allow_rename": true, 
+                  "allow_merge": true 
+              })
           });
-          if (response.ok) { 
+
+          // requestUrl devuelve status 200 si todo sale bien
+          if (response.status === 200) { 
               new Notice("✅ Node updated!"); 
               setTimeout(() => this.render(this.contentEl.querySelector('#sigma-container') as HTMLElement), 1500); 
-          } else { new Notice(`Error: ${await response.text()}`); }
-      } catch (e) { console.error(e); new Notice("API connection error"); }
+          } else { 
+              // response.text es una propiedad, no una promesa en Obsidian
+              new Notice(`Error updating: ${response.text}`); 
+          }
+      } catch (e) { 
+          console.error(e); 
+          new Notice("API connection error"); 
+      }
   }
 
   createGraphToolbar(container: HTMLElement, graphContainer: HTMLElement) {
@@ -600,39 +615,55 @@ export class NativeGraphView extends ItemView {
       }
   }
   
-  async mergeSelectedNodes() {
+async mergeSelectedNodes() {
       const targets = Array.from(this.selectedNodes);
       if (targets.length < 2) { new Notice("Select 2+ nodes"); return; }
+      
       new MergeSelectionModal(this.plugin.app, targets, async (targetNode: string, sourceNodes: string[]) => {
           new Notice(`Merging into ${targetNode}...`);
           try {
-              const response = await fetch("http://localhost:9621/graph/entities/merge", {
-                  method: "POST", headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ "entity_to_change_into": targetNode, "entities_to_change": sourceNodes })
+              const response = await requestUrl({
+                  url: "http://localhost:9621/graph/entities/merge",
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ 
+                      "entity_to_change_into": targetNode, 
+                      "entities_to_change": sourceNodes 
+                  })
               });
-              if (response.ok) { 
+
+              if (response.status === 200) { 
                   new Notice("✅ Merged!"); 
                   this.selectedNodes.clear(); 
                   setTimeout(() => this.render(this.contentEl.querySelector('#sigma-container') as HTMLElement), 1000); 
-              } else { new Notice(`Error: ${await response.text()}`); }
+              } else { 
+                  new Notice(`Error: ${response.text}`); 
+              }
           } catch (e) { console.error(e); new Notice("API Error"); }
       }).open();
   }
-  async deleteSelectedNodes() {
+
+async deleteSelectedNodes() {
       const targets = Array.from(this.selectedNodes);
       if (targets.length === 0) return;
       if(!confirm(`Delete ${targets.length} nodes?`)) return;
+      
       try {
           for (const entity of targets) {
-              await fetch("http://localhost:9621/documents/delete_entity", {
-                  method: "DELETE", headers: { "Content-Type": "application/json" },
+              await requestUrl({
+                  url: "http://localhost:9621/documents/delete_entity",
+                  method: "DELETE",
+                  headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ "entity_name": entity })
               });
           }
-          new Notice("Deleted!"); this.selectedNodes.clear();
+          new Notice("Deleted!"); 
+          this.selectedNodes.clear();
           setTimeout(() => this.render(this.contentEl.querySelector('#sigma-container') as HTMLElement), 1000);
       } catch (e) { console.error(e); }
   }
+
+
   searchNode(query: string) {
       if(!query) return;
       const lower = query.toLowerCase();
