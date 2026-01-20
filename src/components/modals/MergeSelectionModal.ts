@@ -2,7 +2,6 @@ import { App, Modal, ButtonComponent } from 'obsidian';
 
 export class MergeSelectionModal extends Modal {
   private selectedNodes: string[];
-  // Ahora el callback devuelve una Promesa para que podamos esperar
   private onSubmit: (target: string, sources: string[]) => Promise<void>;
   private selectedTarget: string;
 
@@ -19,27 +18,18 @@ export class MergeSelectionModal extends Modal {
 
     contentEl.createEl('h3', { text: '🔗 Merge entities' });
     
-// 1. Instrucción Principal
+    // 1. Instrucción Principal (CSS Class)
     contentEl.createEl('p', { 
         text: 'Select the *primary* entity (the survivor). All other selected entities will be merged into this one and deleted.',
-        attr: { style: 'color: var(--text-muted); font-size: 0.9em; margin-bottom: 10px;' }
+        cls: 'nrlcmp-merge-instruction'
     });
 
-    // 2. Caja de Advertencia (Más visible)
-    
+    // 2. Caja de Advertencia (CSS Class)
     const warningBox = contentEl.createDiv();
-    warningBox.style.cssText = `
-        background-color: rgba(230, 160, 0, 0.15);
-        border: 1px solid var(--text-warning);
-        border-radius: 5px;
-        padding: 8px 12px;
-        margin-bottom: 20px;
-        font-size: 0.85em;
-        color: var(--text-normal);
-    `;
+    warningBox.addClass('nrlcmp-merge-warning');
     
-    // --- CORRECCIÓN SEGURA ---
-    const strongTitle = warningBox.createEl("strong", { text: "⚠️ Note: " });
+    // Contenido seguro (sin variables sin usar)
+    warningBox.createEl("strong", { text: "⚠️ Note: " });
     warningBox.createSpan({ text: "This action " });
     warningBox.createEl("strong", { text: "Cannot be undone" });
     warningBox.createSpan({ text: "." });
@@ -47,18 +37,10 @@ export class MergeSelectionModal extends Modal {
     warningBox.createSpan({ text: "Merging nodes with a high number of relations involves heavy processing and " });
     warningBox.createEl("strong", { text: "May take a while" });
     warningBox.createSpan({ text: ". Please be patient." });
-    // -------------------------
 
-
-
+    // 3. Lista (CSS Class)
     const listContainer = contentEl.createDiv();
-    listContainer.style.maxHeight = '300px';
-    listContainer.style.overflowY = 'auto';
-    listContainer.style.marginBottom = '20px';
-    listContainer.style.border = '1px solid var(--background-modifier-border)';
-    listContainer.style.borderRadius = '6px';
-    listContainer.style.padding = '10px';
-    listContainer.style.backgroundColor = 'var(--background-secondary)';
+    listContainer.addClass('nrlcmp-merge-list');
 
     // Referencia al botón para actualizarlo dinámicamente
     let submitButton: ButtonComponent;
@@ -66,22 +48,17 @@ export class MergeSelectionModal extends Modal {
     // Lista de Radio Buttons
     this.selectedNodes.forEach((node) => {
         const row = listContainer.createDiv();
-        row.style.display = 'flex';
-        row.style.alignItems = 'center';
-        row.style.padding = '8px';
-        row.style.gap = '10px';
-        row.style.borderBottom = '1px solid var(--background-modifier-border)';
+        row.addClass('nrlcmp-merge-item');
         
         const rb = row.createEl('input', { type: 'radio', attr: { name: 'merge-target' } });
         rb.id = `rb-${node}`;
         rb.value = node;
         if (node === this.selectedTarget) rb.checked = true;
-        rb.style.cursor = 'pointer';
+        rb.addClass('nrlcmp-merge-radio');
 
         // --- REACTIVIDAD DEL BOTÓN ---
         rb.onchange = () => { 
             this.selectedTarget = node;
-            // Actualizamos el texto del botón al cambiar la selección
             if (submitButton) {
                 submitButton.setButtonText(`Merge into "${node}"`);
             }
@@ -89,16 +66,12 @@ export class MergeSelectionModal extends Modal {
 
         const label = row.createEl('label', { text: node });
         label.htmlFor = `rb-${node}`;
-        label.style.cursor = 'pointer';
-        label.style.fontWeight = 'bold';
-        label.style.flex = '1';
+        label.addClass('nrlcmp-merge-label');
     });
 
-    // Botonera
+    // Botonera (CSS Class)
     const buttonDiv = contentEl.createDiv();
-    buttonDiv.style.display = 'flex';
-    buttonDiv.style.justifyContent = 'flex-end';
-    buttonDiv.style.gap = '10px';
+    buttonDiv.addClass('nrlcmp-merge-actions');
 
     const cancelBtn = new ButtonComponent(buttonDiv)
         .setButtonText('Cancel')
@@ -108,15 +81,15 @@ export class MergeSelectionModal extends Modal {
         .setButtonText(`Merge into "${this.selectedTarget}"`)
         .setCta() // Azul brillante
         .onClick(async () => {
-            // 1. ESTADO DE CARGA (UI FEEDBACK)
+            // 1. ESTADO DE CARGA
             submitButton.setButtonText('⏳ Merging...').setDisabled(true);
             cancelBtn.setDisabled(true);
             
-            // 2. EJECUTAR ACCIÓN (ESPERAR)
+            // 2. EJECUTAR ACCIÓN
             const sources = this.selectedNodes.filter(n => n !== this.selectedTarget);
             await this.onSubmit(this.selectedTarget, sources);
             
-            // 3. CERRAR AL TERMINAR
+            // 3. CERRAR
             this.close();
         });
   }

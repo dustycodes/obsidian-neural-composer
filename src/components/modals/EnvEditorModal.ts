@@ -25,10 +25,7 @@ export class EnvEditorModal extends Modal {
 
     // Área de texto grande para editar
     const textArea = contentEl.createEl('textarea');
-    textArea.style.width = '100%';
-    textArea.style.height = '300px';
-    textArea.style.fontFamily = 'monospace';
-    textArea.style.fontSize = '0.9em';
+    textArea.addClass('nrlcmp-env-textarea');
     textArea.value = this.envContent;
     
     // Capturar cambios
@@ -38,10 +35,7 @@ export class EnvEditorModal extends Modal {
 
     // Botonera
     const buttonContainer = contentEl.createDiv();
-    buttonContainer.style.display = 'flex';
-    buttonContainer.style.justifyContent = 'flex-end';
-    buttonContainer.style.marginTop = '15px';
-    buttonContainer.style.gap = '10px';
+    buttonContainer.addClass('nrlcmp-modal-actions');
 
     new Setting(buttonContainer)
         .addButton(btn => btn

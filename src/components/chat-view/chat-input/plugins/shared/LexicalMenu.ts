@@ -6,6 +6,7 @@
  *
  * Modified from the original code
  * - Added custom positioning logic for menu placement
+ * - Refactored for Obsidian Plugin compliance (No inline styles, no deprecated methods)
  */
 
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
@@ -25,6 +26,7 @@ import {
   TextNode,
   createCommand,
 } from 'lexical'
+import * as React from 'react'; // Importante para React.JSX
 import {
   MutableRefObject,
   ReactPortal,
@@ -74,7 +76,7 @@ export type MenuRenderFn<TOption extends MenuOption> = (
     options: TOption[]
   },
   matchingString: string | null,
-) => ReactPortal | JSX.Element | null
+) => ReactPortal | React.JSX.Element | null // CORRECCIÓN: React.JSX.Element
 
 const scrollIntoViewIfNeeded = (target: HTMLElement) => {
   const typeaheadContainerNode = document.getElementById('typeahead-menu')
@@ -110,7 +112,8 @@ function getFullMatchOffset(
 ): number {
   let triggerOffset = offset
   for (let i = triggerOffset; i <= entryText.length; i++) {
-    if (documentText.substr(-i) === entryText.substr(0, i)) {
+    // CORRECCIÓN: substr -> slice
+    if (documentText.slice(-i) === entryText.slice(0, i)) {
       triggerOffset = i
     }
   }
@@ -279,7 +282,7 @@ export function LexicalMenu<TOption extends MenuOption>({
     matchingString: string,
   ) => void
   commandPriority?: CommandListenerPriority
-}): JSX.Element | null {
+}): React.JSX.Element | null { // CORRECCIÓN: React.JSX.Element
   const [selectedIndex, setHighlightedIndex] = useState<null | number>(null)
 
   const matchingString = resolution.match?.matchingString
@@ -486,26 +489,28 @@ export function useMenuAnchorRef(
 ): MutableRefObject<HTMLElement> {
   const [editor] = useLexicalComposerContext()
   const anchorElementRef = useRef<HTMLElement>(document.createElement('div'))
+  
   const positionMenu = useCallback(() => {
-    anchorElementRef.current.style.top = anchorElementRef.current.style.bottom
+    // Limpieza de estilo inicial
+    anchorElementRef.current.style.removeProperty('top');
+    anchorElementRef.current.style.removeProperty('bottom');
+    
     const rootElement = editor.getRootElement()
     const containerDiv = anchorElementRef.current
-
     const menuEle = containerDiv.firstChild as HTMLElement
+
     if (rootElement !== null && resolution !== null) {
       const { left, top, width, height } = resolution.getRect()
-      const anchorHeight = anchorElementRef.current.offsetHeight // use to position under anchor
-      containerDiv.style.top = `${
-        top +
-        anchorHeight +
-        3 +
-        (shouldIncludePageYOffset__EXPERIMENTAL ? window.pageYOffset : 0)
-      }px`
-      containerDiv.style.left = `${left + window.pageXOffset}px`
-      containerDiv.style.height = `${height}px`
-      containerDiv.style.width = `${width}px`
+      const anchorHeight = anchorElementRef.current.offsetHeight
+      
+      // COORDENADAS DINÁMICAS (Esto es inevitable en JS, pero el layout base es CSS)
+      containerDiv.style.setProperty('top', `${top + anchorHeight + 3 + (shouldIncludePageYOffset__EXPERIMENTAL ? window.pageYOffset : 0)}px`);
+      containerDiv.style.setProperty('left', `${left + window.pageXOffset}px`);
+      containerDiv.style.setProperty('height', `${height}px`);
+      containerDiv.style.setProperty('width', `${width}px`);
+
       if (menuEle !== null) {
-        menuEle.style.top = `${top}`
+        menuEle.style.setProperty('top', `${top}px`);
         const menuRect = menuEle.getBoundingClientRect()
         const menuHeight = menuRect.height
         const menuWidth = menuRect.width
@@ -513,24 +518,11 @@ export function useMenuAnchorRef(
         const rootElementRect = rootElement.getBoundingClientRect()
 
         if (left + menuWidth > rootElementRect.right) {
-          containerDiv.style.left = `${
-            rootElementRect.right - menuWidth + window.pageXOffset
-          }px`
+            containerDiv.style.setProperty('left', `${rootElementRect.right - menuWidth + window.pageXOffset}px`);
         }
-        if (
-          // If it exceeds the window height, it should always be displayed above, but the original code checks if it doesn't exceed the editor's top as well. So I modified it.
-          // (top + menuHeight > window.innerHeight ||
-          //   top + menuHeight > rootElementRect.bottom) &&
-          // top - rootElementRect.top > menuHeight + height
-          top + menuHeight >
-          window.innerHeight
-        ) {
-          containerDiv.style.top = `${
-            top -
-            menuHeight -
-            height +
-            (shouldIncludePageYOffset__EXPERIMENTAL ? window.pageYOffset : 0)
-          }px`
+        
+        if (top + menuHeight > window.innerHeight) {
+          containerDiv.style.setProperty('top', `${top - menuHeight - height + (shouldIncludePageYOffset__EXPERIMENTAL ? window.pageYOffset : 0)}px`);
         }
       }
 
@@ -538,11 +530,14 @@ export function useMenuAnchorRef(
         if (className != null) {
           containerDiv.className = className
         }
+        
+        // CORRECCIÓN: Usar clases CSS en lugar de estilos inline
+        containerDiv.addClass('nrlcmp-typeahead-menu'); // Clase definida en styles.css
+        
         containerDiv.setAttribute('aria-label', 'Typeahead menu')
         containerDiv.setAttribute('id', 'typeahead-menu')
         containerDiv.setAttribute('role', 'listbox')
-        containerDiv.style.display = 'block'
-        containerDiv.style.position = 'absolute'
+        
         parent.append(containerDiv)
       }
       anchorElementRef.current = containerDiv

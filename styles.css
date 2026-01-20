@@ -2182,3 +2182,79 @@ button.nrlcmp-chat-input-model-select {
     width: 100%;
     height: 100%;
 }
+
+/* --- MERGE SELECTION MODAL --- */
+
+.nrlcmp-merge-instruction {
+    color: var(--text-muted);
+    font-size: 0.9em;
+    margin-bottom: 10px;
+}
+
+.nrlcmp-merge-warning {
+    background-color: rgba(230, 160, 0, 0.15);
+    border: 1px solid var(--text-warning);
+    border-radius: 5px;
+    padding: 8px 12px;
+    margin-bottom: 20px;
+    font-size: 0.85em;
+    color: var(--text-normal);
+}
+
+.nrlcmp-merge-list {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    padding: 10px;
+    background-color: var(--background-secondary);
+}
+
+.nrlcmp-merge-item {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    gap: 10px;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.nrlcmp-merge-radio {
+    cursor: pointer;
+}
+
+.nrlcmp-merge-label {
+    cursor: pointer;
+    font-weight: bold;
+    flex: 1;
+}
+
+.nrlcmp-merge-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+/* --- ENV EDITOR MODAL --- */
+.nrlcmp-env-textarea {
+    width: 100%;
+    height: 300px;
+    font-family: var(--font-monospace);
+    font-size: 0.9em;
+}
+
+.nrlcmp-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 15px;
+    gap: 10px;
+}
+
+/* --- LEXICAL MENU (Typeahead) --- */
+.nrlcmp-typeahead-menu {
+    display: block;
+    position: absolute;
+    z-index: 9999; /* Asegurar que flote sobre todo */
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    border-radius: 8px;
+}
