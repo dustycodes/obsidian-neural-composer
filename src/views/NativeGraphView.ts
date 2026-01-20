@@ -388,9 +388,10 @@ export class NativeGraphView extends ItemView {
   }
 
   // --- UI COMPONENTS (SANITIZADOS) ---
-  createDetailsPanel(container: HTMLElement) {
+createDetailsPanel(container: HTMLElement) {
       this.detailsPanel = container.createDiv();
-      this.detailsPanel.style.cssText = `position: absolute; top: 60px; right: 20px; width: 340px; max-height: 80%; background: rgba(20, 20, 25, 0.98); border: 1px solid #444; border-radius: 8px; padding: 0; z-index: 20; color: #eee; overflow-y: auto; display: none; box-shadow: 0 10px 40px rgba(0,0,0,0.8); backdrop-filter: blur(10px); font-family: monospace; font-size: 13px;`;
+      // Reemplaza: absolute, top, right, width, background, shadow...
+      this.detailsPanel.addClass('nrlcmp-details-panel');
   }
 
   // --- REFACTORIZADO PARA OBSIDIAN REVIEW ---
