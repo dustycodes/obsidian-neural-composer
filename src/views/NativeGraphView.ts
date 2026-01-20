@@ -57,44 +57,42 @@ export class NativeGraphView extends ItemView {
   getDisplayText() { return 'Neural Manager'; }
   getIcon() { return 'brain-circuit'; }
 
-  async onOpen() {
+ async onOpen() {
     const container = this.contentEl;
     container.empty();
-    container.style.display = 'flex';
-    container.style.height = '100%';
-    container.style.width = '100%';
     
+    // Reemplaza: display, height, width, background
+    container.addClass('nrlcmp-graph-view'); 
+    
+    // Manejo de fondo (Dinámico)
+    // Asegúrate de tener estas clases en tu CSS o usa una variable CSS
     const is3D = this.plugin.settings.graphViewMode === '3d';
-    container.style.backgroundColor = is3D ? '#000005' : '#111111';
+    if (is3D) container.addClass('nrlcmp-bg-3d'); // Define background: #000005 en CSS
+    else container.addClass('nrlcmp-bg-2d');      // Define background: #111111 en CSS
 
     await this.loadReferenceMaps();
 
-    // IZQUIERDA
+    // IZQUIERDA (Zona del Grafo)
     const graphZone = container.createDiv();
-    graphZone.style.flex = '1';
-    graphZone.style.position = 'relative';
-    graphZone.style.overflow = 'hidden';
-    graphZone.style.borderRight = '1px solid var(--background-modifier-border)';
+    // Reemplaza: flex: 1, relative, overflow, border-right
+    graphZone.addClass('nrlcmp-graph-zone');
     
     const graphContainer = graphZone.createDiv();
     graphContainer.id = 'sigma-container';
-    graphContainer.style.width = '100%';
-    graphContainer.style.height = '100%';
+    // Reemplaza: width: 100%, height: 100%
+    graphContainer.addClass('nrlcmp-sigma-container');
     
     this.createGraphToolbar(graphZone, graphContainer);
     this.createDetailsPanel(graphZone);
 
-    // DERECHA
+    // DERECHA (Barra Lateral)
     const sidebar = container.createDiv();
-    sidebar.style.width = '320px';
-    sidebar.style.display = 'flex';
-    sidebar.style.flexDirection = 'column';
-    sidebar.style.backgroundColor = 'var(--background-secondary)';
-    sidebar.style.borderLeft = '1px solid var(--background-modifier-border)';
+    // Reemplaza: width, flex-col, background, border-left
+    sidebar.addClass('nrlcmp-sidebar');
 
     this.buildSidebar(sidebar);
 
-    setTimeout(() => this.render(graphContainer), 100);
+    setTimeout(() => { void this.render(graphContainer); }, 100);
   }
 
   // --- LÓGICA DE DATOS ---

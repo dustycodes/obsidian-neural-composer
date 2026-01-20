@@ -2148,3 +2148,37 @@ button.nrlcmp-chat-input-model-select {
     border: 1px solid #555;
     padding: 4px;
 }
+
+/* --- UTILIDADES DE VISIBILIDAD Y LAYOUT --- */
+
+/* Reemplazo para style.display = 'none' */
+.nrlcmp-hidden {
+    display: none !important;
+}
+
+/* Reemplazo para style.display = 'block' */
+.nrlcmp-visible-block {
+    display: block !important;
+}
+
+/* Reemplazo para style.display = 'flex' */
+.nrlcmp-flex-row {
+    display: flex;
+    flex-direction: row;
+}
+
+.nrlcmp-flex-col {
+    display: flex;
+    flex-direction: column;
+}
+
+.nrlcmp-flex-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nrlcmp-full-size {
+    width: 100%;
+    height: 100%;
+}
