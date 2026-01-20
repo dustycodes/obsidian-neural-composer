@@ -3,7 +3,6 @@ import { spawn, execSync, ChildProcess } from 'child_process'
 import * as fs from 'fs'
 import * as path from 'path'
 import * as net from 'net' // <--- ¡NUEVO IMPORT!
-import { GraphDashboardView, GRAPH_VIEW_TYPE } from './views/GraphDashboardView';
 import { NativeGraphView, NATIVE_GRAPH_VIEW_TYPE } from './views/NativeGraphView';
 
 import { ApplyView } from './ApplyView'
@@ -79,8 +78,6 @@ async onload() {
     // -----------------------------------------------------------
     this.registerView(CHAT_VIEW_TYPE, (leaf) => new ChatView(leaf, this))
     this.registerView(APPLY_VIEW_TYPE, (leaf) => new ApplyView(leaf))
-    // CORA MOD: REGISTRAR VISUALIZADOR
-    this.registerView(GRAPH_VIEW_TYPE, (leaf) => new GraphDashboardView(leaf)); 
     this.addRibbonIcon('brain-circuit', 'Open Neural Composer', () =>
     this.openChatView(),
     )
@@ -195,28 +192,6 @@ async onload() {
       },
     })
 
-// --- CORA MOD: COMANDO PARA ABRIR DASHBOARD ---
-this.addCommand({
-  id: 'open-graph-dashboard',
-  name: '🕸️ Open Knowledge Graph Dashboard',
-  callback: async () => {
-    const { workspace } = this.app;
-
-    let leaf = null;
-    const leaves = workspace.getLeavesOfType(GRAPH_VIEW_TYPE);
-
-    if (leaves.length > 0) {
-      // Si ya existe, úsala
-      leaf = leaves[0];
-    } else {
-      // Si no, crea una nueva en el panel principal (tab)
-      leaf = workspace.getLeaf(true); // 'true' = nueva pestaña
-      await leaf.setViewState({ type: GRAPH_VIEW_TYPE, active: true });
-    }
-
-    workspace.revealLeaf(leaf);
-  },
-});
 
     this.addSettingTab(new NeuralComposerSettingTab(this.app, this))
 
