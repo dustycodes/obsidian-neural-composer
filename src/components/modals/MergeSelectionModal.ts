@@ -17,11 +17,11 @@ export class MergeSelectionModal extends Modal {
     const { contentEl } = this;
     contentEl.empty();
 
-    contentEl.createEl('h3', { text: '🔗 Merge Entities' });
+    contentEl.createEl('h3', { text: '🔗 Merge entities' });
     
 // 1. Instrucción Principal
     contentEl.createEl('p', { 
-        text: 'Select the PRIMARY entity (The Survivor). All other selected entities will be merged into this one and deleted.',
+        text: 'Select the *primary* entity (the survivor). All other selected entities will be merged into this one and deleted.',
         attr: { style: 'color: var(--text-muted); font-size: 0.9em; margin-bottom: 10px;' }
     });
 
@@ -39,13 +39,13 @@ export class MergeSelectionModal extends Modal {
     `;
     
     // --- CORRECCIÓN SEGURA ---
-    const strongTitle = warningBox.createEl("strong", { text: "⚠️ NOTE: " });
+    const strongTitle = warningBox.createEl("strong", { text: "⚠️ Note: " });
     warningBox.createSpan({ text: "This action " });
-    warningBox.createEl("strong", { text: "cannot be undone" });
+    warningBox.createEl("strong", { text: "Cannot be undone" });
     warningBox.createSpan({ text: "." });
     warningBox.createEl("br");
     warningBox.createSpan({ text: "Merging nodes with a high number of relations involves heavy processing and " });
-    warningBox.createEl("strong", { text: "may take a while" });
+    warningBox.createEl("strong", { text: "May take a while" });
     warningBox.createSpan({ text: ". Please be patient." });
     // -------------------------
 

@@ -39,7 +39,7 @@ export class ChatView extends ItemView {
   }
 
   getDisplayText() {
-    return 'Neural Composer Chat'
+    return 'Neural Composer chat'
   }
 
   async onOpen() {

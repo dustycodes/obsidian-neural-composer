@@ -16,11 +16,11 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
     settingsRef.current.empty()
     const container = settingsRef.current
 
-    container.createEl('h3', { text: '🧠 Neural Backend (LightRAG)' })
+    container.createEl('h3', { text: '🧠 Neural backend (lightRAG)' })
 
     // 1. Auto-start
     new Setting(container)
-      .setName('Auto-start LightRAG Server')
+      .setName('Auto-start lightRAG server')
       .setDesc('Automatically start the server when Obsidian opens.')
       .addToggle((toggle) =>
         toggle
@@ -32,7 +32,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
 
     // 2. Rutas
     new Setting(container)
-      .setName('LightRAG Command Path')
+      .setName('LightRAG command path')
       .setDesc('Absolute path to the executable (e.g., lightrag-server.exe).')
       .addText((text) =>
         text
@@ -44,7 +44,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
       )
 
     new Setting(container)
-      .setName('Graph Data Directory')
+      .setName('Graph data directory')
       .setDesc('Absolute path to the folder containing your graph data.')
       .addText((text) =>
         text
@@ -58,13 +58,13 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
 
     // 3. Graph Logic Model
     new Setting(container)
-      .setName('Graph Logic Model (LLM)')
-      .setDesc('Select the model LightRAG will use for indexing/reasoning.')
+      .setName('Graph logic model (LLM)')
+      .setDesc('Select the model lightRAG will use for indexing/reasoning.')
       .addDropdown((dropdown) => {
         plugin.settings.chatModels.forEach((model) => {
           dropdown.addOption(model.id, `${model.providerId} - ${model.model}`)
         })
-        dropdown.addOption('', 'Same as Chat Model (Default)')
+        dropdown.addOption('', 'Same as chat model (default)')
         dropdown.setValue(plugin.settings.lightRagModelId || '')
         dropdown.onChange(async (value) => {
           await plugin.setSettings({ ...plugin.settings, lightRagModelId: value })
@@ -100,7 +100,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
     // 4. Language
     new Setting(container)
       .setName('Summary Language')
-      .setDesc('Language used by LightRAG for internal summaries.')
+      .setDesc('Language used by lightRAG for internal summaries.')
       .addText((text) =>
         text
           .setPlaceholder('English')
@@ -113,7 +113,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
 
     // 5. Citations
     new Setting(container)
-      .setName('Show Citations in Chat')
+      .setName('Show citations in chat')
       .setDesc('If enabled, the AI will add footnotes like [1] linking to sources.')
       .addToggle((toggle) =>
         toggle
@@ -124,7 +124,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
       )
 
     // --- SECCIÓN ONTOLOGÍA ---
-    container.createEl('h4', { text: '🧬 Ontology (Categories)' })
+    container.createEl('h4', { text: '🧬 Ontology (categories)' })
 
     new Setting(container)
       .setName('Use Custom Entity Types')

@@ -16,10 +16,10 @@ export class EnvEditorModal extends Modal {
     const { contentEl } = this
     contentEl.empty()
 
-    contentEl.createEl('h2', { text: '⚙️ Advanced Server Configuration (.env)' })
+    contentEl.createEl('h2', { text: '⚙️ Advanced server configuration (.env)' })
     
     contentEl.createEl('p', { 
-        text: 'This is the generated configuration for LightRAG. You can manually tweak parameters or add custom environment variables here.',
+        text: 'This is the generated configuration for lightRAG. You can manually tweak parameters or add custom environment variables here.',
         cls: 'setting-item-description'
     })
 
