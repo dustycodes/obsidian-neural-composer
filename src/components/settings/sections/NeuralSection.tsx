@@ -16,11 +16,11 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
     settingsRef.current.empty()
     const container = settingsRef.current
 
-    container.createEl('h3', { text: '🧠 Neural backend (lightRAG)' })
+    container.createEl('h3', { text: '🧠 Neural backend (LightRAG)' })
 
     // 1. Auto-start
     new Setting(container)
-      .setName('Auto-start lightRAG server')
+      .setName('Auto-start LightRAG server')
       .setDesc('Automatically start the server when Obsidian opens.')
       .addToggle((toggle) =>
         toggle
@@ -59,7 +59,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
     // 3. Graph Logic Model
     new Setting(container)
       .setName('Graph logic model (LLM)')
-      .setDesc('Select the model lightRAG will use for indexing/reasoning.')
+      .setDesc('Select the model LightRAG will use for indexing/reasoning.')
       .addDropdown((dropdown) => {
         plugin.settings.chatModels.forEach((model) => {
           dropdown.addOption(model.id, `${model.providerId} - ${model.model}`)
@@ -100,7 +100,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
     // 4. Language
     new Setting(container)
       .setName('Summary Language')
-      .setDesc('Language used by lightRAG for internal summaries.')
+      .setDesc('Language used by LightRAG for internal summaries.')
       .addText((text) =>
         text
           .setPlaceholder('English')
