@@ -148,7 +148,7 @@ export class VectorManager {
           try {
             const fileContent = await this.app.vault.cachedRead(file)
             // Remove null bytes from the content
-            // eslint-disable-next-line no-control-regex
+            
             const sanitizedContent = fileContent.replace(/\x00/g, '')
 
             const fileDocuments = await textSplitter.createDocuments([

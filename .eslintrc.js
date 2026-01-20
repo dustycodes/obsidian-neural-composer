@@ -11,7 +11,7 @@ const config = {
     tsconfigRootDir: __dirname,
     sourceType: 'module',
   },
-  plugins: ['@typescript-eslint/eslint-plugin', '@obsidianmd'],
+  plugins: ['@typescript-eslint/eslint-plugin', 'obsidianmd'],
   extends: [
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
@@ -22,7 +22,7 @@ const config = {
     'prettier',
     'plugin:react/recommended',
     'plugin:react-hooks/recommended',
-    'plugin:@obsidianmd/recommended',
+    //"plugin:obsidianmd/recommended"
   ],
   rules: {
     '@typescript-eslint/no-empty-function': 'off',

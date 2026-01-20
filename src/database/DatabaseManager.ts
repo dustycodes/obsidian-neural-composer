@@ -167,7 +167,7 @@ export class DatabaseManager {
       // Workaround for running Drizzle migrations in a browser environment
       // This method uses an undocumented API to perform migrations
       // See: https://github.com/drizzle-team/drizzle-orm/discussions/2532#discussioncomment-10780523
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      
       // @ts-expect-error
       await this.db.dialect.migrate(migrations, this.db.session, {
         migrationsTable: 'drizzle_migrations',

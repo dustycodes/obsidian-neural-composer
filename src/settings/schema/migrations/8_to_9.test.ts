@@ -2,9 +2,9 @@ import { migrateFrom8To9 } from './8_to_9'
 
 type SettingsData = {
   version: number
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  
   chatModels?: any[]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  
   [key: string]: any
 }
 

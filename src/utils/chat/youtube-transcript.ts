@@ -117,7 +117,7 @@ export class YoutubeTranscript {
 
     const captions = (() => {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        
         return JSON.parse(
           splittedHTML[1].split(',"videoDetails')[0].replace('\n', ''),
         )
@@ -137,13 +137,13 @@ export class YoutubeTranscript {
     if (
       config?.lang &&
       !captions.captionTracks.some(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        
         (track: any) => track.languageCode === config?.lang,
       )
     ) {
       throw new YoutubeTranscriptNotAvailableLanguageError(
         config?.lang,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
+        
         captions.captionTracks.map((track: any) => track.languageCode),
         videoId,
       )
@@ -152,7 +152,7 @@ export class YoutubeTranscript {
     const transcriptURL: string = (
       config?.lang
         ? captions.captionTracks.find(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            
             (track: any) => track.languageCode === config?.lang,
           )
         : captions.captionTracks[0]
