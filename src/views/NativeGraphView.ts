@@ -345,7 +345,7 @@ export class NativeGraphView extends ItemView {
                 this.graph?.setEdgeAttribute(e, 'hidden', false);
                 this.graph?.setEdgeAttribute(e, 'color', '#333');
             });
-            if(this.detailsPanel) this.detailsPanel.style.display = 'none';
+            if(this.detailsPanel) this.detailsPanel.hide(); 
         });
     };
     requestAnimationFrame(initSigma);
@@ -422,7 +422,7 @@ createDetailsPanel(container: HTMLElement) {
     const closeBtn = btnGroup.createEl("button");
     closeBtn.setText("✕");
     closeBtn.style.cssText = "background:none; border:none; color:white; cursor:pointer; font-weight:bold;";
-    closeBtn.onclick = () => { if (this.detailsPanel) this.detailsPanel.style.display = 'none'; };
+    closeBtn.onclick = () => { if (this.detailsPanel) this.detailsPanel.hide(); };
 
     // BODY CONTAINER
     const content = this.detailsPanel.createDiv();
@@ -497,11 +497,11 @@ createDetailsPanel(container: HTMLElement) {
         const newName = nameInput.value.trim();
         if(newName) {
             await this.updateNode(node.id, { entity_name: newName, entity_type: typeInput.value.trim(), description: descInput.value.trim() });
-            if(this.detailsPanel) this.detailsPanel.style.display = 'none';
+            if(this.detailsPanel) this.detailsPanel.hide();
         }
     };
 
-    this.detailsPanel.style.display = 'block';
+    this.detailsPanel.show();
   }
 
 async updateNode(oldName: string, data: any) {
@@ -571,10 +571,10 @@ async updateNode(oldName: string, data: any) {
       header.createEl('h4', { text: 'Node Manager' }).style.margin = '0 0 10px 0';
       const searchInput = new TextComponent(header); searchInput.setPlaceholder('Filter list...'); searchInput.inputEl.style.width = '100%';
       searchInput.onChange((val) => this.filterList(val)); this.searchInputEl = searchInput.inputEl;
-      const actionButtons = header.createDiv(); actionButtons.style.display = 'flex'; actionButtons.style.gap = '5px'; actionButtons.style.marginTop = '10px';
+      const actionButtons = header.createDiv(); actionButtons.show(); actionButtons.style.gap = '5px'; actionButtons.style.marginTop = '10px';
       new ButtonComponent(actionButtons).setButtonText('Merge').setCta().onClick(() => this.mergeSelectedNodes());
       new ButtonComponent(actionButtons).setButtonText('Delete').setWarning().onClick(() => this.deleteSelectedNodes());
-      const filterBar = header.createDiv(); filterBar.style.marginTop = '10px'; filterBar.style.display = 'flex'; filterBar.style.justifyContent = 'space-between'; filterBar.style.fontSize = '0.8em';
+      const filterBar = header.createDiv(); filterBar.style.marginTop = '10px'; filterBar.show(); filterBar.style.justifyContent = 'space-between'; filterBar.style.fontSize = '0.8em';
       this.sortBtnEl = filterBar.createEl('span', { text: 'Sort: Degree ⬇' });
       this.sortBtnEl.style.cursor = 'pointer'; this.sortBtnEl.style.color = 'var(--text-accent)';
       this.sortBtnEl.onclick = () => this.toggleSort();
@@ -594,7 +594,7 @@ async updateNode(oldName: string, data: any) {
       const visibleNodes = this.filteredNodes.slice(0, 50);
       visibleNodes.forEach(node => {
           const row = this.sidebarListEl!.createDiv();
-          row.style.display = 'flex'; row.style.alignItems = 'center'; row.style.padding = '6px'; row.style.borderBottom = '1px solid var(--background-modifier-border)'; row.style.fontSize = '0.85em';
+          row.show(); row.style.alignItems = 'center'; row.style.padding = '6px'; row.style.borderBottom = '1px solid var(--background-modifier-border)'; row.style.fontSize = '0.85em';
           const cb = row.createEl('input', { type: 'checkbox' });
           cb.checked = this.selectedNodes.has(node.id);
           cb.onclick = (e) => { e.stopPropagation(); if (cb.checked) this.selectedNodes.add(node.id); else this.selectedNodes.delete(node.id); };
