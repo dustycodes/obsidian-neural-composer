@@ -534,25 +534,37 @@ async updateNode(oldName: string, data: any) {
 
   createGraphToolbar(container: HTMLElement, graphContainer: HTMLElement) {
       const tb = container.createDiv();
-      tb.style.cssText = "position:absolute; top:15px; left:15px; z-index:10; display:flex; gap:8px; align-items:center;";
+      // Reemplaza: absolute, top, left, z-index, display, gap
+      tb.addClass('nrlcmp-toolbar');
+      
       const searchInput = tb.createEl('input');
-      searchInput.type = 'text'; searchInput.placeholder = '🚀 Search...';
-      searchInput.style.cssText = `background: rgba(0, 0, 0, 0.6); border: 1px solid var(--text-accent); color: #fff; padding: 6px 10px; border-radius: 6px; outline: none; width: 200px; backdrop-filter: blur(4px); font-family: monospace;`;
-      searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') this.searchNode(searchInput.value); });
-      searchInput.onfocus = () => { searchInput.style.width = '250px'; searchInput.style.background = 'rgba(0,0,0,0.8)'; };
-      searchInput.onblur = () => { searchInput.style.width = '200px'; searchInput.style.background = 'rgba(0,0,0,0.6)'; };
+      searchInput.type = 'text'; 
+      searchInput.placeholder = '🚀 Search...';
+      
+      // Reemplaza: background, border, color, padding, radius, outline, width...
+      searchInput.addClass('nrlcmp-toolbar-input');
+      
+      searchInput.addEventListener('keydown', (e) => { 
+          if (e.key === 'Enter') this.searchNode(searchInput.value); 
+      });
+
       const btnReload = tb.createEl('button');
-      setIcon(btnReload, 'refresh-cw'); setTooltip(btnReload, 'Reload Graph');
-      btnReload.style.cssText = "background: rgba(0,0,0,0.6); border: 1px solid #444; color: #ccc; padding: 6px; border-radius: 6px; cursor: pointer;";
-      btnReload.onclick = () => this.render(graphContainer);
+      setIcon(btnReload, 'refresh-cw'); 
+      setTooltip(btnReload, 'Reload Graph');
+      // Reemplaza estilos de botón
+      btnReload.addClass('nrlcmp-toolbar-btn');
+      btnReload.onclick = () => { void this.render(graphContainer); };
+      
       const btnReset = tb.createEl('button');
-      setIcon(btnReset, 'maximize'); setTooltip(btnReset, 'Reset Camera');
-      btnReset.style.cssText = "background: rgba(0,0,0,0.6); border: 1px solid #444; color: #ccc; padding: 6px; border-radius: 6px; cursor: pointer;";
+      setIcon(btnReset, 'maximize'); 
+      setTooltip(btnReset, 'Reset Camera');
+      btnReset.addClass('nrlcmp-toolbar-btn');
       btnReset.onclick = () => { 
           if (this.graph3D) this.graph3D.zoomToFit(1000, 50); 
-          if (this.sigmaInstance) this.sigmaInstance.getCamera().animate({ x: 0.5, y: 0.5, ratio: 0.1}, {duration: 500 }); 
+          if (this.sigmaInstance) this.sigmaInstance.getCamera().animate({ x: 0.5, y: 0.5, ratio: 0.1 }, { duration: 500 });
       };
   }
+
   buildSidebar(container: HTMLElement) {
       const header = container.createDiv(); header.style.padding = '10px'; header.style.borderBottom = '1px solid var(--background-modifier-border)';
       header.createEl('h4', { text: 'Node Manager' }).style.margin = '0 0 10px 0';
