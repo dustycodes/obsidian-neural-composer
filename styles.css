@@ -1877,13 +1877,6 @@ button.nrlcmp-chat-input-model-select {
     overflow: hidden;
 }
 
-.nrlcmp-graph-zone {
-    flex: 1;
-    position: relative;
-    overflow: hidden;
-    border-right: 1px solid var(--background-modifier-border);
-}
-
 .nrlcmp-graph-canvas {
     width: 100%;
     height: 100%;
@@ -1902,16 +1895,13 @@ button.nrlcmp-chat-input-model-select {
 }
 
 .nrlcmp-toolbar-input {
-    background: rgba(0, 0, 0, 0.6);
-    border: 1px solid var(--text-accent);
-    color: #fff;
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    color: var(--text-normal);
     padding: 6px 10px;
-    border-radius: 6px;
-    outline: none;
-    width: 200px;
-    backdrop-filter: blur(4px);
-    font-family: var(--font-monospace);
-    transition: all 0.2s ease;
+    border-radius: 15px;
+    width: 160px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
 }
 
 .nrlcmp-toolbar-input:focus {
@@ -1920,38 +1910,21 @@ button.nrlcmp-chat-input-model-select {
 }
 
 .nrlcmp-toolbar-btn {
-    background: rgba(0,0,0,0.6);
-    border: 1px solid #444;
-    color: #ccc;
-    padding: 6px;
-    border-radius: 6px;
+    background: var(--interactive-normal);
+    color: var(--text-normal);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    display: flex; /* Para centrar iconos */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
 }
 
 /* Panel Lateral (Sidebar) */
-.nrlcmp-sidebar {
-    width: 320px;
-    display: flex;
-    flex-direction: column;
-    background-color: var(--background-secondary);
-    border-left: 1px solid var(--background-modifier-border);
-}
-
-.nrlcmp-sidebar-header {
-    padding: 10px;
-    border-bottom: 1px solid var(--background-modifier-border);
-}
-
-.nrlcmp-sidebar-title {
-    margin: 0 0 10px 0;
-}
-
-.nrlcmp-sidebar-actions {
-    display: flex;
-    gap: 5px;
-    margin-top: 10px;
-}
 
 .nrlcmp-filter-bar {
     margin-top: 10px;
@@ -1960,39 +1933,13 @@ button.nrlcmp-chat-input-model-select {
     font-size: 0.8em;
 }
 
-.nrlcmp-sidebar-list {
-    flex: 1;
-    overflow-y: auto;
-}
-
 .nrlcmp-list-row {
     display: flex;
     align-items: center;
     padding: 6px;
     border-bottom: 1px solid var(--background-modifier-border);
     font-size: 0.85em;
-}
 
-/* Panel Flotante de Detalles */
-.nrlcmp-details-panel {
-    position: absolute;
-    top: 60px;
-    right: 20px;
-    width: 340px;
-    max-height: 80%;
-    background: rgba(20, 20, 25, 0.98);
-    border: 1px solid #444;
-    border-radius: 8px;
-    padding: 0;
-    z-index: 20;
-    color: #eee;
-    overflow-y: auto;
-    display: none;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-    backdrop-filter: blur(10px);
-    font-family: var(--font-monospace);
-    font-size: 13px;
-}
 
 /* --- NEURAL MANAGER (Native Graph View) --- */
 
@@ -2001,6 +1948,14 @@ button.nrlcmp-chat-input-model-select {
     height: 100%;
     width: 100%;
     overflow: hidden;
+}
+
+.nrlcmp-mode-3d {
+    background-color: #000005; /* Deep space black for 3D */
+}
+
+.nrlcmp-mode-2d {
+    background-color: #111111; /* Dark grey for 2D */
 }
 
 .nrlcmp-graph-zone {
@@ -2013,7 +1968,9 @@ button.nrlcmp-chat-input-model-select {
 .nrlcmp-sigma-container {
     width: 100%;
     height: 100%;
+    display: block;
 }
+
 
 /* Toolbar */
 .nrlcmp-toolbar {
@@ -2026,34 +1983,14 @@ button.nrlcmp-chat-input-model-select {
     align-items: center;
 }
 
-.nrlcmp-toolbar-input {
-    background: rgba(0, 0, 0, 0.6);
-    border: 1px solid var(--text-accent);
-    color: #fff;
-    padding: 6px 10px;
-    border-radius: 6px;
-    outline: none;
-    width: 200px;
-    backdrop-filter: blur(4px);
-    font-family: var(--font-monospace);
-    transition: width 0.2s ease;
-}
 
 .nrlcmp-toolbar-input:focus {
     width: 250px;
     background: rgba(0,0,0,0.8);
 }
 
-.nrlcmp-toolbar-btn {
-    background: rgba(0,0,0,0.6);
-    border: 1px solid #444;
-    color: #ccc;
-    padding: 6px;
-    border-radius: 6px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.nrlcmp-toolbar-btn:hover {
+    background: var(--interactive-hover);
 }
 
 /* Sidebar */
@@ -2110,22 +2047,18 @@ button.nrlcmp-chat-input-model-select {
 /* Panel de Detalles Flotante */
 .nrlcmp-details-panel {
     position: absolute;
-    top: 60px;
-    right: 20px;
-    width: 340px;
-    max-height: 80%;
-    background: rgba(20, 20, 25, 0.98);
-    border: 1px solid #444;
+    top: 15px;
+    right: 15px;
+    width: 320px;
+    background: rgba(20, 20, 25, 0.85); /* Semi-transparent */
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
-    padding: 0;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
     z-index: 20;
-    color: #eee;
-    overflow-y: auto;
-    display: none;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-    backdrop-filter: blur(10px);
-    font-family: var(--font-monospace);
-    font-size: 13px;
+    color: var(--text-normal);
+    display: none; /* Controlled by JS */
+    overflow: hidden;
 }
 
 .nrlcmp-details-header {
@@ -2134,6 +2067,140 @@ button.nrlcmp-chat-input-model-select {
     display: flex;
     justify-content: space-between;
     align-items: center;
+}
+
+.nrlcmp-details-type {
+    font-weight: bold;
+    color: white;
+    font-size: 0.9em;
+}
+
+.nrlcmp-btn-group {
+    display: flex;
+    gap: 10px;
+}
+
+.nrlcmp-details-btn {
+    background: rgba(0,0,0,0.2);
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+}
+
+.nrlcmp-details-close {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.nrlcmp-details-content {
+    padding: 15px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.nrlcmp-details-title {
+    margin: 0 0 15px 0;
+    color: var(--text-normal);
+    word-break: break-word;
+    line-height: 1.2;
+}
+
+.nrlcmp-details-desc {
+    font-size: 0.9em;
+    line-height: 1.6;
+    color: var(--text-muted);
+    background: var(--background-primary);
+    padding: 10px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    max-height: 150px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+}
+
+/* Sidebar Elements */
+.nrlcmp-sidebar-header {
+    padding: 10px;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.nrlcmp-sidebar-header h4 {
+    margin: 0 0 10px 0;
+}
+
+.nrlcmp-sidebar-actions {
+    display: flex;
+    gap: 5px;
+    margin-top: 10px;
+}
+
+.nrlcmp-sidebar-filters {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8em;
+    margin-top: 10px;
+}
+
+.nrlcmp-sort-btn {
+    cursor: pointer;
+    color: var(--text-accent);
+}
+
+.nrlcmp-orphans-btn {
+    cursor: pointer;
+    color: var(--text-muted);
+    text-decoration: underline;
+}
+
+.nrlcmp-sidebar-list {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.nrlcmp-sidebar-row {
+    display: flex;
+    align-items: center;
+    padding: 6px;
+    border-bottom: 1px solid var(--background-modifier-border);
+    font-size: 0.85em;
+}
+
+.nrlcmp-row-info {
+    flex: 1;
+    margin-left: 8px;
+    cursor: pointer;
+}
+
+.nrlcmp-row-title {
+    font-weight: bold;
+    color: var(--text-normal);
+}
+
+.nrlcmp-row-meta {
+    color: var(--text-muted);
+    font-size: 0.9em;
+}
+
+.nrlcmp-list-more {
+    padding: 10px;
+    text-align: center;
+    color: var(--text-muted);
+}
+
+/* Modal Helper */
+.nrlcmp-confirm-msg {
+    margin-bottom: 20px;
+}
+.nrlcmp-modal-btns {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
 }
 
 .nrlcmp-details-body {

@@ -1,11 +1,22 @@
-import { ItemView, WorkspaceLeaf, Notice, setIcon, TextComponent, ButtonComponent, setTooltip, requestUrl} from 'obsidian';
+import { 
+    ItemView, 
+    WorkspaceLeaf, 
+    Notice, 
+    setIcon, 
+    TextComponent, 
+    ButtonComponent, 
+    setTooltip, 
+    requestUrl, 
+    Modal, 
+    App 
+} from 'obsidian';
 import * as fs from 'fs';
 import * as path from 'path';
 import { XMLParser } from 'fast-xml-parser';
 import Graph from 'graphology';
+// @ts-ignore - Graphology types might be missing in dev env
 import { parse } from 'graphology-graphml';
 import Sigma from 'sigma';
-import { circular } from 'graphology-layout';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import FA2Layout from 'graphology-layout-forceatlas2/worker'; 
 import ForceGraph3D from '3d-force-graph'; 
@@ -54,48 +65,39 @@ export class NativeGraphView extends ItemView {
   }
 
   getViewType() { return NATIVE_GRAPH_VIEW_TYPE; }
-  getDisplayText() { return 'Neural Manager'; }
+  getDisplayText() { return 'Neural manager'; }
   getIcon() { return 'brain-circuit'; }
 
- async onOpen() {
+  async onOpen() {
     const container = this.contentEl;
     container.empty();
     
-    // Reemplaza: display, height, width, background
     container.addClass('nrlcmp-graph-view'); 
     
-    // Manejo de fondo (Dinámico)
-    // Asegúrate de tener estas clases en tu CSS o usa una variable CSS
+    // Apply mode-specific class for CSS background variables
     const is3D = this.plugin.settings.graphViewMode === '3d';
-    if (is3D) container.addClass('nrlcmp-bg-3d'); // Define background: #000005 en CSS
-    else container.addClass('nrlcmp-bg-2d');      // Define background: #111111 en CSS
+    container.addClass(is3D ? 'nrlcmp-mode-3d' : 'nrlcmp-mode-2d');
 
     await this.loadReferenceMaps();
 
-    // IZQUIERDA (Zona del Grafo)
-    const graphZone = container.createDiv();
-    // Reemplaza: flex: 1, relative, overflow, border-right
-    graphZone.addClass('nrlcmp-graph-zone');
+    // LEFT ZONE (Graph)
+    const graphZone = container.createDiv({ cls: 'nrlcmp-graph-zone' });
     
-    const graphContainer = graphZone.createDiv();
+    const graphContainer = graphZone.createDiv({ cls: 'nrlcmp-sigma-container' });
     graphContainer.id = 'sigma-container';
-    // Reemplaza: width: 100%, height: 100%
-    graphContainer.addClass('nrlcmp-sigma-container');
     
     this.createGraphToolbar(graphZone, graphContainer);
     this.createDetailsPanel(graphZone);
 
-    // DERECHA (Barra Lateral)
-    const sidebar = container.createDiv();
-    // Reemplaza: width, flex-col, background, border-left
-    sidebar.addClass('nrlcmp-sidebar');
-
+    // RIGHT ZONE (Sidebar)
+    const sidebar = container.createDiv({ cls: 'nrlcmp-sidebar' });
     this.buildSidebar(sidebar);
 
+    // Initial render
     setTimeout(() => { void this.render(graphContainer); }, 100);
   }
 
-  // --- LÓGICA DE DATOS ---
+  // --- DATA LOGIC ---
   async loadReferenceMaps() {
       try {
           const chunksPath = path.join(this.workDir, 'kv_store_text_chunks.json');
@@ -119,13 +121,13 @@ export class NativeGraphView extends ItemView {
       return Array.from(fileNames);
   }
 
-  // --- RENDERIZADO PRINCIPAL ---
+  // --- MAIN RENDER ---
   async render(container: HTMLElement, label?: HTMLElement) {
     this.cleanup();
     container.empty();
 
     if (!fs.existsSync(this.graphDataPath)) {
-        if(label) label.innerText = "❌ No Data";
+        if(label) label.innerText = "❌ No data";
         return;
     }
 
@@ -203,7 +205,7 @@ export class NativeGraphView extends ItemView {
         this.updateSidebarList();
 
         const mode = this.plugin.settings.graphViewMode;
-        if(label) label.innerText = `${this.allNodes.length} Nodes | ${validEdges.length} Links | ${mode.toUpperCase()}`;
+        if(label) label.innerText = `${this.allNodes.length} nodes | ${validEdges.length} links | ${mode.toUpperCase()}`;
 
         if (mode === '3d') {
             this.render3D(container, this.allNodes, validEdges);
@@ -214,7 +216,7 @@ export class NativeGraphView extends ItemView {
     } catch (e) { console.error(e); }
   }
 
-  // --- HELPER 2D: NAVEGACIÓN PRECISA ---
+  // --- HELPER 2D: PRECISE NAVIGATION ---
   focusOnNode2D(nodeId: string) {
       if (!this.graph || !this.sigmaInstance) return;
 
@@ -255,7 +257,7 @@ export class NativeGraphView extends ItemView {
       this.showNodeDetails({ id: nodeId, ...attrs, type: attrs.node_type });
   }
 
-  // --- MOTOR 2D (SIGMA.JS) ---
+  // --- ENGINE 2D (SIGMA.JS) ---
   render2D(container: HTMLElement, nodes: any[], edges: any[]) {
     this.graph = new Graph();
     const LABEL_THRESHOLD = 4;
@@ -305,7 +307,7 @@ export class NativeGraphView extends ItemView {
         this.fa2Layout.start();
         setTimeout(() => { if(this.fa2Layout?.isRunning()) this.fa2Layout.stop(); }, 4000);
 
-        // --- EVENTOS ---
+        // --- EVENTS ---
         this.sigmaInstance.on("clickNode", (event) => {
             this.focusOnNode2D(event.node);
         });
@@ -351,15 +353,18 @@ export class NativeGraphView extends ItemView {
     requestAnimationFrame(initSigma);
   }
 
-  // --- MOTOR 3D ---
+  // --- ENGINE 3D ---
   render3D(container: HTMLElement, nodes: any[], edges: any[]) {
       const gData = {
           nodes: nodes.map(n => ({ ...n, type: n.type })),
           links: edges.map((e: any) => ({ source: e.normalizedSource || e.source, target: e.normalizedTarget || e.target }))
       };
+      
+      // Note: ForceGraph3D colors still hardcoded as they interact with WebGL canvas directly,
+      // usually these aren't CSS controllable, but we use variables for DOM elements.
       this.graph3D = (ForceGraph3D as any)()(container)
           .graphData(gData)
-          .backgroundColor('#000005')
+          .backgroundColor('#000005') 
           .nodeAutoColorBy('type')
           .nodeVal('val') .nodeRelSize(4) .nodeLabel('id') .nodeOpacity(0.9)
           .linkWidth(0.6).linkOpacity(0.2).cooldownTicks(100)
@@ -387,14 +392,11 @@ export class NativeGraphView extends ItemView {
       this.renderList();
   }
 
-  // --- UI COMPONENTS (SANITIZADOS) ---
-createDetailsPanel(container: HTMLElement) {
-      this.detailsPanel = container.createDiv();
-      // Reemplaza: absolute, top, right, width, background, shadow...
-      this.detailsPanel.addClass('nrlcmp-details-panel');
+  // --- UI COMPONENTS ---
+  createDetailsPanel(container: HTMLElement) {
+      this.detailsPanel = container.createDiv({ cls: 'nrlcmp-details-panel' });
   }
 
-  // --- REFACTORIZADO PARA OBSIDIAN REVIEW ---
   showNodeDetails(node: any) {
     if (!this.detailsPanel) return;
     this.detailsPanel.empty();
@@ -404,90 +406,73 @@ createDetailsPanel(container: HTMLElement) {
     const desc = node.desc || "No description.";
 
     // HEADER
-    const header = this.detailsPanel.createDiv();
-    header.style.cssText = "background:var(--interactive-accent); padding:10px 15px; display:flex; justify-content:space-between; align-items:center;";
+    const header = this.detailsPanel.createDiv({ cls: 'nrlcmp-details-header' });
     
-    const typeSpan = header.createSpan();
-    typeSpan.setText(type.toUpperCase());
-    typeSpan.style.cssText = "font-weight:bold; color:white; font-size:0.9em;";
+    header.createSpan({ text: type.toUpperCase(), cls: 'nrlcmp-details-type' });
 
-    const btnGroup = header.createDiv();
-    btnGroup.style.display = "flex";
-    btnGroup.style.gap = "10px";
+    const btnGroup = header.createDiv({ cls: 'nrlcmp-btn-group' });
 
-    const editBtn = btnGroup.createEl("button");
-    editBtn.setText("✏️ Edit");
-    editBtn.style.cssText = "background:rgba(0,0,0,0.2); border:none; color:white; cursor:pointer; padding:2px 8px; border-radius:4px;";
+    const editBtn = btnGroup.createEl("button", { text: "✏️ Edit", cls: 'nrlcmp-details-btn' });
     
-    const closeBtn = btnGroup.createEl("button");
-    closeBtn.setText("✕");
-    closeBtn.style.cssText = "background:none; border:none; color:white; cursor:pointer; font-weight:bold;";
+    const closeBtn = btnGroup.createEl("button", { text: "✕", cls: 'nrlcmp-details-close' });
     closeBtn.onclick = () => { if (this.detailsPanel) this.detailsPanel.hide(); };
 
     // BODY CONTAINER
-    const content = this.detailsPanel.createDiv();
-    content.style.padding = "15px";
+    const content = this.detailsPanel.createDiv({ cls: 'nrlcmp-details-content' });
 
     // VIEW MODE
     const viewMode = content.createDiv();
     
-    const meta = viewMode.createDiv();
-    meta.style.marginBottom = "10px";
-    meta.createSpan({ text: "Links: ", attr: { style: "color:#aaa; font-size:0.8em;" } });
-    meta.createEl("b", { text: String(node.val), attr: { style: "color:#fff" } });
+    const meta = viewMode.createDiv({ cls: 'nrlcmp-details-meta' });
+    meta.createSpan({ text: "Links: ", cls: 'nrlcmp-label' });
+    meta.createEl("b", { text: String(node.val), cls: 'nrlcmp-value' });
 
-    const title = viewMode.createEl("h2");
-    title.setText(node.id);
-    title.style.cssText = "margin:0 0 15px 0; color:#fff; word-break:break-word; line-height:1.2;";
+    viewMode.createEl("h2", { text: node.id, cls: 'nrlcmp-details-title' });
 
-    const descBox = viewMode.createDiv();
-    descBox.style.cssText = "font-size:0.9em; line-height:1.6; color:#ccc; background:rgba(255,255,255,0.05); padding:10px; border-radius:6px; margin-bottom:15px; max-height:150px; overflow-y:auto; white-space:pre-wrap;";
+    const descBox = viewMode.createDiv({ cls: 'nrlcmp-details-desc' });
     descBox.setText(desc);
 
-    const sourcesSection = viewMode.createDiv();
-    sourcesSection.style.cssText = "border-top:1px solid #333; padding-top:15px;";
-    sourcesSection.createEl("h4", { text: "CONTEXT SOURCES", attr: { style: "margin:0 0 10px 0; color:#666; font-size:0.75em; letter-spacing:1px;" } });
+    const sourcesSection = viewMode.createDiv({ cls: 'nrlcmp-sources-section' });
+    sourcesSection.createEl("h4", { text: "Context sources", cls: 'nrlcmp-section-title' });
     
-    const ul = sourcesSection.createEl("ul");
-    ul.style.cssText = "list-style:none; padding-left:0; margin:0;";
+    const ul = sourcesSection.createEl("ul", { cls: 'nrlcmp-sources-list' });
 
     if (files.length > 0) {
         files.forEach((f: string) => {
-            const li = ul.createEl("li");
-            li.style.cssText = "margin-bottom:4px; color:#66fcf1; display:flex; gap:6px;";
+            const li = ul.createEl("li", { cls: 'nrlcmp-source-item' });
             li.createSpan({ text: "📄" });
             li.createSpan({ text: f });
         });
     } else {
-        ul.createEl("li", { text: "No explicit source", attr: { style: "color:#666" } });
+        ul.createEl("li", { text: "No explicit source", cls: 'nrlcmp-no-source' });
     }
 
     // EDIT MODE
-    const editMode = content.createDiv();
-    editMode.style.display = "none";
+    const editMode = content.createDiv({ cls: 'nrlcmp-edit-mode' });
+    // Initially hidden via CSS or state, but here we use display toggle
+    editMode.style.display = 'none';
     
     const makeInput = (lbl: string, val: string) => {
-        editMode.createEl("label", { text: lbl, attr: { style: "color:#aaa; font-size:0.8em; display:block; margin-bottom:4px;" } });
-        const i = editMode.createEl("input");
-        i.type = "text"; i.value = val;
-        i.style.cssText = "width:100%; margin-bottom:10px; background:#333; color:white; border:1px solid #555; padding:4px;";
+        editMode.createEl("label", { text: lbl, cls: 'nrlcmp-input-label' });
+        const i = editMode.createEl("input", { cls: 'nrlcmp-input-text' });
+        i.type = "text"; 
+        i.value = val;
         return i;
     };
 
     const nameInput = makeInput("Name (ID)", node.id);
     const typeInput = makeInput("Type", type);
     
-    editMode.createEl("label", { text: "Description", attr: { style: "color:#aaa; font-size:0.8em; display:block; margin-bottom:4px;" } });
-    const descInput = editMode.createEl("textarea");
-    descInput.value = desc; descInput.rows = 5;
-    descInput.style.cssText = "width:100%; margin-bottom:10px; background:#333; color:white; border:1px solid #555; padding:4px;";
+    editMode.createEl("label", { text: "Description", cls: 'nrlcmp-input-label' });
+    const descInput = editMode.createEl("textarea", { cls: 'nrlcmp-input-area' });
+    descInput.value = desc; 
+    descInput.rows = 5;
 
-    const actions = editMode.createDiv();
-    actions.style.cssText = "display:flex; justify-content:flex-end; gap:5px;";
+    const actions = editMode.createDiv({ cls: 'nrlcmp-edit-actions' });
     
     const cancelBtn = new ButtonComponent(actions).setButtonText("Cancel");
     const saveBtn = new ButtonComponent(actions).setButtonText("💾 Save");
-    saveBtn.buttonEl.style.cssText = "background:var(--interactive-accent); color:white; border:none;";
+    saveBtn.buttonEl.addClass('mod-cta');
 
     // Wiring
     editBtn.onclick = () => { viewMode.style.display='none'; editMode.style.display='block'; };
@@ -504,7 +489,7 @@ createDetailsPanel(container: HTMLElement) {
     this.detailsPanel.show();
   }
 
-async updateNode(oldName: string, data: any) {
+  async updateNode(oldName: string, data: any) {
       new Notice(`Updating node "${oldName}"...`);
       try {
           const response = await requestUrl({
@@ -519,12 +504,10 @@ async updateNode(oldName: string, data: any) {
               })
           });
 
-          // requestUrl devuelve status 200 si todo sale bien
           if (response.status === 200) { 
               new Notice("✅ Node updated!"); 
-              setTimeout(() => this.render(this.contentEl.querySelector('#sigma-container') as HTMLElement), 1500); 
+              setTimeout(() => { void this.render(this.contentEl.querySelector('#sigma-container') as HTMLElement); }, 1500); 
           } else { 
-              // response.text es una propiedad, no una promesa en Obsidian
               new Notice(`Error updating: ${response.text}`); 
           }
       } catch (e) { 
@@ -534,32 +517,24 @@ async updateNode(oldName: string, data: any) {
   }
 
   createGraphToolbar(container: HTMLElement, graphContainer: HTMLElement) {
-      const tb = container.createDiv();
-      // Reemplaza: absolute, top, left, z-index, display, gap
-      tb.addClass('nrlcmp-toolbar');
+      const tb = container.createDiv({ cls: 'nrlcmp-toolbar' });
       
-      const searchInput = tb.createEl('input');
+      const searchInput = tb.createEl('input', { cls: 'nrlcmp-toolbar-input' });
       searchInput.type = 'text'; 
       searchInput.placeholder = '🚀 Search...';
-      
-      // Reemplaza: background, border, color, padding, radius, outline, width...
-      searchInput.addClass('nrlcmp-toolbar-input');
       
       searchInput.addEventListener('keydown', (e) => { 
           if (e.key === 'Enter') this.searchNode(searchInput.value); 
       });
 
-      const btnReload = tb.createEl('button');
+      const btnReload = tb.createEl('button', { cls: 'nrlcmp-toolbar-btn' });
       setIcon(btnReload, 'refresh-cw'); 
       setTooltip(btnReload, 'Reload Graph');
-      // Reemplaza estilos de botón
-      btnReload.addClass('nrlcmp-toolbar-btn');
       btnReload.onclick = () => { void this.render(graphContainer); };
       
-      const btnReset = tb.createEl('button');
+      const btnReset = tb.createEl('button', { cls: 'nrlcmp-toolbar-btn' });
       setIcon(btnReset, 'maximize'); 
       setTooltip(btnReset, 'Reset Camera');
-      btnReset.addClass('nrlcmp-toolbar-btn');
       btnReset.onclick = () => { 
           if (this.graph3D) this.graph3D.zoomToFit(1000, 50); 
           if (this.sigmaInstance) this.sigmaInstance.getCamera().animate({ x: 0.5, y: 0.5, ratio: 0.1 }, { duration: 500 });
@@ -567,66 +542,81 @@ async updateNode(oldName: string, data: any) {
   }
 
   buildSidebar(container: HTMLElement) {
-      const header = container.createDiv(); header.style.padding = '10px'; header.style.borderBottom = '1px solid var(--background-modifier-border)';
-      header.createEl('h4', { text: 'Node Manager' }).style.margin = '0 0 10px 0';
-      const searchInput = new TextComponent(header); searchInput.setPlaceholder('Filter list...'); searchInput.inputEl.style.width = '100%';
-      searchInput.onChange((val) => this.filterList(val)); this.searchInputEl = searchInput.inputEl;
-      const actionButtons = header.createDiv(); actionButtons.show(); actionButtons.style.gap = '5px'; actionButtons.style.marginTop = '10px';
-      new ButtonComponent(actionButtons).setButtonText('Merge').setCta().onClick(() => this.mergeSelectedNodes());
-      new ButtonComponent(actionButtons).setButtonText('Delete').setWarning().onClick(() => this.deleteSelectedNodes());
-      const filterBar = header.createDiv(); filterBar.style.marginTop = '10px'; filterBar.show(); filterBar.style.justifyContent = 'space-between'; filterBar.style.fontSize = '0.8em';
-      this.sortBtnEl = filterBar.createEl('span', { text: 'Sort: Degree ⬇' });
-      this.sortBtnEl.style.cursor = 'pointer'; this.sortBtnEl.style.color = 'var(--text-accent)';
+      const header = container.createDiv({ cls: 'nrlcmp-sidebar-header' });
+      
+      header.createEl('h4', { text: 'Node manager' });
+      
+      const searchInput = new TextComponent(header); 
+      searchInput.setPlaceholder('Filter list...'); 
+      searchInput.inputEl.addClass('nrlcmp-full-width');
+      searchInput.onChange((val) => this.filterList(val)); 
+      this.searchInputEl = searchInput.inputEl;
+
+      const actionButtons = header.createDiv({ cls: 'nrlcmp-sidebar-actions' });
+      new ButtonComponent(actionButtons).setButtonText('Merge').setCta().onClick(() => { void this.mergeSelectedNodes(); });
+      new ButtonComponent(actionButtons).setButtonText('Delete').setWarning().onClick(() => { void this.deleteSelectedNodes(); });
+
+      const filterBar = header.createDiv({ cls: 'nrlcmp-sidebar-filters' });
+      this.sortBtnEl = filterBar.createEl('span', { text: 'Sort: Degree ⬇', cls: 'nrlcmp-sort-btn' });
       this.sortBtnEl.onclick = () => this.toggleSort();
-      const orphansBtn = filterBar.createEl('span', { text: 'Show Orphans' });
-      orphansBtn.style.cursor = 'pointer'; orphansBtn.style.color = 'var(--text-muted)'; orphansBtn.style.textDecoration = "underline";
+      
+      const orphansBtn = filterBar.createEl('span', { text: 'Show orphans', cls: 'nrlcmp-orphans-btn' });
       setTooltip(orphansBtn, 'Show disconnected nodes');
       orphansBtn.onclick = () => this.filterOrphans();
-      this.sidebarListEl = container.createDiv(); this.sidebarListEl.style.flex = '1'; this.sidebarListEl.style.overflowY = 'auto';
+
+      this.sidebarListEl = container.createDiv({ cls: 'nrlcmp-sidebar-list' });
   }
-  toggleSort() { this.sortAscending = !this.sortAscending; if (this.sortBtnEl) this.sortBtnEl.textContent = `Sort: Degree ${this.sortAscending ? '⬆' : '⬇'}`; this.filteredNodes.sort((a, b) => this.sortAscending ? a.val - b.val : b.val - a.val); this.renderList(); }
-  filterOrphans() { if (this.searchInputEl) this.searchInputEl.value = ''; this.filteredNodes = this.allNodes.filter(n => n.val === 1); this.renderList(); }
-  filterList(query: string) { if (!query) { this.filteredNodes = this.allNodes; } else { const q = query.toLowerCase(); this.filteredNodes = this.allNodes.filter(n => n.id.toLowerCase().includes(q)); } this.renderList(); }
+
+  toggleSort() { 
+      this.sortAscending = !this.sortAscending; 
+      if (this.sortBtnEl) this.sortBtnEl.textContent = `Sort: Degree ${this.sortAscending ? '⬆' : '⬇'}`; 
+      this.filteredNodes.sort((a, b) => this.sortAscending ? a.val - b.val : b.val - a.val); 
+      this.renderList(); 
+  }
+  
+  filterOrphans() { 
+      if (this.searchInputEl) this.searchInputEl.value = ''; 
+      this.filteredNodes = this.allNodes.filter(n => n.val === 1); 
+      this.renderList(); 
+  }
+  
+  filterList(query: string) { 
+      if (!query) { this.filteredNodes = this.allNodes; } 
+      else { const q = query.toLowerCase(); this.filteredNodes = this.allNodes.filter(n => n.id.toLowerCase().includes(q)); } 
+      this.renderList(); 
+  }
   
   renderList() {
       if (!this.sidebarListEl) return;
       this.sidebarListEl.empty();
       const visibleNodes = this.filteredNodes.slice(0, 50);
+      
       visibleNodes.forEach(node => {
-          const row = this.sidebarListEl!.createDiv();
-          row.show(); row.style.alignItems = 'center'; row.style.padding = '6px'; row.style.borderBottom = '1px solid var(--background-modifier-border)'; row.style.fontSize = '0.85em';
+          const row = this.sidebarListEl!.createDiv({ cls: 'nrlcmp-sidebar-row' });
+          
           const cb = row.createEl('input', { type: 'checkbox' });
           cb.checked = this.selectedNodes.has(node.id);
           cb.onclick = (e) => { e.stopPropagation(); if (cb.checked) this.selectedNodes.add(node.id); else this.selectedNodes.delete(node.id); };
           
-          const info = row.createDiv(); 
-          info.style.flex = '1'; 
-          info.style.marginLeft = '8px'; 
-          info.style.cursor = 'pointer';
+          const info = row.createDiv({ cls: 'nrlcmp-row-info' });
           
-          // --- REFACTORIZADO (SECURITY): DOM API ---
-          const title = info.createDiv();
-          title.style.fontWeight = 'bold';
-          title.setText(node.id);
+          info.createDiv({ text: node.id, cls: 'nrlcmp-row-title' });
           
-          const meta = info.createDiv();
-          meta.style.color = 'var(--text-muted)';
-          meta.style.fontSize = '0.9em';
-          // Fix visual
           const degree = node.val > 0 ? node.val - 1 : 0;
-          meta.setText(`${node.type} (${degree})`);
+          info.createDiv({ text: `${node.type} (${degree})`, cls: 'nrlcmp-row-meta' });
 
           info.onclick = () => this.searchNode(node.id); 
       });
       
       if (this.filteredNodes.length > 100) {
-          const more = this.sidebarListEl.createDiv();
-          more.style.padding = '10px'; more.style.textAlign = 'center'; more.style.color = 'var(--text-muted)'; 
-          more.setText(`...and ${this.filteredNodes.length - 100} more.`);
+          this.sidebarListEl.createDiv({ 
+              text: `...and ${this.filteredNodes.length - 100} more.`,
+              cls: 'nrlcmp-list-more'
+          });
       }
   }
   
-async mergeSelectedNodes() {
+  async mergeSelectedNodes() {
       const targets = Array.from(this.selectedNodes);
       if (targets.length < 2) { new Notice("Select 2+ nodes"); return; }
       
@@ -646,7 +636,7 @@ async mergeSelectedNodes() {
               if (response.status === 200) { 
                   new Notice("✅ Merged!"); 
                   this.selectedNodes.clear(); 
-                  setTimeout(() => this.render(this.contentEl.querySelector('#sigma-container') as HTMLElement), 1000); 
+                  setTimeout(() => { void this.render(this.contentEl.querySelector('#sigma-container') as HTMLElement); }, 1000); 
               } else { 
                   new Notice(`Error: ${response.text}`); 
               }
@@ -654,26 +644,27 @@ async mergeSelectedNodes() {
       }).open();
   }
 
-async deleteSelectedNodes() {
+  async deleteSelectedNodes() {
       const targets = Array.from(this.selectedNodes);
       if (targets.length === 0) return;
-      if(!confirm(`Delete ${targets.length} nodes?`)) return;
       
-      try {
-          for (const entity of targets) {
-              await requestUrl({
-                  url: "http://localhost:9621/documents/delete_entity",
-                  method: "DELETE",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ "entity_name": entity })
-              });
-          }
-          new Notice("Deleted!"); 
-          this.selectedNodes.clear();
-          setTimeout(() => this.render(this.contentEl.querySelector('#sigma-container') as HTMLElement), 1000);
-      } catch (e) { console.error(e); }
+      // Replaced native confirm with Obsidian Modal
+      new ConfirmationModal(this.plugin.app, `Delete ${targets.length} nodes?`, async () => {
+          try {
+              for (const entity of targets) {
+                  await requestUrl({
+                      url: "http://localhost:9621/documents/delete_entity",
+                      method: "DELETE",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ "entity_name": entity })
+                  });
+              }
+              new Notice("Deleted!"); 
+              this.selectedNodes.clear();
+              setTimeout(() => { void this.render(this.contentEl.querySelector('#sigma-container') as HTMLElement); }, 1000);
+          } catch (e) { console.error(e); new Notice("Error deleting nodes"); }
+      }).open();
   }
-
 
   searchNode(query: string) {
       if(!query) return;
@@ -698,4 +689,35 @@ async deleteSelectedNodes() {
           } else { new Notice("Node not found"); }
       }
   }
+}
+
+// --- HELPER: Safe Confirmation Modal ---
+class ConfirmationModal extends Modal {
+    constructor(app: App, private message: string, private onConfirm: () => void) {
+        super(app);
+    }
+
+    onOpen() {
+        const { contentEl } = this;
+        contentEl.createEl('h2', { text: 'Confirm action' });
+        contentEl.createDiv({ text: this.message, cls: 'nrlcmp-confirm-msg' });
+
+        const btnContainer = contentEl.createDiv({ cls: 'nrlcmp-modal-btns' });
+        
+        new ButtonComponent(btnContainer)
+            .setButtonText('Cancel')
+            .onClick(() => this.close());
+
+        new ButtonComponent(btnContainer)
+            .setButtonText('Confirm')
+            .setWarning()
+            .onClick(() => {
+                this.onConfirm();
+                this.close();
+            });
+    }
+
+    onClose() {
+        this.contentEl.empty();
+    }
 }
