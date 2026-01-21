@@ -1895,13 +1895,16 @@ button.nrlcmp-chat-input-model-select {
 }
 
 .nrlcmp-toolbar-input {
-    background: var(--background-primary);
-    border: 1px solid var(--background-modifier-border);
-    color: var(--text-normal);
-    padding: 6px 10px;
-    border-radius: 15px;
-    width: 160px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    background: rgba(0, 0, 0, 0.6) !important;
+    border: 1px solid var(--text-accent) !important;
+    color: #fff !important;
+    padding: 6px 10px !important;
+    border-radius: 6px;
+    outline: none;
+    width: 200px;
+    backdrop-filter: blur(4px);
+    font-family: var(--font-monospace);
+    transition: width 0.2s ease;
 }
 
 .nrlcmp-toolbar-input:focus {
@@ -1910,18 +1913,17 @@ button.nrlcmp-chat-input-model-select {
 }
 
 .nrlcmp-toolbar-btn {
-    background: var(--interactive-normal);
-    color: var(--text-normal);
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 50%;
-    width: 32px;
-    height: 32px;
-    padding: 0;
+    background: rgba(0,0,0,0.6) !important;
+    border: 1px solid #444 !important;
+    color: #ccc !important;
+    padding: 6px !important;
+    border-radius: 6px;
+    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    height: 30px;
+    width: 30px;
 }
 
 /* Panel Lateral (Sidebar) */
@@ -1940,14 +1942,16 @@ button.nrlcmp-chat-input-model-select {
     border-bottom: 1px solid var(--background-modifier-border);
     font-size: 0.85em;
 
-
+}
 /* --- NEURAL MANAGER (Native Graph View) --- */
 
 .nrlcmp-graph-view {
-    display: flex;
-    height: 100%;
-    width: 100%;
+    display: flex !important;
+    flex-direction: row !important; /* Fuerza horizontal */
+    height: 100% !important;        /* Fuerza altura total */
+    width: 100% !important;
     overflow: hidden;
+    position: relative;
 }
 
 .nrlcmp-mode-3d {
@@ -1959,16 +1963,21 @@ button.nrlcmp-chat-input-model-select {
 }
 
 .nrlcmp-graph-zone {
-    flex: 1;
-    position: relative;
+    flex-grow: 1;          /* Ocupa todo el espacio sobrante */
+    flex-basis: 0;         /* Evita problemas de tamaño mínimo */
+    height: 100% !important;
+    position: relative;    /* Para que la toolbar flote aquí dentro */
     overflow: hidden;
-    border-right: 1px solid var(--background-modifier-border);
+    display: flex;         /* Para centrar el canvas si es necesario */
+    flex-direction: column;
 }
 
 .nrlcmp-sigma-container {
-    width: 100%;
-    height: 100%;
+    width: 100% !important;
+    height: 100% !important;
+    flex: 1;
     display: block;
+    outline: none; /* Quitar borde azul al seleccionar */
 }
 
 
@@ -1977,7 +1986,7 @@ button.nrlcmp-chat-input-model-select {
     position: absolute;
     top: 15px;
     left: 15px;
-    z-index: 10;
+    z-index: 20; /* Encima del canvas */
     display: flex;
     gap: 8px;
     align-items: center;
@@ -1990,26 +1999,35 @@ button.nrlcmp-chat-input-model-select {
 }
 
 .nrlcmp-toolbar-btn:hover {
-    background: var(--interactive-hover);
+    background: rgba(255,255,255,0.1) !important;
+    color: #fff !important;
 }
 
 /* Sidebar */
 .nrlcmp-sidebar {
-    width: 320px;
+    width: 320px !important;
+    min-width: 320px;      /* Que no se aplaste */
+    max-width: 320px;
+    height: 100% !important;
     display: flex;
     flex-direction: column;
     background-color: var(--background-secondary);
     border-left: 1px solid var(--background-modifier-border);
+    z-index: 5;            /* Encima del grafo si se solapan */
 }
 
 .nrlcmp-sidebar-header {
     padding: 10px;
     border-bottom: 1px solid var(--background-modifier-border);
+    flex-shrink: 0; /* No encoger */
 }
+
 
 .nrlcmp-sidebar-title {
     margin: 0 0 10px 0;
     color: var(--text-normal);
+    font-size: 1.1em;
+    font-weight: bold;
 }
 
 .nrlcmp-sidebar-actions {
@@ -2031,53 +2049,97 @@ button.nrlcmp-chat-input-model-select {
     text-decoration: underline;
 }
 
+.nrlcmp-filter-btn:hover {
+    color: var(--text-accent);
+}
+
 .nrlcmp-sidebar-list {
     flex: 1;
     overflow-y: auto;
+    padding: 5px 0;
 }
 
 .nrlcmp-list-item {
     display: flex;
     align-items: center;
-    padding: 6px;
+    padding: 4px 10px;
     border-bottom: 1px solid var(--background-modifier-border);
     font-size: 0.85em;
+}
+
+.nrlcmp-list-item:hover {
+    background-color: var(--background-modifier-hover);
 }
 
 /* Panel de Detalles Flotante */
 .nrlcmp-details-panel {
     position: absolute;
-    top: 15px;
-    right: 15px;
+    top: 60px;
+    right: 20px;
     width: 320px;
-    background: rgba(20, 20, 25, 0.85); /* Semi-transparent */
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    max-height: 80%;
+    background: rgba(20, 20, 25, 0.98);
+    border: 1px solid #444;
     border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-    z-index: 20;
-    color: var(--text-normal);
-    display: none; /* Controlled by JS */
-    overflow: hidden;
+    padding: 0;
+    z-index: 50;
+    color: #eee;
+    overflow-y: auto;
+    display: none;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+    backdrop-filter: blur(10px);
+    font-family: var(--font-monospace);
+    font-size: 13px;
+}
+
+
+/* NUEVA CLASE PARA MOSTRARLO */
+.nrlcmp-details-panel.is-visible {
+    display: block !important;
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .nrlcmp-details-header {
-    background: var(--interactive-accent);
-    padding: 10px 15px;
+    background-color: var(--interactive-accent);
+    padding: 12px 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    border-radius: 8px 8px 0 0;
+    border-bottom: 1px solid var(--background-modifier-border);
 }
 
+
 .nrlcmp-details-type {
-    font-weight: bold;
-    color: white;
-    font-size: 0.9em;
+    font-weight: 700;
+    color: var(--text-on-accent); /* Texto legible sobre el color de acento */
+    font-size: 0.85em;
+    letter-spacing: 0.05em;
 }
 
 .nrlcmp-btn-group {
     display: flex;
-    gap: 10px;
+    gap: 8px;
+}
+
+.nrlcmp-details-btn-edit {
+    background-color: rgba(0, 0, 0, 0.15); /* Sutil */
+    border: none;
+    color: var(--text-on-accent);
+    cursor: pointer;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    transition: background-color 0.2s;
+}
+
+.nrlcmp-details-btn-edit:hover {
+    background-color: rgba(0, 0, 0, 0.3);
 }
 
 .nrlcmp-details-btn {
@@ -2093,9 +2155,15 @@ button.nrlcmp-chat-input-model-select {
 .nrlcmp-details-close {
     background: none;
     border: none;
-    color: white;
+    color: var(--text-on-accent);
     cursor: pointer;
     font-weight: bold;
+    font-size: 1.1em;
+    opacity: 0.8;
+}
+
+.nrlcmp-details-close:hover {
+    opacity: 1;
 }
 
 .nrlcmp-details-content {
@@ -2105,10 +2173,61 @@ button.nrlcmp-chat-input-model-select {
 }
 
 .nrlcmp-details-title {
-    margin: 0 0 15px 0;
+    margin: 0 0 16px 0;
     color: var(--text-normal);
     word-break: break-word;
-    line-height: 1.2;
+    line-height: 1.3;
+    font-size: 1.4em;
+}
+
+.nrlcmp-details-desc-box {
+    font-size: 0.95em;
+    line-height: 1.6;
+    color: var(--text-muted);
+    background-color: var(--background-primary);
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    max-height: 200px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    border: 1px solid var(--background-modifier-border);
+}
+
+.nrlcmp-sources-section {
+    border-top: 1px solid var(--background-modifier-border);
+    padding-top: 16px;
+}
+
+.nrlcmp-sources-title {
+    margin: 0 0 12px 0;
+    color: var(--text-faint);
+    font-size: 0.75em;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.nrlcmp-sources-list {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+}
+
+.nrlcmp-source-item {
+    margin-bottom: 6px;
+    color: var(--text-accent);
+    display: flex;
+    gap: 8px;
+    font-size: 0.9em;
+}
+
+.nrlcmp-source-icon {
+    opacity: 0.7;
+}
+
+.nrlcmp-no-source {
+    color: var(--text-faint);
+    font-style: italic;
 }
 
 .nrlcmp-details-desc {
@@ -2122,6 +2241,40 @@ button.nrlcmp-chat-input-model-select {
     max-height: 150px;
     overflow-y: auto;
     white-space: pre-wrap;
+}
+
+/* Estilos de Edición */
+.nrlcmp-edit-label {
+    color: var(--text-muted);
+    font-size: 0.85em;
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.nrlcmp-edit-input {
+    width: 100%;
+    margin-bottom: 16px;
+    background-color: var(--background-modifier-form-field);
+    color: var(--text-normal);
+    border: 1px solid var(--background-modifier-border);
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 0.95em;
+    font-family: inherit;
+}
+
+.nrlcmp-edit-input:focus {
+    border-color: var(--interactive-accent);
+    box-shadow: 0 0 0 2px rgba(var(--interactive-accent-rgb), 0.2);
+}
+
+.nrlcmp-edit-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    border-top: 1px solid var(--background-modifier-border);
+    padding-top: 16px;
 }
 
 /* Sidebar Elements */
@@ -2204,7 +2357,15 @@ button.nrlcmp-chat-input-model-select {
 }
 
 .nrlcmp-details-body {
-    padding: 15px;
+    padding: 16px;
+    background-color: var(--background-secondary);
+    border-radius: 0 0 8px 8px;
+}
+
+.nrlcmp-details-meta {
+    margin-bottom: 12px;
+    font-size: 0.85em;
+    color: var(--text-muted);
 }
 
 .nrlcmp-details-input {
@@ -2214,6 +2375,7 @@ button.nrlcmp-chat-input-model-select {
     color: white;
     border: 1px solid #555;
     padding: 4px;
+    font-family: inherit;
 }
 
 /* --- UTILIDADES DE VISIBILIDAD Y LAYOUT --- */
@@ -2324,4 +2486,59 @@ button.nrlcmp-chat-input-model-select {
     z-index: 9999; /* Asegurar que flote sobre todo */
     box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     border-radius: 8px;
+}
+
+/* Settings: Neural Backend Section */
+
+.nrlcmp-setting-warning {
+    background-color: rgba(255, 69, 0, 0.15);
+    border: 1px solid var(--text-error);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 20px;
+    color: var(--text-normal);
+    font-size: 0.9em;
+}
+
+.nrlcmp-textarea-container {
+    margin-bottom: 20px;
+}
+
+.nrlcmp-setting-textarea {
+    width: 100%;
+    height: 80px;
+    font-family: var(--font-monospace);
+    font-size: 0.9em;
+}
+
+.nrlcmp-advanced-container {
+    padding-left: 10px;
+    border-left: 2px solid var(--interactive-accent);
+    margin-top: 10px;
+}
+
+.nrlcmp-env-textarea {
+    width: 100%;
+    font-family: var(--font-monospace);
+    font-size: 0.85em;
+    white-space: pre;
+}
+
+/* Restart Button Emphasis */
+.nrlcmp-restart-setting {
+    background-color: rgba(255, 165, 0, 0.15); /* Orange tint */
+    border: 1px solid var(--color-orange);
+    border-radius: 8px;
+    margin-top: 20px;
+    padding: 15px !important;
+}
+
+.nrlcmp-restart-setting .setting-item-name {
+    color: var(--text-normal);
+    font-weight: bold;
+}
+
+/* Dark mode adjustments (optional if vars don't cover it) */
+.theme-dark .nrlcmp-restart-setting {
+    background-color: rgba(255, 165, 0, 0.1);
 }

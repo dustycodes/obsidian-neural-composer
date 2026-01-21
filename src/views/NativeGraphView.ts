@@ -347,7 +347,7 @@ export class NativeGraphView extends ItemView {
                 this.graph?.setEdgeAttribute(e, 'hidden', false);
                 this.graph?.setEdgeAttribute(e, 'color', '#333');
             });
-            if(this.detailsPanel) this.detailsPanel.hide(); 
+            if(this.detailsPanel) this.detailsPanel.removeClass('is-visible');
         });
     };
     requestAnimationFrame(initSigma);
@@ -397,6 +397,7 @@ export class NativeGraphView extends ItemView {
       this.detailsPanel = container.createDiv({ cls: 'nrlcmp-details-panel' });
   }
 
+// --- UI: DETALLES SEGUROS (CSS CLASSES) ---
   showNodeDetails(node: any) {
     if (!this.detailsPanel) return;
     this.detailsPanel.empty();
@@ -405,56 +406,58 @@ export class NativeGraphView extends ItemView {
     const type = node.node_type || node.type || "Unknown";
     const desc = node.desc || "No description.";
 
-    // HEADER
+    // 1. Header (Usando clases CSS)
     const header = this.detailsPanel.createDiv({ cls: 'nrlcmp-details-header' });
     
     header.createSpan({ text: type.toUpperCase(), cls: 'nrlcmp-details-type' });
 
     const btnGroup = header.createDiv({ cls: 'nrlcmp-btn-group' });
 
-    const editBtn = btnGroup.createEl("button", { text: "✏️ Edit", cls: 'nrlcmp-details-btn' });
+    const editBtn = btnGroup.createEl("button", { text: "✏️ Edit", cls: 'nrlcmp-details-btn-edit' });
     
     const closeBtn = btnGroup.createEl("button", { text: "✕", cls: 'nrlcmp-details-close' });
-    closeBtn.onclick = () => { if (this.detailsPanel) this.detailsPanel.hide(); };
+    closeBtn.onclick = () => { if (this.detailsPanel) this.detailsPanel.removeClass('is-visible'); };
 
-    // BODY CONTAINER
-    const content = this.detailsPanel.createDiv({ cls: 'nrlcmp-details-content' });
+    // 2. Body
+    const content = this.detailsPanel.createDiv({ cls: 'nrlcmp-details-body' });
 
-    // VIEW MODE
+    // --- VISTA LECTURA ---
     const viewMode = content.createDiv();
+    viewMode.id = "view-mode";
     
     const meta = viewMode.createDiv({ cls: 'nrlcmp-details-meta' });
-    meta.createSpan({ text: "Links: ", cls: 'nrlcmp-label' });
-    meta.createEl("b", { text: String(node.val), cls: 'nrlcmp-value' });
+    meta.createSpan({ text: "Links: " });
+    // CORRECCIÓN: Usamos 'attr' para el estilo
+    meta.createEl("b", { text: String(node.val), attr: { style: "color:var(--text-normal)" } });
 
     viewMode.createEl("h2", { text: node.id, cls: 'nrlcmp-details-title' });
 
-    const descBox = viewMode.createDiv({ cls: 'nrlcmp-details-desc' });
+    const descBox = viewMode.createDiv({ cls: 'nrlcmp-details-desc-box' });
     descBox.setText(desc);
 
     const sourcesSection = viewMode.createDiv({ cls: 'nrlcmp-sources-section' });
-    sourcesSection.createEl("h4", { text: "Context sources", cls: 'nrlcmp-section-title' });
+    sourcesSection.createEl("h4", { text: "CONTEXT SOURCES", cls: 'nrlcmp-sources-title' });
     
     const ul = sourcesSection.createEl("ul", { cls: 'nrlcmp-sources-list' });
 
     if (files.length > 0) {
         files.forEach((f: string) => {
             const li = ul.createEl("li", { cls: 'nrlcmp-source-item' });
-            li.createSpan({ text: "📄" });
+            li.createSpan({ text: "📄", cls: 'nrlcmp-source-icon' });
             li.createSpan({ text: f });
         });
     } else {
         ul.createEl("li", { text: "No explicit source", cls: 'nrlcmp-no-source' });
     }
 
-    // EDIT MODE
-    const editMode = content.createDiv({ cls: 'nrlcmp-edit-mode' });
-    // Initially hidden via CSS or state, but here we use display toggle
-    editMode.style.display = 'none';
+    // --- VISTA EDICIÓN ---
+    const editMode = content.createDiv();
+    editMode.id = "edit-mode";
+    editMode.style.display = "none"; // Toggle simple permitido
     
     const makeInput = (lbl: string, val: string) => {
-        editMode.createEl("label", { text: lbl, cls: 'nrlcmp-input-label' });
-        const i = editMode.createEl("input", { cls: 'nrlcmp-input-text' });
+        editMode.createEl("label", { text: lbl, cls: 'nrlcmp-edit-label' });
+        const i = editMode.createEl("input", { cls: 'nrlcmp-edit-input' });
         i.type = "text"; 
         i.value = val;
         return i;
@@ -463,16 +466,16 @@ export class NativeGraphView extends ItemView {
     const nameInput = makeInput("Name (ID)", node.id);
     const typeInput = makeInput("Type", type);
     
-    editMode.createEl("label", { text: "Description", cls: 'nrlcmp-input-label' });
-    const descInput = editMode.createEl("textarea", { cls: 'nrlcmp-input-area' });
+    editMode.createEl("label", { text: "Description", cls: 'nrlcmp-edit-label' });
+    const descInput = editMode.createEl("textarea", { cls: 'nrlcmp-edit-input' });
     descInput.value = desc; 
-    descInput.rows = 5;
+    descInput.rows = 6;
 
     const actions = editMode.createDiv({ cls: 'nrlcmp-edit-actions' });
     
     const cancelBtn = new ButtonComponent(actions).setButtonText("Cancel");
-    const saveBtn = new ButtonComponent(actions).setButtonText("💾 Save");
-    saveBtn.buttonEl.addClass('mod-cta');
+    const saveBtn = new ButtonComponent(actions).setButtonText("💾 Save Changes");
+    saveBtn.setCta();
 
     // Wiring
     editBtn.onclick = () => { viewMode.style.display='none'; editMode.style.display='block'; };
@@ -481,12 +484,13 @@ export class NativeGraphView extends ItemView {
     saveBtn.buttonEl.onclick = async () => {
         const newName = nameInput.value.trim();
         if(newName) {
-            await this.updateNode(node.id, { entity_name: newName, entity_type: typeInput.value.trim(), description: descInput.value.trim() });
-            if(this.detailsPanel) this.detailsPanel.hide();
+            void this.updateNode(node.id, { entity_name: newName, entity_type: typeInput.value.trim(), description: descInput.value.trim() });
+            if(this.detailsPanel) this.detailsPanel.removeClass('is-visible');
         }
     };
 
-    this.detailsPanel.show();
+    // Mostrar
+    this.detailsPanel.addClass('is-visible');
   }
 
   async updateNode(oldName: string, data: any) {

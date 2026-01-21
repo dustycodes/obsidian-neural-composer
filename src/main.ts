@@ -1,27 +1,26 @@
-import { Plugin, Notice, Setting, addIcon, requestUrl, Editor, MarkdownView, TFile, TFolder, View } from 'obsidian';
-import { spawn, execSync, ChildProcess } from 'child_process'
-import * as fs from 'fs'
-import * as path from 'path'
-import * as net from 'net' // <--- ¡NUEVO IMPORT!
+import { Plugin, Notice, requestUrl, Editor, MarkdownView, TFile, TFolder, WorkspaceLeaf } from 'obsidian';
+import { spawn, execSync, ChildProcess } from 'child_process';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as net from 'net';
 import { NativeGraphView, NATIVE_GRAPH_VIEW_TYPE } from './views/NativeGraphView';
 
-import { ApplyView } from './ApplyView'
-import { ChatView } from './ChatView'
-import { ChatProps } from './components/chat-view/Chat'
-import { InstallerUpdateRequiredModal } from './components/modals/InstallerUpdateRequiredModal'
-import { APPLY_VIEW_TYPE, CHAT_VIEW_TYPE } from './constants'
-import { McpManager } from './core/mcp/mcpManager'
-import { RAGEngine } from './core/rag/ragEngine'
-import { DatabaseManager } from './database/DatabaseManager'
+import { ApplyView } from './ApplyView';
+import { ChatView } from './ChatView';
+import { ChatProps } from './components/chat-view/Chat';
+import { APPLY_VIEW_TYPE, CHAT_VIEW_TYPE } from './constants';
+import { McpManager } from './core/mcp/mcpManager';
+import { RAGEngine } from './core/rag/ragEngine';
+import { DatabaseManager } from './database/DatabaseManager';
 import {
   NeuralComposerSettings,
   NeuralComposerSettingsSchema,
-} from './settings/schema/setting.types'
-import { parseNeuralComposerSettings } from './settings/schema/settings'
-import { NeuralComposerSettingTab } from './settings/SettingTab'
-import { getMentionableBlockData } from './utils/obsidian'
+} from './settings/schema/setting.types';
+import { parseNeuralComposerSettings } from './settings/schema/settings';
+import { NeuralComposerSettingTab } from './settings/SettingTab';
+import { getMentionableBlockData } from './utils/obsidian';
 
-// --- LISTA MAESTRA DE EXTENSIONES ---
+// --- MASTER EXTENSION LIST ---
 const SUPPORTED_EXTENSIONS = [
     'md', 'txt', 'docx', 'pdf', 'pptx', 'xlsx', 'rtf', 'odt', 'epub',
     'html', 'htm', 'xml', 'json', 'yaml', 'yml', 'csv',
@@ -38,30 +37,27 @@ const TEXT_BASED_EXTENSIONS = [
 ];
 
 export default class NeuralComposerPlugin extends Plugin {
-  settings: NeuralComposerSettings
-  initialChatProps?: ChatProps 
-  settingsChangeListeners: ((newSettings: NeuralComposerSettings) => void)[] = []
-  mcpManager: McpManager | null = null
-  dbManager: DatabaseManager | null = null
-  ragEngine: RAGEngine | null = null
-  private dbManagerInitPromise: Promise<DatabaseManager> | null = null
-  private ragEngineInitPromise: Promise<RAGEngine> | null = null
-  private timeoutIds: ReturnType<typeof setTimeout>[] = []
+  settings: NeuralComposerSettings;
+  initialChatProps?: ChatProps;
+  settingsChangeListeners: ((newSettings: NeuralComposerSettings) => void)[] = [];
+  mcpManager: McpManager | null = null;
+  dbManager: DatabaseManager | null = null;
+  ragEngine: RAGEngine | null = null;
+  private dbManagerInitPromise: Promise<DatabaseManager> | null = null;
+  private ragEngineInitPromise: Promise<RAGEngine> | null = null;
+  private timeoutIds: ReturnType<typeof setTimeout>[] = [];
   private serverProcess: ChildProcess | null = null;
   private lastErrorTime: number = 0; 
 
-async onload() {
-    await this.loadSettings()
+  async onload() {
+    await this.loadSettings();
 
-    // --- CORA MOD: ZERO-CONFIG & PORTABILIDAD ---
-    // Si el usuario no ha definido una ruta, creamos una por defecto DENTRO del Vault.
-    // Usamos '.neural_memory' (con punto) para que Obsidian la ignore y no se ponga lento.
+    // --- ZERO-CONFIG & PORTABILITY ---
     if (!this.settings.lightRagWorkDir) {
-        // @ts-ignore: getBasePath es parte de la API de escritorio de Obsidian
+        // @ts-ignore: getBasePath is part of Obsidian desktop API
         const vaultRoot = this.app.vault.adapter.getBasePath(); 
         const defaultPath = path.join(vaultRoot, '.neural_memory');
         
-        // 1. Crear la carpeta físicamente si no existe
         if (!fs.existsSync(defaultPath)) {
             try {
                 fs.mkdirSync(defaultPath, { recursive: true });
@@ -70,67 +66,64 @@ async onload() {
             }
         }
         
-        // 2. Guardar la configuración automáticamente
         this.settings.lightRagWorkDir = defaultPath;
         await this.saveData(this.settings);
-        
     }
-    // -----------------------------------------------------------
-    this.registerView(CHAT_VIEW_TYPE, (leaf) => new ChatView(leaf, this))
-    this.registerView(APPLY_VIEW_TYPE, (leaf) => new ApplyView(leaf))
-    this.addRibbonIcon('brain-circuit', 'Open Neural Composer', () =>
-    this.openChatView(),
-    )
+    
+    this.registerView(CHAT_VIEW_TYPE, (leaf) => new ChatView(leaf, this));
+    this.registerView(APPLY_VIEW_TYPE, (leaf) => new ApplyView(leaf));
+    this.addRibbonIcon('brain-circuit', 'Open Neural Composer', () => {
+        void this.openChatView();
+    });
 
     // NATIVE GRAPH VIEWER
     this.registerView(
       NATIVE_GRAPH_VIEW_TYPE,
-      (leaf) => new NativeGraphView(leaf, this) // <--- AQUÍ ESTÁ EL CAMBIO: Pasamos 'this'
+      (leaf) => new NativeGraphView(leaf, this)
     );
 
-  this.addCommand({
-  id: 'open-native-graph',
-  name: '🕸️ Open Native Graph View (Experimental)',
-  callback: async () => {
-    const { workspace } = this.app;
-    let leaf = null;
-    const leaves = workspace.getLeavesOfType(NATIVE_GRAPH_VIEW_TYPE);
+    this.addCommand({
+      id: 'open-native-graph',
+      name: '🕸️ Open native graph view',
+      callback: async () => {
+        const { workspace } = this.app;
+        let leaf: WorkspaceLeaf | null = null;
+        const leaves = workspace.getLeavesOfType(NATIVE_GRAPH_VIEW_TYPE);
 
-    if (leaves.length > 0) {
-      leaf = leaves[0];
-    } else {
-      leaf = workspace.getLeaf(true);
-      await leaf.setViewState({ type: NATIVE_GRAPH_VIEW_TYPE, active: true });
-    }
-    workspace.revealLeaf(leaf);
-  },
-});
+        if (leaves.length > 0) {
+          leaf = leaves[0];
+        } else {
+          leaf = workspace.getLeaf(true);
+          await leaf.setViewState({ type: NATIVE_GRAPH_VIEW_TYPE, active: true });
+        }
+        if (leaf) workspace.revealLeaf(leaf);
+      },
+    });
 
     this.addCommand({
       id: 'open-new-chat',
       name: 'Open chat',
-      callback: () => this.openChatView(true),
-    })
+      callback: () => { void this.openChatView(true); },
+    });
 
     this.addCommand({
       id: 'add-selection-to-chat',
       name: 'Add selection to chat',
       editorCallback: (editor: Editor, view: MarkdownView) => {
-        this.addSelectionToChat(editor, view)
+        void this.addSelectionToChat(editor, view);
       },
-    })
+    });
 
-    // --- CORA MOD: QUICK RESTART COMMAND ---
+    // --- QUICK RESTART COMMAND ---
     this.addCommand({
       id: 'restart-neural-backend',
-      name: '♻️ Restart Neural Backend (LightRAG)',
+      name: '♻️ Restart Neural backend (LightRAG)',
       callback: async () => {
         await this.restartLightRagServer();
       },
-    })
-    // ---------------------------------------
+    });
 
-    // --- CORA MOD: CONTEXT MENU (FOLDERS) ---
+    // --- CONTEXT MENU (FOLDERS) ---
     this.registerEvent(
       this.app.workspace.on('file-menu', (menu, file) => {
         if (file instanceof TFolder) {
@@ -146,7 +139,7 @@ async onload() {
       })
     );
 
-    // --- CORA MOD: SINGLE FILE INGEST COMMAND ---
+    // --- SINGLE FILE INGEST COMMAND ---
     this.addCommand({
       id: 'ingest-current-file',
       name: '🧠 Ingest current file into Knowledge Graph',
@@ -157,10 +150,10 @@ async onload() {
         }
         if (checking) return true;
 
+        // IIFE to handle async in callback
         (async () => {
             const title = file.basename;
             const ext = file.extension.toLowerCase();
-            // TRANSLATED NOTICE
             const notice = new Notice(`🧠 Sending "${file.name}" to the system...`, 0);
 
             try {
@@ -176,7 +169,6 @@ async onload() {
                 }
 
                 if (success) {
-                    // TRANSLATED STATUS
                     notice.setMessage(`✅ Sent. Processing in background...`);
                     await this.monitorPipeline(notice);
                 } else {
@@ -188,48 +180,38 @@ async onload() {
                 notice.setMessage(`❌ Critical error connecting to backend.`);
                 setTimeout(() => notice.hide(), 5000);
             }
-        })();
+        })().catch(err => console.error(err));
       },
-    })
+    });
 
+    this.addSettingTab(new NeuralComposerSettingTab(this.app, this));
 
-    this.addSettingTab(new NeuralComposerSettingTab(this.app, this))
-
-    // --- AGGRESSIVE AUTO-START (CLEAN SLATE PROTOCOL) ---
+    // --- AGGRESSIVE AUTO-START ---
     this.app.workspace.onLayoutReady(async () => {
         if (this.settings.enableAutoStartServer) {
-            // TRANSLATED LOG
-            
-            // 1. Kill any zombie process
             this.stopLightRagServer();
-            
-            // 2. Wait for port release
+            // Wait for port release
             await new Promise(resolve => setTimeout(resolve, 1500));
-            
-            // 3. Regenerate .env and start fresh
-            this.startLightRagServer();
+            void this.startLightRagServer();
         }
     });
   }
 
-  // --- LÓGICA DE MONITOREO (TRANSPARENCIA) ---
- async monitorPipeline(notice: Notice) {
+  // --- MONITORING LOGIC ---
+  async monitorPipeline(notice: Notice) {
     let isBusy = true;
     let errors = 0;
-    // Esperar un momento para que el servidor registre la tarea
+    // Wait for server to register task
     await new Promise(r => setTimeout(r, 1000));
 
     while (isBusy) {
         try {
-            // REEMPLAZO: requestUrl en lugar de fetch
             const response = await requestUrl({
                 url: "http://localhost:9621/documents/pipeline_status",
                 method: "GET"
             });
             
-            // Obsidian lanza error si status != 200, así que si llegamos aquí, está OK
-            const status = response.json; // .json es propiedad, no función
-            
+            const status = response.json;
             isBusy = status.busy;
             
             if (isBusy) {
@@ -246,7 +228,7 @@ async onload() {
 
             if (!isBusy) break;
 
-            await new Promise(r => setTimeout(r, 1500)); // Polling cada 1.5s
+            await new Promise(r => setTimeout(r, 1500)); // Polling 1.5s
 
         } catch (e) {
             errors++;
@@ -259,7 +241,7 @@ async onload() {
     setTimeout(() => notice.hide(), 5000);
   }
 
-  // --- LÓGICA DE BATCH ---
+  // --- BATCH LOGIC ---
   private getAllSupportedFiles(folder: TFolder): TFile[] {
     let files: TFile[] = [];
     for (const child of folder.children) {
@@ -307,34 +289,42 @@ async onload() {
                 await new Promise(resolve => setTimeout(resolve, 200)); 
 
             } catch (err) {
-                console.error(`Error en ${file.name}:`, err);
+                console.error(`Error processing ${file.name}:`, err);
             }
         }
 
-        // Una vez enviados, iniciamos el monitoreo del procesamiento real
         notice.setMessage(`✅ Uploaded files (${successCount}).\n🧠 Start processing...`);
         await this.monitorPipeline(notice);
 
     } catch (error) {
-        console.error("Error batch:", error);
+        console.error("Batch error:", error);
         notice.setMessage("❌ Error starting upload.");
         setTimeout(() => notice.hide(), 5000);
     }
   }
 
-  // --- RESTO DEL CÓDIGO (LIFECYCLE, SERVER MANAGE) ---
+  // --- LIFECYCLE & SERVER MANAGEMENT ---
   
   onunload() {
-    this.timeoutIds.forEach((id) => clearTimeout(id))
-    this.timeoutIds = []
-    this.ragEngine?.cleanup()
-    this.ragEngine = null
-    this.dbManagerInitPromise = null
-    this.ragEngineInitPromise = null
-    this.dbManager?.cleanup()
-    this.dbManager = null
-    this.mcpManager?.cleanup()
-    this.mcpManager = null
+    this.timeoutIds.forEach((id) => clearTimeout(id));
+    this.timeoutIds = [];
+    
+    if (this.ragEngine) {
+        this.ragEngine.cleanup();
+        this.ragEngine = null;
+    }
+    
+    this.dbManagerInitPromise = null;
+    this.ragEngineInitPromise = null;
+    
+    if (this.dbManager) {
+        this.dbManager.cleanup();
+        this.dbManager = null;
+    }
+    if (this.mcpManager) {
+        this.mcpManager.cleanup();
+        this.mcpManager = null;
+    }
     this.stopLightRagServer();
   }
 
@@ -347,19 +337,22 @@ async onload() {
         if (process.platform === 'win32') {
             execSync('taskkill /F /IM lightrag-server.exe /T', { stdio: 'ignore' });
         }
-    } catch (error) {}
+    } catch (error) {
+        // Ignore kill errors
+    }
   }
 
   public async restartLightRagServer() {
     new Notice("🔄 Restarting System Backend...");
     this.stopLightRagServer();
+    // Use timeout to allow process to fully die
     setTimeout(async () => {
         await this.updateEnvFile();
-        await this.startLightRagServer();
+        void this.startLightRagServer();
     }, 2000);
   }
 
-// 1. GENERADOR DE TEXTO (No guarda, solo crea el string)
+  // GENERATOR
   public generateEnvConfig(): string {
     const workDir = this.settings.lightRagWorkDir;
     if (!workDir) return "";
@@ -382,13 +375,12 @@ async onload() {
         envContent += `PORT=9621\n`;
         envContent += `SUMMARY_LANGUAGE=${this.settings.lightRagSummaryLanguage || 'English'}\n`;
         
-        // --- TUS VARIABLES DE TUNING (Agregadas para que el usuario las vea y edite) ---
+        // --- TUNING VARS ---
         envContent += `\n# --- Performance Tuning ---\n`;
         envContent += `MAX_ASYNC=${this.settings.lightRagMaxAsync}\n`;
         envContent += `MAX_PARALLEL_INSERT=${this.settings.lightRagMaxParallelInsert}\n`;
         envContent += `CHUNK_SIZE=${this.settings.lightRagChunkSize}\n`;
         envContent += `CHUNK_OVERLAP_SIZE=${this.settings.lightRagChunkOverlap}\n\n`;
-        // -------------------------------------
 
         // LLM
         if (llmModelObj && llmProvider) {
@@ -408,32 +400,23 @@ async onload() {
             envContent += `MAX_TOKEN_SIZE=8192\n`;
         }
 
-// --- RERANKING CONFIGURATION (CORREGIDA) ---
+        // RERANKING
         const rerankSelection = this.settings.lightRagRerankBinding;
         
         if (rerankSelection && rerankSelection !== '') {
             envContent += `\n# Reranking Configuration\n`;
             
-            // Variable para decidir qué nombre ponerle al binding
             let realBindingName = rerankSelection;
             
             if (rerankSelection === 'custom') {
-                 // CASO CUSTOM: Usamos el tipo interno (ej: 'cohere')
-                 // Si el usuario no puso nada, por defecto 'cohere' que es el estándar compatible
                  realBindingName = this.settings.lightRagRerankBindingType || 'cohere';
-                 
-                 // Inyectamos el Host personalizado que escribió el usuario
                  envContent += `RERANK_BINDING_HOST=${this.settings.lightRagRerankHost}\n`;
             } else {
-                 // CASO PRESETS: URLs oficiales
                  if (rerankSelection === 'jina') envContent += `RERANK_BINDING_HOST=https://api.jina.ai/v1/rerank\n`;
                  if (rerankSelection === 'cohere') envContent += `RERANK_BINDING_HOST=https://api.cohere.com/v2/rerank\n`;
             }
 
-            // AQUI ESTÁ EL CAMBIO: Usamos 'realBindingName', no la selección cruda
             envContent += `RERANK_BINDING=${realBindingName}\n`;
-            
-            // El resto sigue igual
             envContent += `RERANK_MODEL=${this.settings.lightRagRerankModel}\n`;
             if (this.settings.lightRagRerankApiKey) {
                 envContent += `RERANK_BINDING_API_KEY=${this.settings.lightRagRerankApiKey}\n`;
@@ -442,7 +425,6 @@ async onload() {
              envContent += `\n# Reranking Disabled\n`;
              envContent += `RERANK_BINDING=null\n`;
         }
-        // -------------------------------------------
 
         // API Keys
         const providersNeeded = new Set([llmProvider, embedProvider]);
@@ -456,7 +438,7 @@ async onload() {
             }
         });
         
-        // Entity Types (Tu lógica existente)
+        // Entity Types
         if (this.settings.useCustomEntityTypes) {
             const rawTypes = this.settings.lightRagEntityTypes;
             if (rawTypes && rawTypes.trim().length > 0) {
@@ -465,7 +447,7 @@ async onload() {
             }
         }
 
-        // INYECCIÓN DE VARIABLES PERSONALIZADAS
+        // Custom Overrides
         if (this.settings.lightRagCustomEnv) {
             envContent += `\n\n#####################################\n`;
             envContent += `### USER CUSTOM CONFIGURATION     ###\n`;
@@ -477,14 +459,12 @@ async onload() {
 
         return envContent;
 
-    
       } catch (err) {
-        console.error("❌ Error generando config:", err);
+        console.error("❌ Error generating config:", err);
         return "";
     }
   }
 
-  // 2. GUARDAR Y REINICIAR (La acción final)
   public async saveEnvAndRestart(content: string) {
       const workDir = this.settings.lightRagWorkDir;
       if (!workDir) return;
@@ -492,18 +472,13 @@ async onload() {
       try {
           const envPath = path.join(workDir, '.env');
           fs.writeFileSync(envPath, content);
-          
-          // Reiniciar servidor para aplicar cambios
           await this.restartLightRagServer();
-          
       } catch (e) {
           new Notice("Error saving .env file");
           console.error(e);
       }
   }
 
-  // 3. ACTUALIZACIÓN AUTOMÁTICA (Compatibilidad hacia atrás)
-  // Esta la mantenemos para cuando el usuario cambia settings simples y no quiere abrir el editor
   public async updateEnvFile() {
       const content = this.generateEnvConfig();
       const workDir = this.settings.lightRagWorkDir;
@@ -513,28 +488,27 @@ async onload() {
       }
   }
 
-// Función silenciosa para chequear puertos (Sin errores de consola)
   private isPortInUse(port: number): Promise<boolean> {
     return new Promise((resolve) => {
         const socket = new net.Socket();
         
         const onError = () => {
             socket.destroy();
-            resolve(false); // Si hay error, el puerto está libre (cerrado)
+            resolve(false); // Closed
         };
 
-        socket.setTimeout(500); // 500ms de paciencia
+        socket.setTimeout(500); 
         socket.once('error', onError);
         socket.once('timeout', onError);
 
         socket.connect(port, '127.0.0.1', () => {
             socket.destroy();
-            resolve(true); // ¡Conectó! El puerto está ocupado (Server vivo)
+            resolve(true); // Open (In Use)
         });
     });
   }
 
-async startLightRagServer() {
+  async startLightRagServer() {
     const command = this.settings.lightRagCommand;
     const workDir = this.settings.lightRagWorkDir;
 
@@ -545,13 +519,10 @@ async startLightRagServer() {
 
     await this.updateEnvFile();
 
-    // --- NUEVA VERIFICACIÓN SILENCIOSA ---
     const isAlive = await this.isPortInUse(9621);
-    
     if (isAlive) {
         return;
     }
-    // ------------------------------------
 
     new Notice("🚀 Starting LightRAG...");
 
@@ -562,29 +533,22 @@ async startLightRagServer() {
             env: { ...process.env, PYTHONIOENCODING: 'utf-8', FORCE_COLOR: '1' }
         });
 
-        // this.serverProcess.stdout?.on('data', (data) => console.log(`[LightRAG]: ${data}`));
-// --- CORA MOD: MONITOR DE SIGNOS VITALES MEJORADO ---
         this.serverProcess.stderr?.on('data', (data) => {
             const msg = data.toString();
             const now = Date.now();
             
-            // Debounce de 5 segundos para no llenar la pantalla
+            // Error debouncing
             if (!this.lastErrorTime || (now - this.lastErrorTime > 5000)) {
                 
-                // 1. NUEVO: DETECCIÓN DE SOBRECARGA (503)
                 if (msg.includes("503") || msg.includes("overloaded") || msg.includes("UNAVAILABLE")) {
                     new Notice("⚠️ Provider Error: Model Overloaded (503).\nServer is busy, please wait a moment.", 0);
                     this.lastErrorTime = now;
                 }
-                
-                // 2. Errores de API Key (401)
                 else if (msg.includes("Invalid API key") || msg.includes("401")) {
                     if (msg.includes("Rerank")) new Notice("⚠️ Rerank Error: Invalid API Key.", 0);
                     else new Notice("⚠️ LLM/Embed Error: Invalid API Key.", 0);
                     this.lastErrorTime = now;
                 }
-                
-                // 3. Errores de Cuota (429)
                 else if (msg.includes("Quota") || msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED")) {
                     if (msg.includes("Rerank")) new Notice("⚠️ Rerank Quota Exceeded.", 0);
                     else if (msg.includes("google") || msg.includes("gemini")) new Notice("⚠️ Gemini Quota Exceeded.\nReduce MAX_ASYNC in settings.", 0);
@@ -593,19 +557,17 @@ async startLightRagServer() {
                 }
             }
 
-            // Logging en consola
-            if (msg.includes('INFO:') || msg.includes('WARNING:')) {
-            } else {
+            if (!msg.includes('INFO:') && !msg.includes('WARNING:')) {
                 console.error(`[LightRAG Error]: ${msg}`);
             }
         });
-//-----------------------------------------------------        
+     
         this.serverProcess.on('close', (code) => {
             this.serverProcess = null;
         });
 
         setTimeout(() => {
-            if (this.serverProcess) new Notice("✅  LightRAG Activated");
+            if (this.serverProcess) new Notice("✅ LightRAG Activated");
         }, 5000);
     } catch (error) {
         console.error("❌ Error starting server:", error);
@@ -614,131 +576,115 @@ async startLightRagServer() {
   }
 
   async loadSettings() {
-    this.settings = parseNeuralComposerSettings(await this.loadData())
-    await this.saveData(this.settings)
+    this.settings = parseNeuralComposerSettings(await this.loadData());
+    await this.saveData(this.settings);
   }
 
   async setSettings(newSettings: NeuralComposerSettings) {
-    const validationResult = NeuralComposerSettingsSchema.safeParse(newSettings)
+    const validationResult = NeuralComposerSettingsSchema.safeParse(newSettings);
     if (!validationResult.success) {
-      new Notice('Invalid settings')
-      return
+      new Notice('Invalid settings');
+      return;
     }
-    this.settings = newSettings
-    await this.saveData(newSettings)
-    this.ragEngine?.setSettings(newSettings)
-    this.settingsChangeListeners.forEach((listener) => listener(newSettings))
+    this.settings = newSettings;
+    await this.saveData(newSettings);
+    this.ragEngine?.setSettings(newSettings);
+    this.settingsChangeListeners.forEach((listener) => listener(newSettings));
   }
 
   addSettingsChangeListener(listener: (newSettings: NeuralComposerSettings) => void) {
-    this.settingsChangeListeners.push(listener)
+    this.settingsChangeListeners.push(listener);
     return () => {
-      this.settingsChangeListeners = this.settingsChangeListeners.filter((l) => l !== listener)
-    }
+      this.settingsChangeListeners = this.settingsChangeListeners.filter((l) => l !== listener);
+    };
   }
 
   async openChatView(openNewChat = false) {
-    const view = this.app.workspace.getActiveViewOfType(MarkdownView)
-    const editor = view?.editor
+    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+    const editor = view?.editor;
     if (!view || !editor) {
-      this.activateChatView(undefined, openNewChat)
-      return
+      void this.activateChatView(undefined, openNewChat);
+      return;
     }
-    const selectedBlockData = await getMentionableBlockData(editor, view)
-    this.activateChatView({ selectedBlock: selectedBlockData ?? undefined }, openNewChat)
+    const selectedBlockData = await getMentionableBlockData(editor, view);
+    void this.activateChatView({ selectedBlock: selectedBlockData ?? undefined }, openNewChat);
   }
 
   async activateChatView(chatProps?: ChatProps, openNewChat = false) {
-    this.initialChatProps = chatProps
-    const leaf = this.app.workspace.getLeavesOfType(CHAT_VIEW_TYPE)[0]
+    this.initialChatProps = chatProps;
+    const leaf = this.app.workspace.getLeavesOfType(CHAT_VIEW_TYPE)[0];
+    
     await (leaf ?? this.app.workspace.getRightLeaf(false))?.setViewState({
       type: CHAT_VIEW_TYPE,
       active: true,
-    })
+    });
+    
     if (openNewChat && leaf && leaf.view instanceof ChatView) {
-      leaf.view.openNewChat(chatProps?.selectedBlock)
+      leaf.view.openNewChat(chatProps?.selectedBlock);
     }
-    this.app.workspace.revealLeaf(this.app.workspace.getLeavesOfType(CHAT_VIEW_TYPE)[0])
+    
+    // Safety check before revealing
+    const currentLeaf = this.app.workspace.getLeavesOfType(CHAT_VIEW_TYPE)[0];
+    if (currentLeaf) {
+        this.app.workspace.revealLeaf(currentLeaf);
+    }
   }
 
   async addSelectionToChat(editor: Editor, view: MarkdownView) {
-    const data = await getMentionableBlockData(editor, view)
-    if (!data) return
-    const leaves = this.app.workspace.getLeavesOfType(CHAT_VIEW_TYPE)
+    const data = await getMentionableBlockData(editor, view);
+    if (!data) return;
+    
+    const leaves = this.app.workspace.getLeavesOfType(CHAT_VIEW_TYPE);
     if (leaves.length === 0 || !(leaves[0].view instanceof ChatView)) {
-      await this.activateChatView({ selectedBlock: data })
-      return
+      await this.activateChatView({ selectedBlock: data });
+      return;
     }
-    await this.app.workspace.revealLeaf(leaves[0])
-    const chatView = leaves[0].view
-    chatView.addSelectionToChat(data)
-    chatView.focusMessage()
+    
+    await this.app.workspace.revealLeaf(leaves[0]);
+    const chatView = leaves[0].view as ChatView;
+    chatView.addSelectionToChat(data);
+    chatView.focusMessage();
   }
 
   // --- BYPASS ---
   async getDbManager(): Promise<DatabaseManager> { return {} as any; }
 
   async getRAGEngine(): Promise<RAGEngine> {
-    if (this.ragEngine) return this.ragEngine
+    if (this.ragEngine) return this.ragEngine;
     if (!this.ragEngineInitPromise) {
       this.ragEngineInitPromise = (async () => {
         try {
           this.ragEngine = new RAGEngine(
             this.app, this.settings, {} as any,
             async () => { await this.restartLightRagServer(); }
-          )
-          return this.ragEngine
+          );
+          return this.ragEngine;
         } catch (error) {
-          this.ragEngineInitPromise = null
-          throw error
+          this.ragEngineInitPromise = null;
+          throw error;
         }
-      })()
+      })();
     }
-    return this.ragEngineInitPromise
+    return this.ragEngineInitPromise;
   }
 
   async getMcpManager(): Promise<McpManager> {
-    if (this.mcpManager) return this.mcpManager
+    if (this.mcpManager) return this.mcpManager;
     try {
       this.mcpManager = new McpManager({
         settings: this.settings,
         registerSettingsListener: (l) => this.addSettingsChangeListener(l),
-      })
-      await this.mcpManager.initialize()
-      return this.mcpManager
+      });
+      await this.mcpManager.initialize();
+      return this.mcpManager;
     } catch (error) {
-      this.mcpManager = null
-      throw error
+      this.mcpManager = null;
+      throw error;
     }
   }
 
-  private registerTimeout(callback: () => void, timeout: number): void {
-    const timeoutId = setTimeout(callback, timeout)
-    this.timeoutIds.push(timeoutId)
-  }
-
-// --- CORA MOD: ONTÓLOGO AUTOMÁTICO ---
-  
-  // Función auxiliar para obtener archivos de muestra
-  private getRandomNotes(count: number): string {
-    const allFiles = this.app.vault.getMarkdownFiles();
-    // Barajar y tomar 'count'
-    const shuffled = allFiles.sort(() => 0.5 - Math.random());
-    const selected = shuffled.slice(0, count);
-    
-    let contentSample = "";
-    selected.forEach(f => {
-        // Leemos solo los primeros 500 caracteres de cada nota para no saturar contexto
-        // (Esto es síncrono en caché de Obsidian metadata, o asíncrono si leemos full)
-        // Para simplificar, usaremos el cache si es posible, o lectura rápida.
-        // Haremos lectura real asíncrona:
-    });
-    return "MUESTRA PENDIENTE"; // Ver implementación abajo completa
-  }
-
-  
-// Cambiamos la firma para que prometa devolver un string o null
-public async generateEntityTypes(): Promise<string | null> {
+  // --- AUTOMATED ONTOLOGIST ---
+  public async generateEntityTypes(): Promise<string | null> {
     const sourcePath = this.settings.lightRagOntologyFolder;
     
     if (!sourcePath) {
@@ -796,7 +742,6 @@ public async generateEntityTypes(): Promise<string | null> {
         if (generatedTypes) {
             const cleanTypes = generatedTypes.replace(/Here are...|Output:|\[|\]/gi, '').trim();
             
-            // Guardamos en settings
             await this.setSettings({
                 ...this.settings,
                 lightRagEntityTypes: cleanTypes
@@ -805,7 +750,6 @@ public async generateEntityTypes(): Promise<string | null> {
             new Notice("✅ Ontology Generated!");
             await this.updateEnvFile();
             
-            // --- CORA MOD: DEVOLVEMOS EL VALOR PARA LA UI ---
             return cleanTypes; 
         }
 
@@ -816,20 +760,18 @@ public async generateEntityTypes(): Promise<string | null> {
     return null;
   }
 
-  // Pequeño ayudante para llamar al LLM sin toda la maquinaria del ChatView
-async simpleLLMCall(prompt: string): Promise<string> {
-      // Identificar proveedor actual
+  // Simple Helper for LLM Call
+  async simpleLLMCall(prompt: string): Promise<string> {
       const chatModelId = this.settings.chatModelId;
       const modelObj = this.settings.chatModels.find(m => m.id === chatModelId);
       const provider = this.settings.providers.find(p => p.id === modelObj?.providerId);
       
-      if (!provider || !modelObj) throw new Error("Modelo no configurado");
+      if (!provider || !modelObj) throw new Error("Model not configured");
 
-      // Lógica simple para Gemini
+      // Gemini Logic
       if (provider.id === 'gemini') {
           const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelObj.model}:generateContent?key=${provider.apiKey}`;
           
-          // REEMPLAZO 1: Gemini con requestUrl
           const response = await requestUrl({
               url: url,
               method: 'POST',
@@ -841,10 +783,9 @@ async simpleLLMCall(prompt: string): Promise<string> {
           return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
       } 
       
-      // Fallback genérico para OpenAI/Ollama/Compatible
+      // Generic Fallback (OpenAI/Ollama/Compatible)
       const baseUrl = provider.baseUrl || (provider.id === 'openai' ? 'https://api.openai.com/v1' : 'http://localhost:11434/v1');
       
-      // REEMPLAZO 2: OpenAI/Ollama con requestUrl
       const response = await requestUrl({
           url: `${baseUrl}/chat/completions`,
           method: 'POST',
