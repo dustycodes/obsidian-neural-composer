@@ -24,6 +24,7 @@ import { MergeSelectionModal } from '../components/modals/MergeSelectionModal';
 
 export const NATIVE_GRAPH_VIEW_TYPE = 'neural-native-graph';
 
+// --- Interfaces for Strict Typing ---
 interface GraphNode {
     id: string;
     type: string;
@@ -32,6 +33,51 @@ interface GraphNode {
     val: number; 
     degree?: number;
     file_paths?: string[];
+}
+
+interface ChunkDocMap {
+    full_doc_id?: string;
+    [key: string]: any;
+}
+
+interface DocNameMap {
+    file_name?: string;
+    id?: string;
+    [key: string]: any;
+}
+
+interface GraphMLAttribute {
+    id: string;
+    "attr.name"?: string;
+}
+
+interface GraphMLNodeData {
+    key: string;
+    value: string | number;
+}
+
+interface GraphMLRawNode {
+    id: string;
+    data?: GraphMLNodeData[] | GraphMLNodeData;
+}
+
+interface GraphMLRawEdge {
+    source: string;
+    target: string;
+    "@_source"?: string;
+    "@_target"?: string;
+    normalizedSource?: string;
+    normalizedTarget?: string;
+}
+
+interface GraphMLParsed {
+    graphml?: {
+        key?: GraphMLAttribute | GraphMLAttribute[];
+        graph?: {
+            node?: GraphMLRawNode | GraphMLRawNode[];
+            edge?: GraphMLRawEdge | GraphMLRawEdge[];
+        }
+    }
 }
 
 export class NativeGraphView extends ItemView {
@@ -44,8 +90,8 @@ export class NativeGraphView extends ItemView {
   private graph3D: any = null;
   
   private graph: Graph | null = null;
-  private chunkToDocMap: Record<string, any> = {};
-  private docToNameMap: Record<string, any> = {};
+  private chunkToDocMap: Record<string, ChunkDocMap> = {};
+  private docToNameMap: Record<string, DocNameMap> = {};
 
   private detailsPanel: HTMLElement | null = null;
   private sidebarListEl: HTMLElement | null = null;
@@ -93,8 +139,14 @@ export class NativeGraphView extends ItemView {
     const sidebar = container.createDiv({ cls: 'nrlcmp-sidebar' });
     this.buildSidebar(sidebar);
 
-    // Initial render
-    setTimeout(() => { void this.render(graphContainer); }, 100);
+    // Initial render - prevent floating promise
+    setTimeout(() => { 
+        void this.render(graphContainer).catch(err => console.error("Render failed:", err)); 
+    }, 100);
+  }
+
+  async onClose() {
+      this.cleanup();
   }
 
   // --- DATA LOGIC ---
@@ -102,9 +154,19 @@ export class NativeGraphView extends ItemView {
       try {
           const chunksPath = path.join(this.workDir, 'kv_store_text_chunks.json');
           const docsPath = path.join(this.workDir, 'kv_store_doc_status.json');
-          if (fs.existsSync(chunksPath)) this.chunkToDocMap = JSON.parse(fs.readFileSync(chunksPath, 'utf-8'));
-          if (fs.existsSync(docsPath)) this.docToNameMap = JSON.parse(fs.readFileSync(docsPath, 'utf-8'));
-      } catch (e) { console.error("Error loading maps", e); }
+          
+          if (fs.existsSync(chunksPath)) {
+              const content = fs.readFileSync(chunksPath, 'utf-8');
+              this.chunkToDocMap = JSON.parse(content);
+          }
+          if (fs.existsSync(docsPath)) {
+              const content = fs.readFileSync(docsPath, 'utf-8');
+              this.docToNameMap = JSON.parse(content);
+          }
+      } catch (e) { 
+          console.error("Error loading maps", e); 
+          new Notice("Failed to load graph reference maps.");
+      }
   }
 
   getFilenames(sourceIds: string): string[] {
@@ -127,7 +189,7 @@ export class NativeGraphView extends ItemView {
     container.empty();
 
     if (!fs.existsSync(this.graphDataPath)) {
-        if(label) label.innerText = "❌ No data";
+        if(label) label.setText("❌ No data");
         return;
     }
 
@@ -139,36 +201,46 @@ export class NativeGraphView extends ItemView {
             attributeNamePrefix: "", 
             textNodeName: "value" 
         });
-        const jsonObj = parser.parse(xmlData);
+        const jsonObj: GraphMLParsed = parser.parse(xmlData);
         
-        const keys = Array.isArray(jsonObj.graphml?.key) ? jsonObj.graphml.key : [jsonObj.graphml.key];
-        const keyMap: Record<string, string> = {};
-        keys.forEach((k: any) => { if (k['attr.name']) keyMap[k['id']] = k['attr.name']; });
+        if (!jsonObj.graphml) throw new Error("Invalid GraphML format");
 
-        const rawNodes = Array.isArray(jsonObj.graphml?.graph?.node) ? jsonObj.graphml.graph.node : [jsonObj.graphml.graph.node];
-        const rawEdges = Array.isArray(jsonObj.graphml?.graph?.edge) ? jsonObj.graphml.graph.edge : [jsonObj.graphml.graph.edge];
+        const keysRaw = jsonObj.graphml.key || [];
+        const keys = Array.isArray(keysRaw) ? keysRaw : [keysRaw];
+        
+        const keyMap: Record<string, string> = {};
+        keys.forEach((k) => { 
+            if (k['attr.name']) keyMap[k['id']] = k['attr.name']; 
+        });
+
+        const graphEl = jsonObj.graphml.graph || {};
+        const rawNodes = Array.isArray(graphEl.node) ? graphEl.node : (graphEl.node ? [graphEl.node] : []);
+        const rawEdges = Array.isArray(graphEl.edge) ? graphEl.edge : (graphEl.edge ? [graphEl.edge] : []);
 
         const nodeDegrees = new Map<string, number>();
-        rawEdges.forEach((e: any) => {
-            const src = e.source; const tgt = e.target;
-            nodeDegrees.set(src, (nodeDegrees.get(src) || 0) + 1);
-            nodeDegrees.set(tgt, (nodeDegrees.get(tgt) || 0) + 1);
+        rawEdges.forEach((e) => {
+            const src = e.source || e['@_source'] || '';
+            const tgt = e.target || e['@_target'] || '';
+            if (src && tgt) {
+                nodeDegrees.set(src, (nodeDegrees.get(src) || 0) + 1);
+                nodeDegrees.set(tgt, (nodeDegrees.get(tgt) || 0) + 1);
+            }
         });
 
         this.allNodes = rawNodes
-            .filter((n: any) => {
+            .filter((n) => {
                 if (n.id.startsWith('chunk-') || n.id.startsWith('doc-')) return false;
                 if (n.id.length > 50 && !n.id.includes(' ')) return false;
                 return true;
             })
-            .map((n: any) => {
+            .map((n) => {
                 let type = "Concept"; let desc = ""; let files: string[] = [];
                 const dataArr = Array.isArray(n.data) ? n.data : (n.data ? [n.data] : []);
                 
-                dataArr.forEach((d: any) => { 
+                dataArr.forEach((d) => { 
                     const mappedKey = keyMap[d.key] || d.key;
-                    if (mappedKey === "entity_type" || d.key === "d0") type = d.value;
-                    if (mappedKey === "description" || d.key === "d1") desc = d.value;
+                    if (mappedKey === "entity_type" || d.key === "d0") type = String(d.value);
+                    if (mappedKey === "description" || d.key === "d1") desc = String(d.value);
                     
                     if (mappedKey === "file_path" || mappedKey === "source_id") {
                          const val = String(d.value);
@@ -189,10 +261,10 @@ export class NativeGraphView extends ItemView {
             });
         
         const validNodeIds = new Set(this.allNodes.map(n => n.id));
-        const validEdges = rawEdges.filter((e: any) => {
+        const validEdges = rawEdges.filter((e) => {
             const src = e.source || e['@_source'];
             const tgt = e.target || e['@_target'];
-            if (validNodeIds.has(src) && validNodeIds.has(tgt)) {
+            if (src && tgt && validNodeIds.has(src) && validNodeIds.has(tgt)) {
                 e.normalizedSource = src;
                 e.normalizedTarget = tgt;
                 return true;
@@ -205,7 +277,7 @@ export class NativeGraphView extends ItemView {
         this.updateSidebarList();
 
         const mode = this.plugin.settings.graphViewMode;
-        if(label) label.innerText = `${this.allNodes.length} nodes | ${validEdges.length} links | ${mode.toUpperCase()}`;
+        if(label) label.setText(`${this.allNodes.length} nodes | ${validEdges.length} links | ${mode.toUpperCase()}`);
 
         if (mode === '3d') {
             this.render3D(container, this.allNodes, validEdges);
@@ -213,7 +285,10 @@ export class NativeGraphView extends ItemView {
             this.render2D(container, this.allNodes, validEdges);
         }
 
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+        console.error("Graph render error:", e);
+        new Notice("Failed to render graph. Check console.");
+    }
   }
 
   // --- HELPER 2D: PRECISE NAVIGATION ---
@@ -236,9 +311,15 @@ export class NativeGraphView extends ItemView {
 
       this.sigmaInstance.getCamera().animate({ x: targetX, y: targetY, ratio: 0.15, angle: 0 }, { duration: 1500, easing: 'cubicInOut' });
 
-      this.graph.forEachNode(n => { this.graph?.setNodeAttribute(n, 'color', '#444'); this.graph?.setNodeAttribute(n, 'label', ''); this.graph?.setNodeAttribute(n, 'zIndex', 0); });
+      // Reset styles
+      this.graph.forEachNode(n => { 
+          this.graph?.setNodeAttribute(n, 'color', '#444'); 
+          this.graph?.setNodeAttribute(n, 'label', ''); 
+          this.graph?.setNodeAttribute(n, 'zIndex', 0); 
+      });
       this.graph.forEachEdge(e => this.graph?.setEdgeAttribute(e, 'hidden', true));
 
+      // Highlight neighbors
       this.graph.forEachNeighbor(nodeId, n => {
           this.graph?.setNodeAttribute(n, 'color', '#ff0055');
           this.graph?.setNodeAttribute(n, 'label', n); 
@@ -250,6 +331,7 @@ export class NativeGraphView extends ItemView {
           this.graph?.setEdgeAttribute(e, 'size', 2);
       });
 
+      // Highlight target
       this.graph.setNodeAttribute(nodeId, 'color', '#ffffff');
       this.graph.setNodeAttribute(nodeId, 'label', nodeId);
       this.graph.setNodeAttribute(nodeId, 'size', (visualData?.size || attrs.size || 5) * 1.5);
@@ -305,7 +387,9 @@ export class NativeGraphView extends ItemView {
         const settings = forceAtlas2.inferSettings(this.graph);
         this.fa2Layout = new FA2Layout(this.graph, { settings: { ...settings, gravity: 1, slowDown: 5 } });
         this.fa2Layout.start();
-        setTimeout(() => { if(this.fa2Layout?.isRunning()) this.fa2Layout.stop(); }, 4000);
+        
+        // Use window.setTimeout to avoid type conflicts with NodeJS.Timeout
+        window.setTimeout(() => { if(this.fa2Layout?.isRunning()) this.fa2Layout.stop(); }, 4000);
 
         // --- EVENTS ---
         this.sigmaInstance.on("clickNode", (event) => {
@@ -347,7 +431,7 @@ export class NativeGraphView extends ItemView {
                 this.graph?.setEdgeAttribute(e, 'hidden', false);
                 this.graph?.setEdgeAttribute(e, 'color', '#333');
             });
-            if(this.detailsPanel) this.detailsPanel.removeClass('is-visible');
+            if(this.detailsPanel) this.detailsPanel.removeClass('nrlcmp-visible');
         });
     };
     requestAnimationFrame(initSigma);
@@ -360,8 +444,6 @@ export class NativeGraphView extends ItemView {
           links: edges.map((e: any) => ({ source: e.normalizedSource || e.source, target: e.normalizedTarget || e.target }))
       };
       
-      // Note: ForceGraph3D colors still hardcoded as they interact with WebGL canvas directly,
-      // usually these aren't CSS controllable, but we use variables for DOM elements.
       this.graph3D = (ForceGraph3D as any)()(container)
           .graphData(gData)
           .backgroundColor('#000005') 
@@ -406,7 +488,7 @@ export class NativeGraphView extends ItemView {
     const type = node.node_type || node.type || "Unknown";
     const desc = node.desc || "No description.";
 
-    // 1. Header (Usando clases CSS)
+    // 1. Header
     const header = this.detailsPanel.createDiv({ cls: 'nrlcmp-details-header' });
     
     header.createSpan({ text: type.toUpperCase(), cls: 'nrlcmp-details-type' });
@@ -416,7 +498,7 @@ export class NativeGraphView extends ItemView {
     const editBtn = btnGroup.createEl("button", { text: "✏️ Edit", cls: 'nrlcmp-details-btn-edit' });
     
     const closeBtn = btnGroup.createEl("button", { text: "✕", cls: 'nrlcmp-details-close' });
-    closeBtn.onclick = () => { if (this.detailsPanel) this.detailsPanel.removeClass('is-visible'); };
+    closeBtn.onclick = () => { if (this.detailsPanel) this.detailsPanel.removeClass('nrlcmp-visible'); };
 
     // 2. Body
     const content = this.detailsPanel.createDiv({ cls: 'nrlcmp-details-body' });
@@ -424,11 +506,12 @@ export class NativeGraphView extends ItemView {
     // --- VISTA LECTURA ---
     const viewMode = content.createDiv();
     viewMode.id = "view-mode";
+    viewMode.addClass('nrlcmp-visible');
     
     const meta = viewMode.createDiv({ cls: 'nrlcmp-details-meta' });
     meta.createSpan({ text: "Links: " });
-    // CORRECCIÓN: Usamos 'attr' para el estilo
-    meta.createEl("b", { text: String(node.val), attr: { style: "color:var(--text-normal)" } });
+    // Use class instead of inline style
+    meta.createEl("b", { text: String(node.val), cls: 'nrlcmp-text-highlight' });
 
     viewMode.createEl("h2", { text: node.id, cls: 'nrlcmp-details-title' });
 
@@ -436,7 +519,7 @@ export class NativeGraphView extends ItemView {
     descBox.setText(desc);
 
     const sourcesSection = viewMode.createDiv({ cls: 'nrlcmp-sources-section' });
-    sourcesSection.createEl("h4", { text: "CONTEXT SOURCES", cls: 'nrlcmp-sources-title' });
+    sourcesSection.createEl("h4", { text: "Context sources", cls: 'nrlcmp-sources-title' });
     
     const ul = sourcesSection.createEl("ul", { cls: 'nrlcmp-sources-list' });
 
@@ -453,7 +536,7 @@ export class NativeGraphView extends ItemView {
     // --- VISTA EDICIÓN ---
     const editMode = content.createDiv();
     editMode.id = "edit-mode";
-    editMode.style.display = "none"; // Toggle simple permitido
+    editMode.addClass('nrlcmp-hidden');
     
     const makeInput = (lbl: string, val: string) => {
         editMode.createEl("label", { text: lbl, cls: 'nrlcmp-edit-label' });
@@ -474,23 +557,35 @@ export class NativeGraphView extends ItemView {
     const actions = editMode.createDiv({ cls: 'nrlcmp-edit-actions' });
     
     const cancelBtn = new ButtonComponent(actions).setButtonText("Cancel");
-    const saveBtn = new ButtonComponent(actions).setButtonText("💾 Save Changes");
+    const saveBtn = new ButtonComponent(actions).setButtonText("💾 Save changes");
     saveBtn.setCta();
 
-    // Wiring
-    editBtn.onclick = () => { viewMode.style.display='none'; editMode.style.display='block'; };
-    cancelBtn.buttonEl.onclick = () => { editMode.style.display='none'; viewMode.style.display='block'; };
+    // Wiring with CSS classes (FIXED)
+    editBtn.onclick = () => { 
+        viewMode.removeClass('nrlcmp-visible');
+        viewMode.addClass('nrlcmp-hidden');
+        
+        editMode.removeClass('nrlcmp-hidden');
+        editMode.addClass('nrlcmp-visible');
+    };
+    cancelBtn.buttonEl.onclick = () => { 
+        editMode.removeClass('nrlcmp-visible');
+        editMode.addClass('nrlcmp-hidden');
+        
+        viewMode.removeClass('nrlcmp-hidden');
+        viewMode.addClass('nrlcmp-visible');
+    };
     
     saveBtn.buttonEl.onclick = async () => {
         const newName = nameInput.value.trim();
         if(newName) {
-            void this.updateNode(node.id, { entity_name: newName, entity_type: typeInput.value.trim(), description: descInput.value.trim() });
-            if(this.detailsPanel) this.detailsPanel.removeClass('is-visible');
+            await this.updateNode(node.id, { entity_name: newName, entity_type: typeInput.value.trim(), description: descInput.value.trim() });
+            if(this.detailsPanel) this.detailsPanel.removeClass('nrlcmp-visible');
         }
     };
 
     // Mostrar
-    this.detailsPanel.addClass('is-visible');
+    this.detailsPanel.addClass('nrlcmp-visible');
   }
 
   async updateNode(oldName: string, data: any) {
@@ -510,7 +605,9 @@ export class NativeGraphView extends ItemView {
 
           if (response.status === 200) { 
               new Notice("✅ Node updated!"); 
-              setTimeout(() => { void this.render(this.contentEl.querySelector('#sigma-container') as HTMLElement); }, 1500); 
+              setTimeout(() => { 
+                  void this.render(this.contentEl.querySelector('#sigma-container') as HTMLElement); 
+              }, 1500); 
           } else { 
               new Notice(`Error updating: ${response.text}`); 
           }
@@ -533,12 +630,12 @@ export class NativeGraphView extends ItemView {
 
       const btnReload = tb.createEl('button', { cls: 'nrlcmp-toolbar-btn' });
       setIcon(btnReload, 'refresh-cw'); 
-      setTooltip(btnReload, 'Reload Graph');
+      setTooltip(btnReload, 'Reload graph');
       btnReload.onclick = () => { void this.render(graphContainer); };
       
       const btnReset = tb.createEl('button', { cls: 'nrlcmp-toolbar-btn' });
       setIcon(btnReset, 'maximize'); 
-      setTooltip(btnReset, 'Reset Camera');
+      setTooltip(btnReset, 'Reset camera');
       btnReset.onclick = () => { 
           if (this.graph3D) this.graph3D.zoomToFit(1000, 50); 
           if (this.sigmaInstance) this.sigmaInstance.getCamera().animate({ x: 0.5, y: 0.5, ratio: 0.1 }, { duration: 500 });
@@ -652,7 +749,6 @@ export class NativeGraphView extends ItemView {
       const targets = Array.from(this.selectedNodes);
       if (targets.length === 0) return;
       
-      // Replaced native confirm with Obsidian Modal
       new ConfirmationModal(this.plugin.app, `Delete ${targets.length} nodes?`, async () => {
           try {
               for (const entity of targets) {
@@ -697,7 +793,7 @@ export class NativeGraphView extends ItemView {
 
 // --- HELPER: Safe Confirmation Modal ---
 class ConfirmationModal extends Modal {
-    constructor(app: App, private message: string, private onConfirm: () => void) {
+    constructor(app: App, private message: string, private onConfirm: () => Promise<void> | void) {
         super(app);
     }
 
@@ -715,8 +811,8 @@ class ConfirmationModal extends Modal {
         new ButtonComponent(btnContainer)
             .setButtonText('Confirm')
             .setWarning()
-            .onClick(() => {
-                this.onConfirm();
+            .onClick(async () => {
+                await this.onConfirm();
                 this.close();
             });
     }
