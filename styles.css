@@ -2493,6 +2493,27 @@ button.nrlcmp-chat-input-model-select {
 }
 
 /* --- ENV EDITOR MODAL --- */
+
+.nrlcmp-modal-desc {
+    margin-bottom: 15px;
+    color: var(--text-muted);
+    font-size: 0.9em;
+}
+
+.nrlcmp-env-container {
+    width: 100%;
+    height: 300px;
+    margin-bottom: 20px;
+}
+
+.nrlcmp-env-textarea-full {
+    width: 100%;
+    height: 100%;
+    font-family: var(--font-monospace);
+    font-size: 12px;
+    resize: none;
+}
+
 .nrlcmp-env-textarea {
     width: 100%;
     height: 300px;
@@ -2584,4 +2605,11 @@ button.nrlcmp-chat-input-model-select {
 /* Dark mode adjustments (optional if vars don't cover it) */
 .theme-dark .nrlcmp-restart-setting {
     background-color: rgba(255, 165, 0, 0.1);
+}
+.nrlcmp-text-error {
+    color: var(--text-error);
+}
+
+.nrlcmp-text-success {
+    color: var(--text-success);
 }

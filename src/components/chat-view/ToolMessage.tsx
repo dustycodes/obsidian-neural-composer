@@ -179,23 +179,23 @@ function ToolCallItem({
               <SplitButton
                 primaryText="Allow"
                 onPrimaryClick={() => {
-                  handleToolCall()
+                  void handleToolCall()
                   setIsOpen(false)
                 }}
                 menuOptions={[
                   {
                     label: 'Always allow this tool',
                     onClick: () => {
-                      handleToolCall()
-                      handleAllowAutoExecution()
+                      void handleToolCall()
+                      void handleAllowAutoExecution()
                       setIsOpen(false)
                     },
                   },
                   {
                     label: 'Allow for this chat',
                     onClick: () => {
-                      handleToolCall()
-                      handleAllowForConversation()
+                      void handleToolCall()
+                      void handleAllowForConversation()
                       setIsOpen(false)
                     },
                   },
@@ -203,7 +203,7 @@ function ToolCallItem({
               />
               <button
                 onClick={() => {
-                  handleReject()
+                  void handleReject()
                   setIsOpen(false)
                 }}
               >
@@ -213,7 +213,7 @@ function ToolCallItem({
           )}
           {response.status === ToolCallResponseStatus.Running && (
             <div className="nrlcmp-toolcall-footer-actions">
-              <button onClick={handleAbort}>Abort</button>
+              <button onClick={() => void handleAbort()}>Abort</button>
             </div>
           )}
         </div>
@@ -267,7 +267,7 @@ function useToolCall(
       allowAutoExecution: true,
     }
 
-    setSettings({
+    await setSettings({
       ...settings,
       mcp: {
         ...settings.mcp,
@@ -313,11 +313,11 @@ function StatusIcon({ status }: { status: ToolCallResponseStatus }) {
     case ToolCallResponseStatus.Rejected:
     case ToolCallResponseStatus.Aborted:
     case ToolCallResponseStatus.Error:
-      return <X size={16} style={{ color: 'var(--text-error)' }} />
+      return <X size={16} className="nrlcmp-text-error" />
     case ToolCallResponseStatus.Running:
       return <Loader2 size={16} className="spinner" />
     case ToolCallResponseStatus.Success:
-      return <Check size={16} style={{ color: 'var(--text-success)' }} />
+      return <Check size={16} className="nrlcmp-text-success" />
     default:
       return null
   }

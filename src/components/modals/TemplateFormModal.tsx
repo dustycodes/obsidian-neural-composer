@@ -41,7 +41,7 @@ export class CreateTemplateModal extends ReactModal<TemplateFormComponentProps> 
         onSubmit,
       },
       options: {
-        title: 'Add Template',
+        title: 'Add template',
       },
     })
   }
@@ -66,7 +66,7 @@ export class EditTemplateModal extends ReactModal<TemplateFormComponentProps> {
         onSubmit,
       },
       options: {
-        title: 'Edit Template',
+        title: 'Edit template',
       },
     })
   }
@@ -164,9 +164,9 @@ function TemplateFormComponent({
   useEffect(() => {
     isMountedRef.current = true
 
-    async function fetchExistingTemplate(templateId: string) {
+    async function fetchExistingTemplate(id: string) {
       try {
-        const existingTemplate = await templateManager.findById(templateId)
+        const existingTemplate = await templateManager.findById(id)
         if (existingTemplate && isMountedRef.current) {
           setTemplateName(existingTemplate.name)
           editorRef.current?.update(() => {
@@ -181,8 +181,10 @@ function TemplateFormComponent({
         new Notice('Failed to load template. Please try again.')
       }
     }
+
     if (templateId) {
-      fetchExistingTemplate(templateId)
+      // Explicitly voiding the promise to satisfy linting rules for effects
+      void fetchExistingTemplate(templateId)
     }
 
     return () => {
@@ -200,7 +202,7 @@ function TemplateFormComponent({
       </ObsidianSetting>
 
       <ObsidianSetting
-        name="Template Content"
+        name="Template content"
         desc="Content of the template"
         className="nrlcmp-settings-description-preserve-whitespace"
         required
@@ -210,12 +212,12 @@ function TemplateFormComponent({
           initialEditorState={initialEditorState}
           editorRef={editorRef}
           contentEditableRef={contentEditableRef}
-          onEnter={handleSubmit}
+          onEnter={() => void handleSubmit()}
         />
       </div>
 
       <ObsidianSetting>
-        <ObsidianButton text="Save" onClick={handleSubmit} cta />
+        <ObsidianButton text="Save" onClick={() => void handleSubmit()} cta />
         <ObsidianButton text="Cancel" onClick={onClose} />
       </ObsidianSetting>
     </>

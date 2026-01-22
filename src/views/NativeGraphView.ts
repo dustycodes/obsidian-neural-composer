@@ -14,8 +14,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { XMLParser } from 'fast-xml-parser';
 import Graph from 'graphology';
-// @ts-ignore - Graphology types might be missing in dev env
-import { parse } from 'graphology-graphml';
 import Sigma from 'sigma';
 import forceAtlas2 from 'graphology-layout-forceatlas2';
 import FA2Layout from 'graphology-layout-forceatlas2/worker'; 
@@ -37,13 +35,13 @@ interface GraphNode {
 
 interface ChunkDocMap {
     full_doc_id?: string;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 interface DocNameMap {
     file_name?: string;
     id?: string;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 interface GraphMLAttribute {
@@ -124,7 +122,8 @@ export class NativeGraphView extends ItemView {
     const is3D = this.plugin.settings.graphViewMode === '3d';
     container.addClass(is3D ? 'nrlcmp-mode-3d' : 'nrlcmp-mode-2d');
 
-    await this.loadReferenceMaps();
+    // SYNC CALL: Removing await since the function is now synchronous
+    this.loadReferenceMaps();
 
     // LEFT ZONE (Graph)
     const graphZone = container.createDiv({ cls: 'nrlcmp-graph-zone' });
@@ -139,18 +138,24 @@ export class NativeGraphView extends ItemView {
     const sidebar = container.createDiv({ cls: 'nrlcmp-sidebar' });
     this.buildSidebar(sidebar);
 
-    // Initial render - prevent floating promise
+    // Initial render - SYNC call inside timeout
     setTimeout(() => { 
-        void this.render(graphContainer).catch(err => console.error("Render failed:", err)); 
+        try {
+            this.render(graphContainer);
+        } catch (err) {
+            console.error("Render failed:", err);
+        }
     }, 100);
   }
 
   async onClose() {
       this.cleanup();
+      // Added await to satisfy interface if strictly required, or Promise.resolve
+      return Promise.resolve();
   }
 
-  // --- DATA LOGIC ---
-  async loadReferenceMaps() {
+  // --- DATA LOGIC (Sync now) ---
+  loadReferenceMaps() {
       try {
           const chunksPath = path.join(this.workDir, 'kv_store_text_chunks.json');
           const docsPath = path.join(this.workDir, 'kv_store_doc_status.json');
@@ -176,15 +181,16 @@ export class NativeGraphView extends ItemView {
       chunks.forEach(chunkId => {
           const chunkData = this.chunkToDocMap[chunkId];
           if (chunkData && chunkData.full_doc_id) {
-              const docData = this.docToNameMap[chunkData.full_doc_id];
+              const docID = String(chunkData.full_doc_id);
+              const docData = this.docToNameMap[docID];
               if (docData) fileNames.add(docData.file_name || docData.id || "Unknown");
           }
       });
       return Array.from(fileNames);
   }
 
-  // --- MAIN RENDER ---
-  async render(container: HTMLElement, label?: HTMLElement) {
+  // --- MAIN RENDER (Sync now) ---
+  render(container: HTMLElement, label?: HTMLElement) {
     this.cleanup();
     container.empty();
 
@@ -291,7 +297,7 @@ export class NativeGraphView extends ItemView {
     }
   }
 
-  // --- HELPER 2D: PRECISE NAVIGATION ---
+  // --- HELPER 2D ---
   focusOnNode2D(nodeId: string) {
       if (!this.graph || !this.sigmaInstance) return;
 
@@ -339,7 +345,7 @@ export class NativeGraphView extends ItemView {
       this.showNodeDetails({ id: nodeId, ...attrs, type: attrs.node_type });
   }
 
-  // --- ENGINE 2D (SIGMA.JS) ---
+  // --- ENGINE 2D ---
   render2D(container: HTMLElement, nodes: any[], edges: any[]) {
     this.graph = new Graph();
     const LABEL_THRESHOLD = 4;
@@ -388,7 +394,6 @@ export class NativeGraphView extends ItemView {
         this.fa2Layout = new FA2Layout(this.graph, { settings: { ...settings, gravity: 1, slowDown: 5 } });
         this.fa2Layout.start();
         
-        // Use window.setTimeout to avoid type conflicts with NodeJS.Timeout
         window.setTimeout(() => { if(this.fa2Layout?.isRunning()) this.fa2Layout.stop(); }, 4000);
 
         // --- EVENTS ---
@@ -474,12 +479,11 @@ export class NativeGraphView extends ItemView {
       this.renderList();
   }
 
-  // --- UI COMPONENTS ---
   createDetailsPanel(container: HTMLElement) {
       this.detailsPanel = container.createDiv({ cls: 'nrlcmp-details-panel' });
   }
 
-// --- UI: DETALLES SEGUROS (CSS CLASSES) ---
+// --- UI DETAILS ---
   showNodeDetails(node: any) {
     if (!this.detailsPanel) return;
     this.detailsPanel.empty();
@@ -490,27 +494,23 @@ export class NativeGraphView extends ItemView {
 
     // 1. Header
     const header = this.detailsPanel.createDiv({ cls: 'nrlcmp-details-header' });
-    
     header.createSpan({ text: type.toUpperCase(), cls: 'nrlcmp-details-type' });
 
     const btnGroup = header.createDiv({ cls: 'nrlcmp-btn-group' });
-
     const editBtn = btnGroup.createEl("button", { text: "✏️ Edit", cls: 'nrlcmp-details-btn-edit' });
-    
     const closeBtn = btnGroup.createEl("button", { text: "✕", cls: 'nrlcmp-details-close' });
     closeBtn.onclick = () => { if (this.detailsPanel) this.detailsPanel.removeClass('nrlcmp-visible'); };
 
     // 2. Body
     const content = this.detailsPanel.createDiv({ cls: 'nrlcmp-details-body' });
 
-    // --- VISTA LECTURA ---
+    // View Mode
     const viewMode = content.createDiv();
     viewMode.id = "view-mode";
     viewMode.addClass('nrlcmp-visible');
     
     const meta = viewMode.createDiv({ cls: 'nrlcmp-details-meta' });
     meta.createSpan({ text: "Links: " });
-    // Use class instead of inline style
     meta.createEl("b", { text: String(node.val), cls: 'nrlcmp-text-highlight' });
 
     viewMode.createEl("h2", { text: node.id, cls: 'nrlcmp-details-title' });
@@ -533,7 +533,7 @@ export class NativeGraphView extends ItemView {
         ul.createEl("li", { text: "No explicit source", cls: 'nrlcmp-no-source' });
     }
 
-    // --- VISTA EDICIÓN ---
+    // Edit Mode
     const editMode = content.createDiv();
     editMode.id = "edit-mode";
     editMode.addClass('nrlcmp-hidden');
@@ -560,7 +560,7 @@ export class NativeGraphView extends ItemView {
     const saveBtn = new ButtonComponent(actions).setButtonText("💾 Save changes");
     saveBtn.setCta();
 
-    // Wiring with CSS classes (FIXED)
+    // Wiring
     editBtn.onclick = () => { 
         viewMode.removeClass('nrlcmp-visible');
         viewMode.addClass('nrlcmp-hidden');
@@ -584,7 +584,6 @@ export class NativeGraphView extends ItemView {
         }
     };
 
-    // Mostrar
     this.detailsPanel.addClass('nrlcmp-visible');
   }
 
@@ -606,7 +605,7 @@ export class NativeGraphView extends ItemView {
           if (response.status === 200) { 
               new Notice("✅ Node updated!"); 
               setTimeout(() => { 
-                  void this.render(this.contentEl.querySelector('#sigma-container') as HTMLElement); 
+                   this.render(this.contentEl.querySelector('#sigma-container') as HTMLElement); 
               }, 1500); 
           } else { 
               new Notice(`Error updating: ${response.text}`); 
@@ -619,7 +618,6 @@ export class NativeGraphView extends ItemView {
 
   createGraphToolbar(container: HTMLElement, graphContainer: HTMLElement) {
       const tb = container.createDiv({ cls: 'nrlcmp-toolbar' });
-      
       const searchInput = tb.createEl('input', { cls: 'nrlcmp-toolbar-input' });
       searchInput.type = 'text'; 
       searchInput.placeholder = '🚀 Search...';
@@ -631,7 +629,7 @@ export class NativeGraphView extends ItemView {
       const btnReload = tb.createEl('button', { cls: 'nrlcmp-toolbar-btn' });
       setIcon(btnReload, 'refresh-cw'); 
       setTooltip(btnReload, 'Reload graph');
-      btnReload.onclick = () => { void this.render(graphContainer); };
+      btnReload.onclick = () => { this.render(graphContainer); };
       
       const btnReset = tb.createEl('button', { cls: 'nrlcmp-toolbar-btn' });
       setIcon(btnReset, 'maximize'); 
@@ -644,7 +642,6 @@ export class NativeGraphView extends ItemView {
 
   buildSidebar(container: HTMLElement) {
       const header = container.createDiv({ cls: 'nrlcmp-sidebar-header' });
-      
       header.createEl('h4', { text: 'Node manager' });
       
       const searchInput = new TextComponent(header); 
@@ -694,26 +691,19 @@ export class NativeGraphView extends ItemView {
       
       visibleNodes.forEach(node => {
           const row = this.sidebarListEl!.createDiv({ cls: 'nrlcmp-sidebar-row' });
-          
           const cb = row.createEl('input', { type: 'checkbox' });
           cb.checked = this.selectedNodes.has(node.id);
           cb.onclick = (e) => { e.stopPropagation(); if (cb.checked) this.selectedNodes.add(node.id); else this.selectedNodes.delete(node.id); };
           
           const info = row.createDiv({ cls: 'nrlcmp-row-info' });
-          
           info.createDiv({ text: node.id, cls: 'nrlcmp-row-title' });
-          
           const degree = node.val > 0 ? node.val - 1 : 0;
           info.createDiv({ text: `${node.type} (${degree})`, cls: 'nrlcmp-row-meta' });
-
           info.onclick = () => this.searchNode(node.id); 
       });
       
       if (this.filteredNodes.length > 100) {
-          this.sidebarListEl.createDiv({ 
-              text: `...and ${this.filteredNodes.length - 100} more.`,
-              cls: 'nrlcmp-list-more'
-          });
+          this.sidebarListEl.createDiv({ text: `...and ${this.filteredNodes.length - 100} more.`, cls: 'nrlcmp-list-more' });
       }
   }
   
@@ -728,16 +718,13 @@ export class NativeGraphView extends ItemView {
                   url: "http://localhost:9621/graph/entities/merge",
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ 
-                      "entity_to_change_into": targetNode, 
-                      "entities_to_change": sourceNodes 
-                  })
+                  body: JSON.stringify({ "entity_to_change_into": targetNode, "entities_to_change": sourceNodes })
               });
 
               if (response.status === 200) { 
                   new Notice("✅ Merged!"); 
                   this.selectedNodes.clear(); 
-                  setTimeout(() => { void this.render(this.contentEl.querySelector('#sigma-container') as HTMLElement); }, 1000); 
+                  setTimeout(() => { this.render(this.contentEl.querySelector('#sigma-container') as HTMLElement); }, 1000); 
               } else { 
                   new Notice(`Error: ${response.text}`); 
               }
@@ -761,7 +748,7 @@ export class NativeGraphView extends ItemView {
               }
               new Notice("Deleted!"); 
               this.selectedNodes.clear();
-              setTimeout(() => { void this.render(this.contentEl.querySelector('#sigma-container') as HTMLElement); }, 1000);
+              setTimeout(() => { this.render(this.contentEl.querySelector('#sigma-container') as HTMLElement); }, 1000);
           } catch (e) { console.error(e); new Notice("Error deleting nodes"); }
       }).open();
   }
@@ -791,7 +778,7 @@ export class NativeGraphView extends ItemView {
   }
 }
 
-// --- HELPER: Safe Confirmation Modal ---
+// Helper: Safe Confirmation Modal
 class ConfirmationModal extends Modal {
     constructor(app: App, private message: string, private onConfirm: () => Promise<void> | void) {
         super(app);

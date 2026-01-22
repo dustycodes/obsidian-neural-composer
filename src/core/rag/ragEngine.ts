@@ -24,7 +24,7 @@ export class RAGEngine {
     this.app = app
     this.settings = settings
     this.vectorManager = vectorManager
-    this.restartServerCallback = restartServerCallback || (async () => {}); 
+    this.restartServerCallback = restartServerCallback || (async () => { /* No-op */ }); 
     this.embeddingModel = getEmbeddingModelClient({
       settings,
       embeddingModelId: settings.embeddingModelId,
@@ -44,24 +44,25 @@ export class RAGEngine {
     })
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   async updateVaultIndex(
     options: { reindexAll: boolean } = { reindexAll: false },
     onQueryProgressChange?: (queryProgress: QueryProgressState) => void,
   ): Promise<void> {
+    // Placeholder for future implementation
     if (!this.embeddingModel) throw new Error('Embedding model is not set')
   }
 
-  // --- 1. INGESTA TEXTO ---
-async insertDocument(content: string, description?: string): Promise<boolean> {
+  // --- 1. TEXT INGESTION ---
+  async insertDocument(content: string, description?: string): Promise<boolean> {
     const safeName = description && description.trim() ? description : `Note_${Date.now()}.md`;
     try {
-      // REEMPLAZO: requestUrl
       const response = await requestUrl({
           url: "http://localhost:9621/documents/texts",
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ "texts": [content], "file_sources": [safeName] }),
-          throw: false // Para manejar errores manualmente abajo
+          throw: false 
       });
 
       if (response.status >= 400) {
@@ -70,24 +71,24 @@ async insertDocument(content: string, description?: string): Promise<boolean> {
       return true;
     } catch (error) {
       console.error("❌ Error in input of text:", error);
-      new Notice(`Error saving to the graph: ${error.message}`);
+      new Notice(`Error saving to the graph: ${error instanceof Error ? error.message : String(error)}`);
       return false;
     }
   }
 
-  // --- 2. INGESTA BINARIA ---
-async uploadDocument(file: TFile): Promise<boolean> {
+  // --- 2. BINARY INGESTION (Manual Multipart) ---
+  async uploadDocument(file: TFile): Promise<boolean> {
     try {
       const fileData = await this.app.vault.readBinary(file);
       
-      // 1. Crear Boundary para Multipart
+      // 1. Create Multipart Boundary
       const boundary = "----ObsidianBoundary" + Date.now().toString(16);
       
-      // 2. Construir encabezado y pie del body
+      // 2. Build Header and Footer
       const prePart = `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${file.name}"\r\nContent-Type: application/octet-stream\r\n\r\n`;
       const postPart = `\r\n--${boundary}--\r\n`;
 
-      // 3. Unir todo en un solo Uint8Array
+      // 3. Merge into Uint8Array
       const preBuffer = new TextEncoder().encode(prePart);
       const postBuffer = new TextEncoder().encode(postPart);
       const bodyBuffer = new Uint8Array(preBuffer.length + fileData.byteLength + postBuffer.length);
@@ -96,14 +97,14 @@ async uploadDocument(file: TFile): Promise<boolean> {
       bodyBuffer.set(new Uint8Array(fileData), preBuffer.length);
       bodyBuffer.set(postBuffer, preBuffer.length + fileData.byteLength);
 
-      // 4. Enviar con requestUrl
+      // 4. Send via requestUrl
       const response = await requestUrl({
         url: "http://localhost:9621/documents/upload",
         method: "POST",
         headers: {
             "Content-Type": `multipart/form-data; boundary=${boundary}`
         },
-        body: bodyBuffer.buffer, // Enviar el ArrayBuffer
+        body: bodyBuffer.buffer, 
         throw: false
       });
 
@@ -114,13 +115,12 @@ async uploadDocument(file: TFile): Promise<boolean> {
       return true;
     } catch (error) {
       console.error("❌ Error uploading file:", error);
-      new Notice(`Error uploading ${file.name}: ${error.message}`);
+      new Notice(`Error uploading ${file.name}: ${error instanceof Error ? error.message : String(error)}`);
       return false;
     }
   }
 
-// --- 3. CONSULTA MAESTRA (PASSTHROUGH) ---
-// --- INJERTO CORA: CONSULTA CON DETECCIÓN DE ERRORES ---
+// --- 3. MASTER QUERY (PASSTHROUGH) ---
   async processQuery({
     query,
     scope,
@@ -138,10 +138,8 @@ async uploadDocument(file: TFile): Promise<boolean> {
     })[]
   > {
     
-    // 1. ESTRATEGIA LOCAL (Se mantiene igual)
+    // 1. LOCAL STRATEGY
     if (scope && scope.files && scope.files.length > 0) {
-        // ... (código existente de lectura local) ...
-        // (Resumido aquí para brevedad, mantén tu código local igual)
         const localResults: any[] = [];
         for (const filePath of scope.files) {
              const file = this.app.vault.getAbstractFileByPath(filePath);
@@ -157,12 +155,10 @@ async uploadDocument(file: TFile): Promise<boolean> {
         return localResults;
     }
 
-    // 2. ESTRATEGIA GLOBAL
-  
+    // 2. GLOBAL STRATEGY
     onQueryProgressChange?.({ type: 'querying' })
 
     const performQuery = async () => {
-        // REEMPLAZO: requestUrl
         const response = await requestUrl({
             url: "http://localhost:9621/query",
             method: "POST",
@@ -170,14 +166,13 @@ async uploadDocument(file: TFile): Promise<boolean> {
             body: JSON.stringify({ 
                 query: query, mode: "hybrid", stream: false, only_need_context: false
             }),
-            throw: false // Manejamos errores abajo
+            throw: false
         });
         
-        // --- DETECCIÓN DE ERRORES DEL SERVIDOR ---
         if (response.status >= 400) {
-            const errorText = response.text; // Propiedad, no promesa
+            const errorText = response.text;
             
-            // Detectar problemas de Reranking comunes
+            // Detect common Reranking issues
             if (errorText.toLowerCase().includes("quota") || errorText.toLowerCase().includes("credit") || errorText.toLowerCase().includes("429")) {
                 new Notice("⚠️ RERANK ERROR: Quota Exceeded.\nPlease check your Jina/Cohere API Key.", 0);
             }
@@ -187,7 +182,7 @@ async uploadDocument(file: TFile): Promise<boolean> {
             
             throw new Error(`Status ${response.status}: ${errorText}`);
         }
-        return response.json; // Propiedad .json directa
+        return response.json;
     };
 
     try {
@@ -195,7 +190,7 @@ async uploadDocument(file: TFile): Promise<boolean> {
       try {
           data = await performQuery();
       } catch (firstError) {
-          // Lógica de resurrección (se mantiene igual)
+          // Resurrection Logic
           console.warn("⚠️ First attempt failed...", firstError);
           if (this.settings.enableAutoStartServer) {
               onQueryProgressChange?.({ type: 'querying' }); 
@@ -207,8 +202,6 @@ async uploadDocument(file: TFile): Promise<boolean> {
               throw firstError;
           }
       }
-
-      // ... (Procesamiento de respuesta igual que antes) ...
 
       const results: any[] = [];
       const graphAnswer = typeof data === 'string' ? data : (data.response || "");
@@ -224,13 +217,13 @@ async uploadDocument(file: TFile): Promise<boolean> {
 
       if (masterContent) {
           results.push({
-              id: -1, model: 'lightrag-master', path: "🧠 Grap's Memory",
+              id: -1, model: 'lightrag-master', path: "🧠 Graph's Memory",
               content: masterContent, similarity: 1.0, mtime: Date.now(),
               metadata: { startLine: 0, endLine: 0, fileName: "GraphAnswer", content: masterContent }
           });
       }
 
-      // Referencias desglosadas
+      // Breakdown References
       if (data.references && Array.isArray(data.references)) {
           for (let i = 0; i < data.references.length; i++) {
               const ref = data.references[i];
@@ -248,13 +241,13 @@ async uploadDocument(file: TFile): Promise<boolean> {
       onQueryProgressChange?.({ type: 'querying-done', queryResult: [] })
       return results;
 
-    } catch (error) {
-      console.error("❌ Error definitivo:", error);
+    } catch (error: any) {
+      console.error("❌ Final error:", error);
       
-      // Mensaje amigable en el chat si falla
+      // Friendly chat error
       const errorDoc: any = {
           id: -2, path: "⚠️ Query Error",
-          content: `No response could be obtained from Graph.\n\nPosible cause: ${error.message}\n\nIf you use Reranking, check your credits.`,
+          content: `No response could be obtained from Graph.\n\nPossible cause: ${error.message}\n\nIf you use Reranking, check your credits.`,
           similarity: 1.0, metadata: { startLine: 0, endLine: 0 }
       };
       return [errorDoc];

@@ -1,59 +1,63 @@
-import { App, Modal, Setting } from 'obsidian'
-import NeuralComposerPlugin from '../../main'
+import { App, Modal, ButtonComponent, Setting, Notice } from 'obsidian';
+import NeuralComposerPlugin from '../../main';
 
 export class EnvEditorModal extends Modal {
-  plugin: NeuralComposerPlugin
-  envContent: string
+  plugin: NeuralComposerPlugin;
+  content: string;
 
   constructor(app: App, plugin: NeuralComposerPlugin) {
-    super(app)
-    this.plugin = plugin
-    // Generamos la configuración propuesta basada en los settings actuales
-    this.envContent = this.plugin.generateEnvConfig()
+    super(app);
+    this.plugin = plugin;
+    this.content = plugin.generateEnvConfig();
   }
 
   onOpen() {
-    const { contentEl } = this
-    contentEl.empty()
+    const { contentEl } = this;
+    contentEl.empty();
 
-    contentEl.createEl('h2', { text: '⚙️ Advanced server configuration (.env)' })
+    contentEl.createEl('h2', { text: '⚙️ Server configuration (.env)' });
+
+    const desc = contentEl.createDiv({ cls: 'nrlcmp-modal-desc' });
+    desc.createSpan({ text: 'Review the generated configuration below. ' });
+    desc.createEl('strong', { text: 'Changes here are temporary ' });
+    desc.createSpan({ text: 'until you edit the settings in the plugin tab.' });
+
+    // CSS Class instead of inline style
+    const textAreaContainer = contentEl.createDiv({ cls: 'nrlcmp-env-container' });
     
-    contentEl.createEl('p', { 
-        text: 'This is the generated configuration for LightRAG. You can manually tweak parameters or add custom environment variables here.',
-        cls: 'setting-item-description'
-    })
+    const textArea = textAreaContainer.createEl('textarea', {
+      cls: 'nrlcmp-env-textarea-full',
+      text: this.content
+    });
 
-    // Área de texto grande para editar
-    const textArea = contentEl.createEl('textarea');
-    textArea.addClass('nrlcmp-env-textarea');
-    textArea.value = this.envContent;
-    
-    // Capturar cambios
-    textArea.oninput = (e) => {
-        this.envContent = (e.target as HTMLTextAreaElement).value;
-    }
+    // Handle updates
+    textArea.onchange = (e) => {
+        const target = e.target as HTMLTextAreaElement;
+        this.content = target.value;
+    };
 
-    // Botonera
-    const buttonContainer = contentEl.createDiv();
-    buttonContainer.addClass('nrlcmp-modal-actions');
+    const buttonContainer = contentEl.createDiv({ cls: 'nrlcmp-modal-actions' });
 
-    new Setting(buttonContainer)
-        .addButton(btn => btn
-            .setButtonText('Cancel')
-            .onClick(() => this.close())
-        )
-        .addButton(btn => btn
-            .setButtonText('💾 Save & Restart Server')
-            .setCta()
-            .onClick(async () => {
-                await this.plugin.saveEnvAndRestart(this.envContent);
-                this.close();
-            })
-        );
+    new ButtonComponent(buttonContainer)
+      .setButtonText('Cancel')
+      .onClick(() => this.close());
+
+    new ButtonComponent(buttonContainer)
+      .setButtonText('Save & restart server')
+      .setCta()
+      .onClick(async () => {
+        try {
+            new Notice("Saving and restarting...");
+            await this.plugin.saveEnvAndRestart(this.content);
+            this.close();
+        } catch (error) {
+            new Notice("Failed to restart server.");
+            console.error(error);
+        }
+      });
   }
 
   onClose() {
-    const { contentEl } = this
-    contentEl.empty()
+    this.contentEl.empty();
   }
 }

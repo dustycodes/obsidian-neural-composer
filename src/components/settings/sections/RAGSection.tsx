@@ -212,10 +212,10 @@ export function RAGSection({ app, plugin }: RAGSectionProps) {
         />
       </ObsidianSetting>
 
-      <ObsidianSetting name="Manage Embedding Database">
+      <ObsidianSetting name="Manage embedding database">
         <ObsidianButton
           text="Manage"
-          onClick={async () => {
+          onClick={() => {
             new EmbeddingDbManageModal(app, plugin).open()
           }}
         />
