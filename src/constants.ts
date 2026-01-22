@@ -433,19 +433,12 @@ export const DEFAULT_EMBEDDING_MODELS: readonly EmbeddingModel[] = [
     dimension: 768,
   },
 
-{
+  {
+    providerType: 'gemini',
+    providerId: PROVIDER_TYPES_INFO.gemini.defaultProviderId,
     id: 'gemini/text-embedding-004', // (Deprecated) Dejémoslo por si acaso vuelve
-    providerId: 'gemini',
     model: 'models/text-embedding-004',
     dimension: 768,
-  },
-  {
-    id: 'gemini/gemini-embedding-001',
-    providerId: 'gemini',
-    // Nombre oficial de la API: 'models/gemini-embedding-001'
-    model: 'models/gemini-embedding-001', 
-    // Usamos 768 para balance calidad/velocidad (Matryoshka supported)
-    dimension: 768, 
   },
 
   {
