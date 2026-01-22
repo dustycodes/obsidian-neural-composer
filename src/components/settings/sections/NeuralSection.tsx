@@ -168,7 +168,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
           .setDesc('Define the "Categories" of your field of knowledge.')
           .addButton((button) => 
             button
-              .setButtonText('✨ Analyze & Generate')
+              .setButtonText('✨ Analyze & generate')
               .setCta()
               .onClick(async () => {
                  const newTypes = await plugin.generateEntityTypes();
@@ -190,7 +190,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
     }
 
     // --- RERANKING SECTION ---
-    container.createEl('h4', { text: '🎯 Reranking (Precision)' });
+    container.createEl('h4', { text: '🎯 Reranking (precision)' });
 
     new Setting(container)
       .setName('Rerank provider')
@@ -280,10 +280,13 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
     }
 
     // --- ADVANCED ENV SECTION ---
-    container.createEl('h4', { text: '⚙️ Advanced configuration (Total Control)' });
+    container.createEl('h4', { text: '⚙️ Advanced configuration (total control)' });
     
     const details = container.createEl('details');
-    details.createEl('summary', { text: 'Edit Custom .env Variables' }).style.cursor = 'pointer';
+    // Using class for cursor pointer instead of inline style
+    const summary = details.createEl('summary', { text: 'Edit Custom .env Variables' });
+    summary.addClass('nrlcmp-cursor-pointer');
+    
     const advancedContainer = details.createDiv({ cls: 'nrlcmp-advanced-container' });
 
     advancedContainer.createEl('p', { 
@@ -309,12 +312,8 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
         .setName('Load full configuration template')
         .setDesc('Paste the full list of available LightRAG variables (commented out) into the box above.')
         .addButton(btn => btn
-            .setButtonText('📥 Insert Template')
+            .setButtonText('📥 Insert template')
             .onClick(async () => {
-                // Replaced confirm() with a safer approach
-                // Since this is inside a React hook, we can't easily await a Modal. 
-                // We'll use a simple Notice to warn user if they clicked by mistake, but we apply it.
-                // Ideally, implement a proper React/Obsidian Modal bridge.
                 if (plugin.settings.lightRagCustomEnv.length > 50) {
                      new Notice("Overwriting existing custom configuration...");
                 }
@@ -348,12 +347,12 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
 
     // 7. RESTART BUTTON (EMPHASIS)
     new Setting(container)
-      .setName('⚠️ Apply Changes & Restart')
+      .setName('⚠️ Apply changes & restart')
       .setDesc('You MUST restart the server after changing ANY setting above to apply the new configuration (.env).')
-      .setClass('nrlcmp-restart-setting') // CSS Class instead of inline styles
+      .setClass('nrlcmp-restart-setting') // CSS Class handles border/padding/bg
       .addButton((button) =>
         button
-          .setButtonText('Restart Server Now')
+          .setButtonText('Restart server now')
           .setCta()
           .onClick(async () => {
             new Notice("Restarting server...");
@@ -367,7 +366,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
       .setDesc('Review the generated .env file, tweak advanced parameters, and restart the server.')
       .addButton((button) =>
         button
-          .setButtonText('⚙️ Review .env & Restart')
+          .setButtonText('⚙️ Review .env & restart')
           .setCta()
           .onClick(() => {
             new EnvEditorModal(plugin.app, plugin).open();

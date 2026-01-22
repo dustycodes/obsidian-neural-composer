@@ -43,8 +43,10 @@ export default class NeuralComposerPlugin extends Plugin {
   mcpManager: McpManager | null = null;
   dbManager: DatabaseManager | null = null;
   ragEngine: RAGEngine | null = null;
+  
   private dbManagerInitPromise: Promise<DatabaseManager> | null = null;
   private ragEngineInitPromise: Promise<RAGEngine> | null = null;
+  
   private timeoutIds: ReturnType<typeof setTimeout>[] = [];
   private serverProcess: ChildProcess | null = null;
   private lastErrorTime: number = 0; 
@@ -54,8 +56,8 @@ export default class NeuralComposerPlugin extends Plugin {
 
     // --- ZERO-CONFIG & PORTABILITY ---
     if (!this.settings.lightRagWorkDir) {
-        // @ts-ignore: getBasePath is part of Obsidian desktop API
-        const vaultRoot = this.app.vault.adapter.getBasePath(); 
+        // @ts-ignore: getBasePath is part of Obsidian desktop API but not typed
+        const vaultRoot = (this.app.vault.adapter as any).getBasePath(); 
         const defaultPath = path.join(vaultRoot, '.neural_memory');
         
         if (!fs.existsSync(defaultPath)) {
@@ -63,6 +65,7 @@ export default class NeuralComposerPlugin extends Plugin {
                 fs.mkdirSync(defaultPath, { recursive: true });
             } catch (e) {
                 console.error("Failed to create default folder:", e);
+                new Notice("Failed to create default .neural_memory folder.");
             }
         }
         
@@ -72,6 +75,7 @@ export default class NeuralComposerPlugin extends Plugin {
     
     this.registerView(CHAT_VIEW_TYPE, (leaf) => new ChatView(leaf, this));
     this.registerView(APPLY_VIEW_TYPE, (leaf) => new ApplyView(leaf));
+    
     this.addRibbonIcon('brain-circuit', 'Open Neural Composer', () => {
         void this.openChatView();
     });
@@ -96,7 +100,7 @@ export default class NeuralComposerPlugin extends Plugin {
           leaf = workspace.getLeaf(true);
           await leaf.setViewState({ type: NATIVE_GRAPH_VIEW_TYPE, active: true });
         }
-        if (leaf) workspace.revealLeaf(leaf);
+        if (leaf) await workspace.revealLeaf(leaf);
       },
     });
 
@@ -131,8 +135,8 @@ export default class NeuralComposerPlugin extends Plugin {
             item
               .setTitle('🧠 Ingest Folder into Graph')
               .setIcon('layers')
-              .onClick(async () => {
-                await this.batchIngestFolder(file);
+              .onClick(() => {
+                void this.batchIngestFolder(file);
               });
           });
         }
@@ -150,8 +154,8 @@ export default class NeuralComposerPlugin extends Plugin {
         }
         if (checking) return true;
 
-        // IIFE to handle async in callback
-        (async () => {
+        // IIFE to handle async in callback safely
+        void (async () => {
             const title = file.basename;
             const ext = file.extension.toLowerCase();
             const notice = new Notice(`🧠 Sending "${file.name}" to the system...`, 0);
@@ -180,7 +184,7 @@ export default class NeuralComposerPlugin extends Plugin {
                 notice.setMessage(`❌ Critical error connecting to backend.`);
                 setTimeout(() => notice.hide(), 5000);
             }
-        })().catch(err => console.error(err));
+        })();
       },
     });
 
@@ -314,6 +318,7 @@ export default class NeuralComposerPlugin extends Plugin {
         this.ragEngine = null;
     }
     
+    // Reset promises so they can be re-initialized if plugin is re-enabled without full reload
     this.dbManagerInitPromise = null;
     this.ragEngineInitPromise = null;
     
@@ -335,10 +340,11 @@ export default class NeuralComposerPlugin extends Plugin {
     }
     try {
         if (process.platform === 'win32') {
+            // Force kill tree
             execSync('taskkill /F /IM lightrag-server.exe /T', { stdio: 'ignore' });
         }
     } catch (error) {
-        // Ignore kill errors
+        // Ignore kill errors if process not found
     }
   }
 
@@ -346,10 +352,10 @@ export default class NeuralComposerPlugin extends Plugin {
     new Notice("🔄 Restarting System Backend...");
     this.stopLightRagServer();
     // Use timeout to allow process to fully die
-    setTimeout(async () => {
+    this.timeoutIds.push(setTimeout(async () => {
         await this.updateEnvFile();
         void this.startLightRagServer();
-    }, 2000);
+    }, 2000));
   }
 
   // GENERATOR
@@ -566,9 +572,9 @@ export default class NeuralComposerPlugin extends Plugin {
             this.serverProcess = null;
         });
 
-        setTimeout(() => {
+        this.timeoutIds.push(setTimeout(() => {
             if (this.serverProcess) new Notice("✅ LightRAG Activated");
-        }, 5000);
+        }, 5000));
     } catch (error) {
         console.error("❌ Error starting server:", error);
         new Notice("❌ Fatal error starting server.");
@@ -612,21 +618,26 @@ export default class NeuralComposerPlugin extends Plugin {
 
   async activateChatView(chatProps?: ChatProps, openNewChat = false) {
     this.initialChatProps = chatProps;
-    const leaf = this.app.workspace.getLeavesOfType(CHAT_VIEW_TYPE)[0];
+    let leaf = this.app.workspace.getLeavesOfType(CHAT_VIEW_TYPE)[0];
     
-    await (leaf ?? this.app.workspace.getRightLeaf(false))?.setViewState({
-      type: CHAT_VIEW_TYPE,
-      active: true,
-    });
-    
-    if (openNewChat && leaf && leaf.view instanceof ChatView) {
-      leaf.view.openNewChat(chatProps?.selectedBlock);
+    if (!leaf) {
+        leaf = this.app.workspace.getRightLeaf(false) as WorkspaceLeaf;
+        if (leaf) {
+             await leaf.setViewState({
+                type: CHAT_VIEW_TYPE,
+                active: true,
+            });
+        }
     }
     
-    // Safety check before revealing
-    const currentLeaf = this.app.workspace.getLeavesOfType(CHAT_VIEW_TYPE)[0];
-    if (currentLeaf) {
-        this.app.workspace.revealLeaf(currentLeaf);
+    // Ensure leaf exists before accessing view
+    leaf = this.app.workspace.getLeavesOfType(CHAT_VIEW_TYPE)[0];
+
+    if (leaf) {
+        this.app.workspace.revealLeaf(leaf);
+        if (openNewChat && leaf.view instanceof ChatView) {
+            leaf.view.openNewChat(chatProps?.selectedBlock);
+        }
     }
   }
 
@@ -640,14 +651,21 @@ export default class NeuralComposerPlugin extends Plugin {
       return;
     }
     
-    await this.app.workspace.revealLeaf(leaves[0]);
-    const chatView = leaves[0].view as ChatView;
-    chatView.addSelectionToChat(data);
-    chatView.focusMessage();
+    const leaf = leaves[0];
+    await this.app.workspace.revealLeaf(leaf);
+    
+    if (leaf.view instanceof ChatView) {
+        const chatView = leaf.view as ChatView;
+        chatView.addSelectionToChat(data);
+        chatView.focusMessage();
+    }
   }
 
   // --- BYPASS ---
-  async getDbManager(): Promise<DatabaseManager> { return {} as any; }
+  async getDbManager(): Promise<DatabaseManager> { 
+      // Safe casting since we know the interface structure but don't need implementation yet
+      return {} as DatabaseManager; 
+  }
 
   async getRAGEngine(): Promise<RAGEngine> {
     if (this.ragEngine) return this.ragEngine;

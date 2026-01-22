@@ -2437,13 +2437,13 @@ button.nrlcmp-chat-input-model-select {
 }
 
 .nrlcmp-merge-warning {
-    background-color: rgba(230, 160, 0, 0.15);
-    border: 1px solid var(--text-warning);
+    background-color: var(--background-modifier-error-hover); 
+    border: 1px solid var(--background-modifier-error);
+    color: var(--text-normal);
     border-radius: 5px;
     padding: 8px 12px;
     margin-bottom: 20px;
     font-size: 0.85em;
-    color: var(--text-normal);
 }
 
 .nrlcmp-merge-list {
@@ -2453,7 +2453,7 @@ button.nrlcmp-chat-input-model-select {
     border: 1px solid var(--background-modifier-border);
     border-radius: 6px;
     padding: 10px;
-    background-color: var(--background-secondary);
+    background-color: var(--background-primary);
 }
 
 .nrlcmp-merge-item {
@@ -2465,19 +2465,31 @@ button.nrlcmp-chat-input-model-select {
 }
 
 .nrlcmp-merge-radio {
+    margin-right: 10px;
     cursor: pointer;
+}
+
+.nrlcmp-merge-item:last-child {
+    border-bottom: none;
+}
+
+.nrlcmp-merge-item:hover {
+    background-color: var(--background-modifier-hover);
 }
 
 .nrlcmp-merge-label {
     cursor: pointer;
-    font-weight: bold;
-    flex: 1;
+    width: 100%;
+    color: var(--text-normal);
+    font-weight: 500;
 }
 
 .nrlcmp-merge-actions {
     display: flex;
     justify-content: flex-end;
     gap: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--background-modifier-border);
 }
 
 /* --- ENV EDITOR MODAL --- */
@@ -2507,46 +2519,61 @@ button.nrlcmp-chat-input-model-select {
 /* Settings: Neural Backend Section */
 
 .nrlcmp-setting-warning {
-    background-color: rgba(255, 69, 0, 0.15);
+    background-color: var(--background-modifier-error);
     border: 1px solid var(--text-error);
     border-radius: 8px;
     padding: 12px;
     margin-bottom: 20px;
-    color: var(--text-normal);
+    color: var(--text-on-accent);
+    border-left: 4px solid var(--text-error);
     font-size: 0.9em;
 }
 
 .nrlcmp-textarea-container {
+    width: 100%;
     margin-bottom: 20px;
 }
 
 .nrlcmp-setting-textarea {
     width: 100%;
-    height: 80px;
+    min-height: 120px;
     font-family: var(--font-monospace);
     font-size: 0.9em;
+    resize: vertical;
 }
 
 .nrlcmp-advanced-container {
-    padding-left: 10px;
-    border-left: 2px solid var(--interactive-accent);
-    margin-top: 10px;
+    padding: 10px;
+    background: var(--background-secondary);
+    border-radius: 6px;
+    margin-top: 8px;
+    border: 1px solid var(--background-modifier-border);
+}
+
+.nrlcmp-env-setting {
+    display: block !important; /* Force block to allow textarea full width */
 }
 
 .nrlcmp-env-textarea {
     width: 100%;
+    height: 150px;
     font-family: var(--font-monospace);
-    font-size: 0.85em;
-    white-space: pre;
+    font-size: 11px;
+    background-color: var(--background-primary);
 }
 
 /* Restart Button Emphasis */
 .nrlcmp-restart-setting {
-    background-color: rgba(255, 165, 0, 0.15); /* Orange tint */
-    border: 1px solid var(--color-orange);
-    border-radius: 8px;
-    margin-top: 20px;
-    padding: 15px !important;
+    border-top: 2px solid var(--text-accent);
+    margin-top: 24px;
+    padding-top: 24px;
+    background-color: var(--background-secondary-alt);
+    border-radius: 6px;
+    padding: 16px;
+}
+
+.nrlcmp-cursor-pointer {
+    cursor: pointer;
 }
 
 .nrlcmp-restart-setting .setting-item-name {

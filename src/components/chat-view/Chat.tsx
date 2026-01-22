@@ -57,7 +57,6 @@ import { useAutoScroll } from './useAutoScroll'
 import { useChatStreamManager } from './useChatStreamManager'
 import UserMessageItem from './UserMessageItem'
 
-// Add an empty line here
 const getNewInputMessage = (app: App): ChatUserMessage => {
   return {
     role: 'user',
@@ -96,6 +95,7 @@ const Chat = forwardRef<ChatRef, ChatProps>((props, ref) => {
     updateConversationTitle,
     chatList,
   } = useChatHistory()
+  
   const promptGenerator = useMemo(() => {
     return new PromptGenerator(getRAGEngine, app, settings)
   }, [getRAGEngine, app, settings])
@@ -113,6 +113,7 @@ const Chat = forwardRef<ChatRef, ChatProps>((props, ref) => {
     }
     return newMessage
   })
+  
   const [addedBlockKey, setAddedBlockKey] = useState<string | null>(
     props.selectedBlock
       ? getMentionableKey(
@@ -123,10 +124,10 @@ const Chat = forwardRef<ChatRef, ChatProps>((props, ref) => {
         )
       : null,
   )
+  
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [focusedMessageId, setFocusedMessageId] = useState<string | null>(null)
-  const [currentConversationId, setCurrentConversationId] =
-    useState<string>(uuidv4())
+  const [currentConversationId, setCurrentConversationId] = useState<string>(uuidv4())
   const [queryProgress, setQueryProgress] = useState<QueryProgressState>({
     type: 'idle',
   })
@@ -352,10 +353,12 @@ const Chat = forwardRef<ChatRef, ChatProps>((props, ref) => {
         // This likely means a new message was submitted while this stream was running.
         // Abort the tool calls and keep the current chat history.
         void (async () => {
-          const mcpManager = await getMcpManager()
-          toolMessage.toolCalls.forEach((toolCall) => {
-            mcpManager.abortToolCall(toolCall.request.id)
-          })
+          try {
+              const mcpManager = await getMcpManager()
+              toolMessage.toolCalls.forEach((toolCall) => {
+                mcpManager.abortToolCall(toolCall.request.id)
+              })
+          } catch(e) { console.error("Error aborting tool call", e); }
         })()
         return
       }
@@ -397,7 +400,6 @@ const Chat = forwardRef<ChatRef, ChatProps>((props, ref) => {
     ],
   )
 
-// --- CORA MOD: FUNCIÓN PARA ACTUALIZAR MENSAJES DE ASISTENTE ---
   const handleAssistantMessageUpdate = useCallback(
     (messageId: string, newContent: string) => {
       setChatMessages((prevMessages) => 
@@ -411,7 +413,6 @@ const Chat = forwardRef<ChatRef, ChatProps>((props, ref) => {
     },
     [setChatMessages]
   );
-  // ---------------------------------------------------------------
 
   const showContinueResponseButton = useMemo(() => {
     /**
@@ -445,21 +446,23 @@ const Chat = forwardRef<ChatRef, ChatProps>((props, ref) => {
 
   useEffect(() => {
     setFocusedMessageId(inputMessage.id)
-    
   }, [])
 
   useEffect(() => {
     const updateConversationAsync = async () => {
       try {
         if (chatMessages.length > 0) {
-          createOrUpdateConversation(currentConversationId, chatMessages)
+          await createOrUpdateConversation(currentConversationId, chatMessages)
         }
       } catch (error) {
         new Notice('Failed to save chat history')
         console.error('Failed to save chat history', error)
       }
     }
-    updateConversationAsync()
+    
+    // Explicitly ignoring promise return to satisfy lint
+    void updateConversationAsync()
+    
   }, [currentConversationId, chatMessages, createOrUpdateConversation])
 
   // Updates the currentFile of the focused message (input or chat history)
@@ -645,7 +648,8 @@ const Chat = forwardRef<ChatRef, ChatProps>((props, ref) => {
               }}
               onSubmit={(content, useVaultSearch) => {
                 if (editorStateToPlainText(content).trim() === '') return
-                handleUserMessageSubmit({
+                // Use void to prevent promise floating in event handler
+                void handleUserMessageSubmit({
                   inputChatMessages: [
                     ...groupedChatMessages
                       .slice(0, index)
@@ -694,9 +698,7 @@ const Chat = forwardRef<ChatRef, ChatProps>((props, ref) => {
               isApplying={applyMutation.isPending}
               onApply={handleApply}
               onToolMessageUpdate={handleToolMessageUpdate}
-              // --- CORA MOD: ¡ESTA LÍNEA ES LA QUE FALTABA! ---
               onAssistantMessageUpdate={handleAssistantMessageUpdate}
-              // ------------------------------------------------
             />
           ),
         )}
@@ -730,7 +732,7 @@ const Chat = forwardRef<ChatRef, ChatProps>((props, ref) => {
         }}
         onSubmit={(content, useVaultSearch) => {
           if (editorStateToPlainText(content).trim() === '') return
-          handleUserMessageSubmit({
+          void handleUserMessageSubmit({
             inputChatMessages: [...chatMessages, { ...inputMessage, content }],
             useVaultSearch,
           })

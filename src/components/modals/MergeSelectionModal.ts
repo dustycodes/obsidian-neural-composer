@@ -9,49 +9,49 @@ export class MergeSelectionModal extends Modal {
     super(app);
     this.selectedNodes = nodes;
     this.onSubmit = onSubmit;
-    this.selectedTarget = nodes[0]; // Default
+    this.selectedTarget = nodes[0]; // Default selection
   }
 
   onOpen() {
     const { contentEl } = this;
     contentEl.empty();
 
-    contentEl.createEl('h3', { text: '🔗 Merge entities' });
+    contentEl.createEl('h2', { text: '🔗 Merge entities' });
     
-    // 1. Instrucción Principal (CSS Class)
+    // 1. Instrucción Principal
     contentEl.createEl('p', { 
-        text: 'Select the *primary* entity (the survivor). All other selected entities will be merged into this one and deleted.',
+        text: 'Select the primary entity (the survivor). All other selected entities will be merged into this one and deleted.',
         cls: 'nrlcmp-merge-instruction'
     });
 
-    // 2. Caja de Advertencia (CSS Class)
-    const warningBox = contentEl.createDiv();
-    warningBox.addClass('nrlcmp-merge-warning');
+    // 2. Caja de Advertencia
+    const warningBox = contentEl.createDiv({ cls: 'nrlcmp-merge-warning' });
     
-    // Contenido seguro (sin variables sin usar)
     warningBox.createEl("strong", { text: "⚠️ Note: " });
     warningBox.createSpan({ text: "This action " });
-    warningBox.createEl("strong", { text: "Cannot be undone" });
+    warningBox.createEl("strong", { text: "cannot be undone" });
     warningBox.createSpan({ text: "." });
     warningBox.createEl("br");
     warningBox.createSpan({ text: "Merging nodes with a high number of relations involves heavy processing and " });
-    warningBox.createEl("strong", { text: "May take a while" });
+    warningBox.createEl("strong", { text: "may take a while" });
     warningBox.createSpan({ text: ". Please be patient." });
 
-    // 3. Lista (CSS Class)
-    const listContainer = contentEl.createDiv();
-    listContainer.addClass('nrlcmp-merge-list');
+    // 3. Lista de Selección
+    const listContainer = contentEl.createDiv({ cls: 'nrlcmp-merge-list' });
 
     // Referencia al botón para actualizarlo dinámicamente
     let submitButton: ButtonComponent;
 
-    // Lista de Radio Buttons
     this.selectedNodes.forEach((node) => {
-        const row = listContainer.createDiv();
-        row.addClass('nrlcmp-merge-item');
+        const row = listContainer.createDiv({ cls: 'nrlcmp-merge-item' });
         
-        const rb = row.createEl('input', { type: 'radio', attr: { name: 'merge-target' } });
-        rb.id = `rb-${node}`;
+        const rbId = `rb-${node.replace(/\s+/g, '-')}`; // Safe ID
+        const rb = row.createEl('input', { 
+            type: 'radio', 
+            attr: { name: 'merge-target' } 
+        });
+        
+        rb.id = rbId;
         rb.value = node;
         if (node === this.selectedTarget) rb.checked = true;
         rb.addClass('nrlcmp-merge-radio');
@@ -65,13 +65,12 @@ export class MergeSelectionModal extends Modal {
         };
 
         const label = row.createEl('label', { text: node });
-        label.htmlFor = `rb-${node}`;
+        label.htmlFor = rbId;
         label.addClass('nrlcmp-merge-label');
     });
 
-    // Botonera (CSS Class)
-    const buttonDiv = contentEl.createDiv();
-    buttonDiv.addClass('nrlcmp-merge-actions');
+    // 4. Botonera
+    const buttonDiv = contentEl.createDiv({ cls: 'nrlcmp-merge-actions' });
 
     const cancelBtn = new ButtonComponent(buttonDiv)
         .setButtonText('Cancel')
@@ -79,18 +78,22 @@ export class MergeSelectionModal extends Modal {
 
     submitButton = new ButtonComponent(buttonDiv)
         .setButtonText(`Merge into "${this.selectedTarget}"`)
-        .setCta() // Azul brillante
+        .setCta()
         .onClick(async () => {
-            // 1. ESTADO DE CARGA
+            // Estado de carga
             submitButton.setButtonText('⏳ Merging...').setDisabled(true);
             cancelBtn.setDisabled(true);
             
-            // 2. EJECUTAR ACCIÓN
-            const sources = this.selectedNodes.filter(n => n !== this.selectedTarget);
-            await this.onSubmit(this.selectedTarget, sources);
-            
-            // 3. CERRAR
-            this.close();
+            try {
+                const sources = this.selectedNodes.filter(n => n !== this.selectedTarget);
+                await this.onSubmit(this.selectedTarget, sources);
+                this.close();
+            } catch (error) {
+                console.error("Merge failed", error);
+                // Restaurar estado en caso de error para permitir reintento o cancelación
+                submitButton.setButtonText('Retry Merge').setDisabled(false);
+                cancelBtn.setDisabled(false);
+            }
         });
   }
 
