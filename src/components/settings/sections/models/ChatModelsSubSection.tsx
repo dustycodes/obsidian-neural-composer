@@ -26,24 +26,28 @@ export function ChatModelsSubSection({
 }: ChatModelsSubSectionProps) {
   const { settings, setSettings } = useSettings()
 
-  const handleDeleteChatModel = async (modelId: string) => {
+  // Removed async keyword as opening modal is synchronous
+  const handleDeleteChatModel = (modelId: string) => {
     if (modelId === settings.chatModelId || modelId === settings.applyModelId) {
       new Notice(
-        'Cannot remove model that is currently selected as Chat Model or Apply Model',
+        'Cannot remove model that is currently selected as Chat model or Apply model',
       )
       return
     }
 
     const message = `Are you sure you want to delete model "${modelId}"?`
     new ConfirmModal(app, {
-      title: 'Delete Chat Model',
+      title: 'Delete chat model',
       message: message,
       ctaText: 'Delete',
-      onConfirm: async () => {
-        await setSettings({
-          ...settings,
-          chatModels: [...settings.chatModels].filter((v) => v.id !== modelId),
-        })
+      onConfirm: () => {
+        // Wrap async logic
+        void (async () => {
+            await setSettings({
+              ...settings,
+              chatModels: [...settings.chatModels].filter((v) => v.id !== modelId),
+            })
+        })()
       },
     }).open()
   }
@@ -57,7 +61,7 @@ export function ChatModelsSubSection({
       (modelId === settings.chatModelId || modelId === settings.applyModelId)
     ) {
       new Notice(
-        'Cannot disable model that is currently selected as Chat Model or Apply Model',
+        'Cannot disable model that is currently selected as Chat model or Apply model',
       )
 
       // to trigger re-render
@@ -80,7 +84,7 @@ export function ChatModelsSubSection({
 
   return (
     <div>
-      <div className="nrlcmp-settings-sub-header">Chat Models</div>
+      <div className="nrlcmp-settings-sub-header">Chat models</div>
       <div className="nrlcmp-settings-desc">Models used for chat and apply</div>
 
       <div className="nrlcmp-settings-table-container">
@@ -89,8 +93,8 @@ export function ChatModelsSubSection({
             <col />
             <col />
             <col />
-            <col width={60} />
-            <col width={60} />
+            <col className="nrlcmp-col-enable" />
+            <col className="nrlcmp-col-actions" />
           </colgroup>
           <thead>
             <tr>
@@ -111,7 +115,7 @@ export function ChatModelsSubSection({
                   <ObsidianToggle
                     value={isEnabled(chatModel.enable)}
                     onChange={(value) =>
-                      handleToggleEnableChatModel(chatModel.id, value)
+                      void handleToggleEnableChatModel(chatModel.id, value)
                     }
                   />
                 </td>
@@ -127,8 +131,9 @@ export function ChatModelsSubSection({
                           ).open()
                         }}
                         className="clickable-icon"
+                        aria-label="Settings"
                       >
-                        <Settings />
+                        <Settings size={16} />
                       </button>
                     )}
                     {!DEFAULT_CHAT_MODELS.some(
@@ -137,8 +142,9 @@ export function ChatModelsSubSection({
                       <button
                         onClick={() => handleDeleteChatModel(chatModel.id)}
                         className="clickable-icon"
+                        aria-label="Delete"
                       >
-                        <Trash2 />
+                        <Trash2 size={16} />
                       </button>
                     )}
                   </div>

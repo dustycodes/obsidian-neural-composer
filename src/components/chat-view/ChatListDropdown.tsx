@@ -32,7 +32,7 @@ function TitleInput({
       onKeyDown={(e) => {
         e.stopPropagation()
         if (e.key === 'Enter') {
-          onSubmit(value)
+          void onSubmit(value)
         }
       }}
       autoFocus
@@ -73,7 +73,7 @@ function ChatListItem({
   return (
     <li
       ref={itemRef}
-      onClick={onSelect}
+      onClick={() => void onSelect()}
       onMouseEnter={onMouseEnter}
       className={isFocused ? 'selected' : ''}
     >
@@ -90,16 +90,16 @@ function ChatListItem({
           }}
           className="clickable-icon nrlcmp-chat-list-dropdown-item-icon"
         >
-          <Pencil />
+          <Pencil size={16} />
         </button>
         <button
-          onClick={async (e) => {
+          onClick={(e) => {
             e.stopPropagation()
-            await onDelete()
+            void onDelete()
           }}
           className="clickable-icon nrlcmp-chat-list-dropdown-item-icon"
         >
-          <Trash2 />
+          <Trash2 size={16} />
         </button>
       </div>
     </li>
@@ -142,7 +142,7 @@ export function ChatListDropdown({
       } else if (e.key === 'ArrowDown') {
         setFocusedIndex(Math.min(chatList.length - 1, focusedIndex + 1))
       } else if (e.key === 'Enter') {
-        onSelect(chatList[focusedIndex].id)
+        void onSelect(chatList[focusedIndex].id)
         setOpen(false)
       }
     },
@@ -152,7 +152,7 @@ export function ChatListDropdown({
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
       <Popover.Trigger asChild>
-        <button className="clickable-icon" aria-label="Chat History">
+        <button className="clickable-icon" aria-label="Chat history">
           {children}
         </button>
       </Popover.Trigger>

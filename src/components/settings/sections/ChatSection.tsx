@@ -30,8 +30,8 @@ export function ChatSection() {
                 `${chatModel.id}${RECOMMENDED_MODELS_FOR_CHAT.includes(chatModel.id) ? ' (Recommended)' : ''}`,
               ]),
           )}
-          onChange={async (value) => {
-            await setSettings({
+          onChange={(value) => {
+            void setSettings({
               ...settings,
               chatModelId: value,
             })
@@ -53,8 +53,8 @@ export function ChatSection() {
                 `${chatModel.id}${RECOMMENDED_MODELS_FOR_APPLY.includes(chatModel.id) ? ' (Recommended)' : ''}`,
               ]),
           )}
-          onChange={async (value) => {
-            await setSettings({
+          onChange={(value) => {
+            void setSettings({
               ...settings,
               applyModelId: value,
             })
@@ -71,8 +71,8 @@ export function ChatSection() {
       <ObsidianSetting className="nrlcmp-settings-textarea">
         <ObsidianTextArea
           value={settings.systemPrompt}
-          onChange={async (value: string) => {
-            await setSettings({
+          onChange={(value: string) => {
+            void setSettings({
               ...settings,
               systemPrompt: value,
             })
@@ -86,8 +86,8 @@ export function ChatSection() {
       >
         <ObsidianToggle
           value={settings.chatOptions.includeCurrentFileContent}
-          onChange={async (value) => {
-            await setSettings({
+          onChange={(value) => {
+            void setSettings({
               ...settings,
               chatOptions: {
                 ...settings.chatOptions,
@@ -104,8 +104,8 @@ export function ChatSection() {
       >
         <ObsidianToggle
           value={settings.chatOptions.enableTools}
-          onChange={async (value) => {
-            await setSettings({
+          onChange={(value) => {
+            void setSettings({
               ...settings,
               chatOptions: {
                 ...settings.chatOptions,
@@ -122,12 +122,12 @@ export function ChatSection() {
       >
         <ObsidianTextInput
           value={settings.chatOptions.maxAutoIterations.toString()}
-          onChange={async (value) => {
+          onChange={(value) => {
             const parsedValue = parseInt(value)
             if (isNaN(parsedValue) || parsedValue < 1) {
               return
             }
-            await setSettings({
+            void setSettings({
               ...settings,
               chatOptions: {
                 ...settings.chatOptions,

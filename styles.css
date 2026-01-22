@@ -2613,3 +2613,22 @@ button.nrlcmp-chat-input-model-select {
 .nrlcmp-text-success {
     color: var(--text-success);
 }
+
+/* Table Column Widths */
+.nrlcmp-col-actions {
+    width: 60px;
+}
+
+/* Table Columns */
+.nrlcmp-col-enable {
+    width: 60px;
+}
+.nrlcmp-col-actions {
+    width: 60px;
+}
+
+/* Embedding DB Manage Modal */
+.nrlcmp-embedding-db-modal {
+    width: 720px;
+    max-width: 90vw; /* Responsive safety */
+}

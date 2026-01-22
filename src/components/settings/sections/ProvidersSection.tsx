@@ -21,7 +21,8 @@ type ProvidersSectionProps = {
 export function ProvidersSection({ app, plugin }: ProvidersSectionProps) {
   const { settings, setSettings } = useSettings()
 
-  const handleDeleteProvider = async (provider: LLMProvider) => {
+  // Removed 'async' keyword as opening a modal is synchronous
+  const handleDeleteProvider = (provider: LLMProvider) => {
     // Get associated models
     const associatedChatModels = settings.chatModels.filter(
       (m) => m.providerId === provider.id,
@@ -38,41 +39,49 @@ export function ProvidersSection({ app, plugin }: ProvidersSectionProps) {
       `All embeddings generated using the associated embedding models will also be deleted.`
 
     new ConfirmModal(app, {
-      title: 'Delete Provider',
+      title: 'Delete provider',
       message: message,
       ctaText: 'Delete',
-      onConfirm: async () => {
-        const vectorManager = (await plugin.getDbManager()).getVectorManager()
-        const embeddingStats = await vectorManager.getEmbeddingStats()
+      onConfirm: () => {
+        // Wrap async logic to satisfy void return type of onConfirm
+        void (async () => {
+            try {
+                const dbManager = await plugin.getDbManager()
+                const vectorManager = dbManager.getVectorManager()
+                const embeddingStats = await vectorManager.getEmbeddingStats()
 
-        // Clear embeddings for each associated embedding model
-        for (const embeddingModel of associatedEmbeddingModels) {
-          const embeddingStat = embeddingStats.find(
-            (v) => v.model === embeddingModel.id,
-          )
+                // Clear embeddings for each associated embedding model
+                for (const embeddingModel of associatedEmbeddingModels) {
+                  const embeddingStat = embeddingStats.find(
+                    (v) => v.model === embeddingModel.id,
+                  )
 
-          if (embeddingStat?.rowCount && embeddingStat.rowCount > 0) {
-            // only clear when there's data
-            const embeddingModelClient = getEmbeddingModelClient({
-              settings,
-              embeddingModelId: embeddingModel.id,
-            })
-            await vectorManager.clearAllVectors(embeddingModelClient)
-          }
-        }
+                  if (embeddingStat?.rowCount && embeddingStat.rowCount > 0) {
+                    // only clear when there's data
+                    const embeddingModelClient = getEmbeddingModelClient({
+                      settings,
+                      embeddingModelId: embeddingModel.id,
+                    })
+                    await vectorManager.clearAllVectors(embeddingModelClient)
+                  }
+                }
 
-        await setSettings({
-          ...settings,
-          providers: [...settings.providers].filter(
-            (v) => v.id !== provider.id,
-          ),
-          chatModels: [...settings.chatModels].filter(
-            (v) => v.providerId !== provider.id,
-          ),
-          embeddingModels: [...settings.embeddingModels].filter(
-            (v) => v.providerId !== provider.id,
-          ),
-        })
+                await setSettings({
+                  ...settings,
+                  providers: [...settings.providers].filter(
+                    (v) => v.id !== provider.id,
+                  ),
+                  chatModels: [...settings.chatModels].filter(
+                    (v) => v.providerId !== provider.id,
+                  ),
+                  embeddingModels: [...settings.embeddingModels].filter(
+                    (v) => v.providerId !== provider.id,
+                  ),
+                })
+            } catch (e) {
+                console.error("Error deleting provider:", e);
+            }
+        })()
       },
     }).open()
   }
@@ -99,7 +108,7 @@ export function ProvidersSection({ app, plugin }: ProvidersSectionProps) {
             <col />
             <col />
             <col />
-            <col width={60} />
+            <col className="nrlcmp-col-actions" />
           </colgroup>
           <thead>
             <tr>
@@ -129,15 +138,17 @@ export function ProvidersSection({ app, plugin }: ProvidersSectionProps) {
                         new EditProviderModal(app, plugin, provider).open()
                       }}
                       className="clickable-icon"
+                      aria-label="Edit provider"
                     >
-                      <Settings />
+                      <Settings size={16} />
                     </button>
                     {!DEFAULT_PROVIDERS.some((v) => v.id === provider.id) && (
                       <button
                         onClick={() => handleDeleteProvider(provider)}
                         className="clickable-icon"
+                        aria-label="Delete provider"
                       >
-                        <Trash2 />
+                        <Trash2 size={16} />
                       </button>
                     )}
                   </div>

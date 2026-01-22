@@ -36,10 +36,11 @@ export class EmbeddingDbManageModal extends ReactModal<EmbeddingDbManagerModalCo
       Component: EmbeddingDbManagerModalComponentWrapper,
       props: { app, plugin },
       options: {
-        title: 'Manage Embedding Database',
+        title: 'Manage embedding database',
       },
     })
-    this.modalEl.style.width = '720px'
+    // Replaced inline style with CSS class
+    this.modalEl.addClass('nrlcmp-embedding-db-modal')
   }
 }
 
@@ -168,7 +169,7 @@ function EmbeddingDbManageModalComponent() {
         <button
           className="clickable-icon"
           aria-label="Refresh"
-          onClick={() => refetch()}
+          onClick={() => void refetch()}
           disabled={isFetching}
         >
           <RefreshCw size={16} className={clsx(isFetching && 'spinner')} />
@@ -182,7 +183,7 @@ function EmbeddingDbManageModalComponent() {
         <thead>
           <tr>
             <th>Model</th>
-            <th>Total Embeddings</th>
+            <th>Total embeddings</th>
             <th>Size (MB)</th>
             <th>Actions</th>
           </tr>
@@ -211,14 +212,14 @@ function EmbeddingDbManageModalComponent() {
                   <button
                     className="clickable-icon"
                     aria-label="Rebuild index"
-                    onClick={() => handleRebuildIndex(stat.model)}
+                    onClick={() => void handleRebuildIndex(stat.model)}
                   >
                     <PickaxeIcon size={16} />
                   </button>
                   <button
                     className="clickable-icon"
                     aria-label="Remove index"
-                    onClick={() => handleRemoveIndex(stat.model)}
+                    onClick={() => void handleRemoveIndex(stat.model)}
                   >
                     <Trash2 size={16} />
                   </button>
