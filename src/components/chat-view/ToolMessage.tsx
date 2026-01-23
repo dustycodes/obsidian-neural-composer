@@ -126,7 +126,8 @@ function ToolCallItem({
     }
     try {
       return JSON.stringify(JSON.parse(request.arguments), null, 2)
-    } catch (error) {
+    } catch {
+      // Removed unused 'error' variable
       return request.arguments
     }
   }, [request.arguments])
@@ -283,7 +284,8 @@ function useToolCall(
     })
   }, [request, settings, setSettings])
 
-  const handleReject = useCallback(async () => {
+  // Removed async since it doesn't await anything
+  const handleReject = useCallback(() => {
     onResponseUpdate({
       status: ToolCallResponseStatus.Rejected,
     })
