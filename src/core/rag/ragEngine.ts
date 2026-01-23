@@ -24,7 +24,8 @@ export class RAGEngine {
     this.app = app
     this.settings = settings
     this.vectorManager = vectorManager
-    this.restartServerCallback = restartServerCallback || (async () => { /* No-op */ }); 
+    // Fix: Explicitly handle the promise in the default callback
+    this.restartServerCallback = restartServerCallback || (() => Promise.resolve()); 
     this.embeddingModel = getEmbeddingModelClient({
       settings,
       embeddingModelId: settings.embeddingModelId,
@@ -50,6 +51,8 @@ export class RAGEngine {
   ): Promise<void> {
     // Placeholder for future implementation
     if (!this.embeddingModel) throw new Error('Embedding model is not set')
+    // Added explicit return to satisfy Promise<void> without empty async warning
+    return Promise.resolve();
   }
 
   // --- 1. TEXT INGESTION ---
@@ -253,6 +256,7 @@ export class RAGEngine {
     }
   }
 
+  // Marked as private and potentially unused, but keeping it compliant
   private async getQueryEmbedding(query: string): Promise<number[]> {
     if (!this.embeddingModel) throw new Error('Embedding model not set');
     return this.embeddingModel.getEmbedding(query)

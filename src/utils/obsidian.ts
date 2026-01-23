@@ -30,10 +30,11 @@ export function getNestedFiles(folder: TFolder, vault: Vault): TFile[] {
   return files
 }
 
-export async function getMentionableBlockData(
+// Removed 'async' and 'Promise' return type as Editor API is synchronous
+export function getMentionableBlockData(
   editor: Editor,
   view: MarkdownView,
-): Promise<MentionableBlockData | null> {
+): MentionableBlockData | null {
   const file = view.file
   if (!file) return null
 
@@ -61,7 +62,8 @@ export function getOpenFiles(app: App): TFile[] {
     const leaves = app.workspace.getLeavesOfType('markdown')
 
     return leaves.map((v) => (v.view as MarkdownView).file).filter((v) => !!v)
-  } catch (e) {
+  } catch {
+    // Removed unused variable 'e'
     return []
   }
 }
@@ -117,7 +119,8 @@ export function openMarkdownFile(
     }
   } else {
     const leaf = app.workspace.getLeaf('tab')
-    leaf.openFile(file, {
+    // Added 'void' to handle the floating promise returned by openFile
+    void leaf.openFile(file, {
       eState: startLine ? { line: startLine - 1 } : undefined, // -1 because line is 0-indexed
     })
   }
