@@ -79,21 +79,25 @@ export class MergeSelectionModal extends Modal {
     submitButton = new ButtonComponent(buttonDiv)
         .setButtonText(`Merge into "${this.selectedTarget}"`)
         .setCta()
-        .onClick(async () => {
-            // Estado de carga
-            submitButton.setButtonText('⏳ Merging...').setDisabled(true);
-            cancelBtn.setDisabled(true);
-            
-            try {
-                const sources = this.selectedNodes.filter(n => n !== this.selectedTarget);
-                await this.onSubmit(this.selectedTarget, sources);
-                this.close();
-            } catch (error) {
-                console.error("Merge failed", error);
-                // Restaurar estado en caso de error para permitir reintento o cancelación
-                submitButton.setButtonText('Retry Merge').setDisabled(false);
-                cancelBtn.setDisabled(false);
-            }
+        .onClick(() => {
+            // Wrapped async logic to satisfy linter (void return expected)
+            void (async () => {
+                // Estado de carga
+                submitButton.setButtonText('⏳ Merging...').setDisabled(true);
+                cancelBtn.setDisabled(true);
+                
+                try {
+                    const sources = this.selectedNodes.filter(n => n !== this.selectedTarget);
+                    await this.onSubmit(this.selectedTarget, sources);
+                    this.close();
+                } catch (error) {
+                    console.error("Merge failed", error);
+                    // Restaurar estado en caso de error para permitir reintento o cancelación
+                    // Fix: Sentence case "Retry merge"
+                    submitButton.setButtonText('Retry merge').setDisabled(false);
+                    cancelBtn.setDisabled(false);
+                }
+            })();
         });
   }
 
