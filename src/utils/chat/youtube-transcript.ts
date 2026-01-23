@@ -13,6 +13,12 @@ const USER_AGENT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83 Safari/537.36,gzip(gfe)'
 const RE_XML_TRANSCRIPT = /<text start="([^"]*)" dur="([^"]*)">([^<]*)<\/text>/g
 
+// Interface to avoid 'any' in caption logic
+interface YoutubeCaptionTrack {
+  languageCode: string;
+  baseUrl: string;
+}
+
 export function isYoutubeUrl(url: string) {
   return RE_YOUTUBE.test(url)
 }
@@ -117,11 +123,11 @@ export class YoutubeTranscript {
 
     const captions = (() => {
       try {
-        
         return JSON.parse(
           splittedHTML[1].split(',"videoDetails')[0].replace('\n', ''),
         )
-      } catch (e) {
+      } catch {
+        // Removed unused variable 'e'
         return undefined
       }
     })()?.playerCaptionsTracklistRenderer
@@ -134,29 +140,32 @@ export class YoutubeTranscript {
       throw new YoutubeTranscriptNotAvailableError(videoId)
     }
 
+    const tracks = captions.captionTracks as YoutubeCaptionTrack[];
+
     if (
       config?.lang &&
-      !captions.captionTracks.some(
-        
-        (track: any) => track.languageCode === config?.lang,
+      !tracks.some(
+        (track) => track.languageCode === config?.lang,
       )
     ) {
       throw new YoutubeTranscriptNotAvailableLanguageError(
         config?.lang,
-        
-        captions.captionTracks.map((track: any) => track.languageCode),
+        tracks.map((track) => track.languageCode),
         videoId,
       )
     }
 
     const transcriptURL: string = (
       config?.lang
-        ? captions.captionTracks.find(
-            
-            (track: any) => track.languageCode === config?.lang,
+        ? tracks.find(
+            (track) => track.languageCode === config?.lang,
           )
-        : captions.captionTracks[0]
-    ).baseUrl
+        : tracks[0]
+    )?.baseUrl || tracks[0]?.baseUrl;
+
+    if (!transcriptURL) {
+        throw new YoutubeTranscriptNotAvailableError(videoId);
+    }
 
     const transcriptResponse = await requestUrl({
       url: transcriptURL,
@@ -176,7 +185,7 @@ export class YoutubeTranscript {
         text: result[3],
         duration: parseFloat(result[2]),
         offset: parseFloat(result[1]),
-        lang: config?.lang ?? captions.captionTracks[0].languageCode,
+        lang: config?.lang ?? tracks[0].languageCode,
       })),
     }
   }
