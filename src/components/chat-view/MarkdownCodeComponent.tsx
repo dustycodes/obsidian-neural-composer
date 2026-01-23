@@ -26,13 +26,17 @@ export default function MarkdownCodeComponent({
   const [isPreviewMode, setIsPreviewMode] = useState(true)
   const [copied, setCopied] = useState(false)
 
+  // Fix: Safe extraction of string content to avoid "[object Object]"
+  // and satisfy the linter rule about default stringification.
+  const codeContent = typeof children === 'string' ? children : '';
+
   const wrapLines = useMemo(() => {
     return !language || ['markdown'].includes(language)
   }, [language])
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(String(children))
+      await navigator.clipboard.writeText(codeContent)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
@@ -65,12 +69,14 @@ export default function MarkdownCodeComponent({
             }}
           >
             <Eye size={12} />
-            {isPreviewMode ? 'View Raw Text' : 'View Formatted'}
+            {/* Fix: Sentence case */}
+            {isPreviewMode ? 'View raw text' : 'View formatted'}
           </button>
           <button
             className="clickable-icon nrlcmp-code-block-header-button"
             onClick={() => {
-              handleCopy()
+              // Fix: Handle floating promise
+              void handleCopy()
             }}
           >
             {copied ? (
@@ -91,7 +97,7 @@ export default function MarkdownCodeComponent({
               isApplying
                 ? undefined
                 : () => {
-                    onApply(String(children))
+                    onApply(codeContent)
                   }
             }
             aria-disabled={isApplying}
@@ -112,7 +118,7 @@ export default function MarkdownCodeComponent({
       </div>
       {isPreviewMode ? (
         <div className="nrlcmp-code-block-obsidian-markdown">
-          <ObsidianMarkdown content={String(children)} scale="sm" />
+          <ObsidianMarkdown content={codeContent} scale="sm" />
         </div>
       ) : (
         <MemoizedSyntaxHighlighterWrapper
@@ -121,7 +127,7 @@ export default function MarkdownCodeComponent({
           hasFilename={!!filename}
           wrapLines={wrapLines}
         >
-          {String(children)}
+          {codeContent}
         </MemoizedSyntaxHighlighterWrapper>
       )}
     </div>
