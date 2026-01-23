@@ -123,7 +123,10 @@ export class NativeGraphView extends ItemView {
   getDisplayText() { return 'Neural manager'; }
   getIcon() { return 'brain-circuit'; }
 
-  onOpen() {
+  async onOpen() {
+    // Await super.onOpen() satisfies both the interface (Promise<void>) and the linter (await usage)
+    await super.onOpen();
+
     const container = this.contentEl;
     container.empty();
     
@@ -133,7 +136,7 @@ export class NativeGraphView extends ItemView {
     const is3D = this.plugin.settings.graphViewMode === '3d';
     container.addClass(is3D ? 'nrlcmp-mode-3d' : 'nrlcmp-mode-2d');
 
-    // SYNC CALL: Removing await since the function is now synchronous
+    // SYNC CALL
     this.loadReferenceMaps();
 
     // LEFT ZONE (Graph)
@@ -403,7 +406,8 @@ export class NativeGraphView extends ItemView {
 
         const settings = forceAtlas2.inferSettings(this.graph);
         this.fa2Layout = new FA2Layout(this.graph, { settings: { ...settings, gravity: 1, slowDown: 5 } });
-        this.fa2Layout.start();
+        // FIXED: Optional chaining to prevent "Object is possibly null"
+        this.fa2Layout?.start();
         
         window.setTimeout(() => { if(this.fa2Layout?.isRunning()) this.fa2Layout.stop(); }, 4000);
 
