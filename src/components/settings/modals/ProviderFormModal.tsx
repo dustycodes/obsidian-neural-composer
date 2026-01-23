@@ -24,7 +24,7 @@ export class AddProviderModal extends ReactModal<ProviderFormComponentProps> {
       Component: ProviderFormComponent,
       props: { plugin, provider: null },
       options: {
-        title: 'Add Custom Provider',
+        title: 'Add custom provider', // Sentence case
       },
     })
   }
@@ -37,7 +37,7 @@ export class EditProviderModal extends ReactModal<ProviderFormComponentProps> {
       Component: ProviderFormComponent,
       props: { plugin, provider },
       options: {
-        title: `Edit Provider: ${provider.id}`,
+        title: `Edit provider: ${provider.id}`, // Sentence case
       },
     })
   }
@@ -132,7 +132,7 @@ function ProviderFormComponent({
             />
           </ObsidianSetting>
 
-          <ObsidianSetting name="Provider Type" required>
+          <ObsidianSetting name="Provider type" required> {/* Sentence case */}
             <ObsidianDropdown
               value={formData.type}
               options={Object.fromEntries(
@@ -157,7 +157,7 @@ function ProviderFormComponent({
       )}
 
       <ObsidianSetting
-        name="API Key"
+        name="API key" // Sentence case
         desc="(leave blank if not required)"
         required={providerTypeInfo.requireApiKey}
       >
@@ -237,9 +237,10 @@ function ProviderFormComponent({
       ))}
 
       <ObsidianSetting>
+        {/* Fix: Handle floating promise with void wrapper */}
         <ObsidianButton
           text={provider ? 'Save' : 'Add'}
-          onClick={handleSubmit}
+          onClick={() => void handleSubmit()}
           cta
         />
         <ObsidianButton text="Cancel" onClick={onClose} />
