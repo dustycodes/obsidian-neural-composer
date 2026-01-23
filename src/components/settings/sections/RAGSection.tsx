@@ -37,11 +37,13 @@ export function RAGSection({ app, plugin }: RAGSectionProps) {
               `${embeddingModel.id}${RECOMMENDED_MODELS_FOR_EMBEDDING.includes(embeddingModel.id) ? ' (Recommended)' : ''}`,
             ]),
           )}
-          onChange={async (value) => {
-            await setSettings({
-              ...settings,
-              embeddingModelId: value,
-            })
+          onChange={(value) => {
+            void (async () => {
+              await setSettings({
+                ...settings,
+                embeddingModelId: value,
+              })
+            })()
           }}
         />
       </ObsidianSetting>
@@ -52,13 +54,18 @@ export function RAGSection({ app, plugin }: RAGSectionProps) {
       >
         <ObsidianButton
           text="Test patterns"
-          onClick={async () => {
-            const patterns = settings.ragOptions.includePatterns
-            const includedFiles = await findFilesMatchingPatterns(
-              patterns,
-              plugin.app.vault,
-            )
-            new IncludedFilesModal(app, includedFiles, patterns).open()
+          onClick={() => {
+            void (async () => {
+              const patterns = settings.ragOptions.includePatterns
+              // findFilesMatchingPatterns is now sync in our previous fix, 
+              // but if the interface hasn't updated in this context or is mixed, 
+              // keeping async wrapper is safe.
+              const includedFiles = findFilesMatchingPatterns(
+                patterns,
+                plugin.app.vault,
+              )
+              new IncludedFilesModal(app, includedFiles, patterns).open()
+            })()
           }}
         />
       </ObsidianSetting>
@@ -66,18 +73,20 @@ export function RAGSection({ app, plugin }: RAGSectionProps) {
       <ObsidianSetting className="nrlcmp-settings-textarea">
         <ObsidianTextArea
           value={settings.ragOptions.includePatterns.join('\n')}
-          onChange={async (value: string) => {
-            const patterns = value
-              .split('\n')
-              .map((p: string) => p.trim())
-              .filter((p: string) => p.length > 0)
-            await setSettings({
-              ...settings,
-              ragOptions: {
-                ...settings.ragOptions,
-                includePatterns: patterns,
-              },
-            })
+          onChange={(value: string) => {
+            void (async () => {
+              const patterns = value
+                .split('\n')
+                .map((p: string) => p.trim())
+                .filter((p: string) => p.length > 0)
+              await setSettings({
+                ...settings,
+                ragOptions: {
+                  ...settings.ragOptions,
+                  includePatterns: patterns,
+                },
+              })
+            })()
           }}
         />
       </ObsidianSetting>
@@ -88,13 +97,15 @@ export function RAGSection({ app, plugin }: RAGSectionProps) {
       >
         <ObsidianButton
           text="Test patterns"
-          onClick={async () => {
-            const patterns = settings.ragOptions.excludePatterns
-            const excludedFiles = await findFilesMatchingPatterns(
-              patterns,
-              plugin.app.vault,
-            )
-            new ExcludedFilesModal(app, excludedFiles).open()
+          onClick={() => {
+            void (async () => {
+              const patterns = settings.ragOptions.excludePatterns
+              const excludedFiles = findFilesMatchingPatterns(
+                patterns,
+                plugin.app.vault,
+              )
+              new ExcludedFilesModal(app, excludedFiles).open()
+            })()
           }}
         />
       </ObsidianSetting>
@@ -102,18 +113,20 @@ export function RAGSection({ app, plugin }: RAGSectionProps) {
       <ObsidianSetting className="nrlcmp-settings-textarea">
         <ObsidianTextArea
           value={settings.ragOptions.excludePatterns.join('\n')}
-          onChange={async (value) => {
-            const patterns = value
-              .split('\n')
-              .map((p) => p.trim())
-              .filter((p) => p.length > 0)
-            await setSettings({
-              ...settings,
-              ragOptions: {
-                ...settings.ragOptions,
-                excludePatterns: patterns,
-              },
-            })
+          onChange={(value) => {
+            void (async () => {
+              const patterns = value
+                .split('\n')
+                .map((p) => p.trim())
+                .filter((p) => p.length > 0)
+              await setSettings({
+                ...settings,
+                ragOptions: {
+                  ...settings.ragOptions,
+                  excludePatterns: patterns,
+                },
+              })
+            })()
           }}
         />
       </ObsidianSetting>
@@ -125,17 +138,19 @@ export function RAGSection({ app, plugin }: RAGSectionProps) {
         <ObsidianTextInput
           value={String(settings.ragOptions.chunkSize)}
           placeholder="1000"
-          onChange={async (value) => {
-            const chunkSize = parseInt(value, 10)
-            if (!isNaN(chunkSize)) {
-              await setSettings({
-                ...settings,
-                ragOptions: {
-                  ...settings.ragOptions,
-                  chunkSize,
-                },
-              })
-            }
+          onChange={(value) => {
+            void (async () => {
+              const chunkSize = parseInt(value, 10)
+              if (!isNaN(chunkSize)) {
+                await setSettings({
+                  ...settings,
+                  ragOptions: {
+                    ...settings.ragOptions,
+                    chunkSize,
+                  },
+                })
+              }
+            })()
           }}
         />
       </ObsidianSetting>
@@ -147,17 +162,19 @@ export function RAGSection({ app, plugin }: RAGSectionProps) {
         <ObsidianTextInput
           value={String(settings.ragOptions.thresholdTokens)}
           placeholder="8192"
-          onChange={async (value) => {
-            const thresholdTokens = parseInt(value, 10)
-            if (!isNaN(thresholdTokens)) {
-              await setSettings({
-                ...settings,
-                ragOptions: {
-                  ...settings.ragOptions,
-                  thresholdTokens,
-                },
-              })
-            }
+          onChange={(value) => {
+            void (async () => {
+              const thresholdTokens = parseInt(value, 10)
+              if (!isNaN(thresholdTokens)) {
+                await setSettings({
+                  ...settings,
+                  ragOptions: {
+                    ...settings.ragOptions,
+                    thresholdTokens,
+                  },
+                })
+              }
+            })()
           }}
         />
       </ObsidianSetting>
@@ -169,23 +186,25 @@ export function RAGSection({ app, plugin }: RAGSectionProps) {
         <ObsidianTextInput
           value={String(settings.ragOptions.minSimilarity)}
           placeholder="0.0"
-          onChange={async (value) => {
-            // Allow decimal point and numbers only
-            if (!/^[0-9.]*$/.test(value)) return
+          onChange={(value) => {
+            void (async () => {
+              // Allow decimal point and numbers only
+              if (!/^[0-9.]*$/.test(value)) return
 
-            // Ignore typing decimal point to prevent interference with the input
-            if (value === '.' || value.endsWith('.')) return
+              // Ignore typing decimal point to prevent interference with the input
+              if (value === '.' || value.endsWith('.')) return
 
-            const minSimilarity = parseFloat(value)
-            if (!isNaN(minSimilarity)) {
-              await setSettings({
-                ...settings,
-                ragOptions: {
-                  ...settings.ragOptions,
-                  minSimilarity,
-                },
-              })
-            }
+              const minSimilarity = parseFloat(value)
+              if (!isNaN(minSimilarity)) {
+                await setSettings({
+                  ...settings,
+                  ragOptions: {
+                    ...settings.ragOptions,
+                    minSimilarity,
+                  },
+                })
+              }
+            })()
           }}
         />
       </ObsidianSetting>
@@ -197,17 +216,19 @@ export function RAGSection({ app, plugin }: RAGSectionProps) {
         <ObsidianTextInput
           value={String(settings.ragOptions.limit)}
           placeholder="10"
-          onChange={async (value) => {
-            const limit = parseInt(value, 10)
-            if (!isNaN(limit)) {
-              await setSettings({
-                ...settings,
-                ragOptions: {
-                  ...settings.ragOptions,
-                  limit,
-                },
-              })
-            }
+          onChange={(value) => {
+            void (async () => {
+              const limit = parseInt(value, 10)
+              if (!isNaN(limit)) {
+                await setSettings({
+                  ...settings,
+                  ragOptions: {
+                    ...settings.ragOptions,
+                    limit,
+                  },
+                })
+              }
+            })()
           }}
         />
       </ObsidianSetting>
