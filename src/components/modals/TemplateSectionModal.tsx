@@ -16,6 +16,7 @@ export class TemplateSectionModal extends ReactModal<TemplateSectionProps> {
         app,
       },
     })
-    this.modalEl.style.width = '720px'
+    // Fix: Use setCssProps instead of direct style manipulation
+    this.modalEl.setCssProps({ width: '720px' })
   }
 }
