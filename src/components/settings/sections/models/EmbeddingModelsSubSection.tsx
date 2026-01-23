@@ -19,10 +19,11 @@ export function EmbeddingModelsSubSection({
 }: EmbeddingModelsSubSectionProps) {
   const { settings, setSettings } = useSettings()
 
-  const handleDeleteEmbeddingModel = async (modelId: string) => {
+  // Removed 'async' as opening a modal is synchronous and we don't await the result here
+  const handleDeleteEmbeddingModel = (modelId: string) => {
     if (modelId === settings.embeddingModelId) {
       new Notice(
-        'Cannot remove model that is currently selected as Embedding Model',
+        'Cannot remove model that is currently selected as embedding model',
       )
       return
     }
@@ -32,7 +33,7 @@ export function EmbeddingModelsSubSection({
       `This will also delete all embeddings generated using this model from the database.`
 
     new ConfirmModal(app, {
-      title: 'Delete Embedding Model',
+      title: 'Delete embedding model', // Sentence case
       message: message,
       ctaText: 'Delete',
       onConfirm: async () => {
@@ -61,7 +62,7 @@ export function EmbeddingModelsSubSection({
 
   return (
     <div>
-      <div className="nrlcmp-settings-sub-header">Embedding Models</div>
+      <div className="nrlcmp-settings-sub-header">Embedding models</div>
       <div className="nrlcmp-settings-desc">
         Models used for generating embeddings for RAG
       </div>
