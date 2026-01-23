@@ -20,7 +20,8 @@ export class McpSectionModal extends ReactModal<McpSectionComponentProps> {
         plugin,
       },
     })
-    this.modalEl.style.width = '720px'
+    // Fix: Use setCssProps instead of direct style manipulation
+    this.modalEl.setCssProps({ width: '720px' })
   }
 }
 
