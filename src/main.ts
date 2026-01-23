@@ -121,9 +121,9 @@ export default class NeuralComposerPlugin extends Plugin {
     // --- QUICK RESTART COMMAND ---
     this.addCommand({
       id: 'restart-neural-backend',
-      name: '♻️ Restart Neural backend (LightRAG)',
-      callback: async () => {
-        await this.restartLightRagServer();
+      name: '♻️ Restart neural backend (LightRAG)',
+      callback: () => {
+        this.restartLightRagServer();
       },
     });
 
@@ -133,7 +133,7 @@ export default class NeuralComposerPlugin extends Plugin {
         if (file instanceof TFolder) {
           menu.addItem((item) => {
             item
-              .setTitle('🧠 Ingest Folder into Graph')
+              .setTitle('🧠 Ingest folder into graph')
               .setIcon('layers')
               .onClick(() => {
                 void this.batchIngestFolder(file);
@@ -146,7 +146,7 @@ export default class NeuralComposerPlugin extends Plugin {
     // --- SINGLE FILE INGEST COMMAND ---
     this.addCommand({
       id: 'ingest-current-file',
-      name: '🧠 Ingest current file into Knowledge Graph',
+      name: '🧠 Ingest current file into knowledge graph',
       checkCallback: (checking: boolean) => {
         const file = this.app.workspace.getActiveFile();
         if (!file || !SUPPORTED_EXTENSIONS.includes(file.extension.toLowerCase())) {
@@ -348,12 +348,12 @@ export default class NeuralComposerPlugin extends Plugin {
     }
   }
 
-  public async restartLightRagServer() {
+  public restartLightRagServer() {
     new Notice("🔄 Restarting System Backend...");
     this.stopLightRagServer();
     // Use timeout to allow process to fully die
-    this.timeoutIds.push(setTimeout(async () => {
-        await this.updateEnvFile();
+    this.timeoutIds.push(setTimeout(() => {
+        this.updateEnvFile();
         void this.startLightRagServer();
     }, 2000));
   }
@@ -478,14 +478,16 @@ export default class NeuralComposerPlugin extends Plugin {
       try {
           const envPath = path.join(workDir, '.env');
           fs.writeFileSync(envPath, content);
-          await this.restartLightRagServer();
+          // restartLightRagServer is now sync/void, but wraps async logic internally.
+          // We can just call it.
+          this.restartLightRagServer();
       } catch (e) {
           new Notice("Error saving .env file");
           console.error(e);
       }
   }
 
-  public async updateEnvFile() {
+  public updateEnvFile() {
       const content = this.generateEnvConfig();
       const workDir = this.settings.lightRagWorkDir;
       if (workDir && content) {
@@ -523,7 +525,7 @@ export default class NeuralComposerPlugin extends Plugin {
         return;
     }
 
-    await this.updateEnvFile();
+    this.updateEnvFile();
 
     const isAlive = await this.isPortInUse(9621);
     if (isAlive) {
@@ -662,9 +664,9 @@ export default class NeuralComposerPlugin extends Plugin {
   }
 
   // --- BYPASS ---
-  async getDbManager(): Promise<DatabaseManager> { 
-      // Safe casting since we know the interface structure but don't need implementation yet
-      return {} as DatabaseManager; 
+  getDbManager(): Promise<DatabaseManager> { 
+      // Changed to return Promise.resolve to satisfy interface without async keyword overhead for mock
+      return Promise.resolve({} as DatabaseManager); 
   }
 
   async getRAGEngine(): Promise<RAGEngine> {
@@ -674,7 +676,8 @@ export default class NeuralComposerPlugin extends Plugin {
         try {
           this.ragEngine = new RAGEngine(
             this.app, this.settings, {} as any,
-            async () => { await this.restartLightRagServer(); }
+            // Updated to use the now sync method wrapped in lambda if needed, but here we can just call it
+            async () => { this.restartLightRagServer(); }
           );
           return this.ragEngine;
         } catch (error) {
@@ -706,7 +709,7 @@ export default class NeuralComposerPlugin extends Plugin {
     const sourcePath = this.settings.lightRagOntologyFolder;
     
     if (!sourcePath) {
-        new Notice("⚠️ Please define an 'Ontology Source Folder' first.");
+        new Notice("⚠️ Please define an 'Ontology source folder' first.");
         return null;
     }
 
@@ -766,7 +769,7 @@ export default class NeuralComposerPlugin extends Plugin {
             });
             
             new Notice("✅ Ontology Generated!");
-            await this.updateEnvFile();
+            this.updateEnvFile();
             
             return cleanTypes; 
         }
