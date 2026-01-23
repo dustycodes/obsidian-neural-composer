@@ -44,7 +44,6 @@ export class RAGEngine {
     })
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await
   async updateVaultIndex(
     options: { reindexAll: boolean } = { reindexAll: false },
     onQueryProgressChange?: (queryProgress: QueryProgressState) => void,
