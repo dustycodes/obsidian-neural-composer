@@ -1,7 +1,7 @@
 import { minimatch } from 'minimatch'
 import { Vault } from 'obsidian'
 
-export const findFilesMatchingPatterns = async (
+export const findFilesMatchingPatterns = (
   patterns: string[],
   vault: Vault,
 ) => {
