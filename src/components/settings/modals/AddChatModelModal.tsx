@@ -23,7 +23,7 @@ export class AddChatModelModal extends ReactModal<AddChatModelModalComponentProp
       Component: AddChatModelModalComponent,
       props: { plugin },
       options: {
-        title: 'Add Custom Chat Model',
+        title: 'Add custom chat model', // Sentence case
       },
     })
   }
@@ -112,7 +112,7 @@ function AddChatModelModalComponent({
         />
       </ObsidianSetting>
 
-      <ObsidianSetting name="Model Name" required>
+      <ObsidianSetting name="Model name" required> {/* Sentence case */}
         <ObsidianTextInput
           value={formData.model}
           placeholder="Enter the model name"
@@ -123,7 +123,7 @@ function AddChatModelModalComponent({
       </ObsidianSetting>
 
       <ObsidianSetting
-        name="Prompt Level"
+        name="Prompt level" // Sentence case
         desc={`Choose how complex the system prompt should be. Select "simple" for small models that ignore user questions and just repeat back instructions.`}
         required
       >
@@ -143,7 +143,8 @@ function AddChatModelModalComponent({
       </ObsidianSetting>
 
       <ObsidianSetting>
-        <ObsidianButton text="Add" onClick={handleSubmit} cta />
+        {/* Fix: Wrapped async handler to satisfy linter */}
+        <ObsidianButton text="Add" onClick={() => void handleSubmit()} cta />
         <ObsidianButton text="Cancel" onClick={onClose} />
       </ObsidianSetting>
     </>

@@ -28,7 +28,7 @@ export class AddEmbeddingModelModal extends ReactModal<AddEmbeddingModelModalCom
       Component: AddEmbeddingModelModalComponent,
       props: { plugin },
       options: {
-        title: 'Add Custom Embedding Model',
+        title: 'Add custom embedding model', // Sentence case
       },
     })
   }
@@ -80,7 +80,7 @@ function AddEmbeddingModelModalComponent({
       if (!supportedDimensionsForIndex.includes(dimension)) {
         const confirmed = await new Promise<boolean>((resolve) => {
           new ConfirmModal(plugin.app, {
-            title: 'Performance Warning',
+            title: 'Performance warning', // Sentence case
             message: `This model outputs ${dimension} dimensions, but the optimized dimensions for database indexing are: ${supportedDimensionsForIndex.join(
               ', ',
             )}.\n\nThis may result in slower search performance.\n\nDo you want to continue anyway?`,
@@ -164,7 +164,7 @@ function AddEmbeddingModelModalComponent({
         />
       </ObsidianSetting>
 
-      <ObsidianSetting name="Model Name" required>
+      <ObsidianSetting name="Model name" required> {/* Sentence case */}
         <ObsidianTextInput
           value={formData.model}
           placeholder="Enter the model name"
@@ -175,7 +175,8 @@ function AddEmbeddingModelModalComponent({
       </ObsidianSetting>
 
       <ObsidianSetting>
-        <ObsidianButton text="Add" onClick={handleSubmit} cta />
+        {/* Fix: Wrapped async handler to satisfy linter */}
+        <ObsidianButton text="Add" onClick={() => void handleSubmit()} cta />
         <ObsidianButton text="Cancel" onClick={onClose} />
       </ObsidianSetting>
     </>
