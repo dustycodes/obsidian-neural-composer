@@ -26,7 +26,7 @@ export class ChatModelSettingsModal extends ReactModal<SettingsComponentProps> {
         : () => <div>No settings available for this model</div>,
       props: { model, plugin },
       options: {
-        title: `Edit Chat Model: ${model.id}`,
+        title: `Edit chat model: ${model.id}`, // Sentence case
       },
     })
   }
@@ -104,7 +104,7 @@ const MODEL_SETTINGS_REGISTRY: ModelSettingsRegistry[] = [
           </ObsidianSetting>
           {reasoningEnabled && (
             <ObsidianSetting
-              name="Reasoning Effort"
+              name="Reasoning effort" // Sentence case
               desc={`Controls how much thinking the model does before responding. Default is "medium".`}
               className="nrlcmp-setting-item--nested"
               required
@@ -122,7 +122,8 @@ const MODEL_SETTINGS_REGISTRY: ModelSettingsRegistry[] = [
           )}
 
           <ObsidianSetting>
-            <ObsidianButton text="Save" onClick={handleSubmit} cta />
+            {/* Fix: Handle floating promise with void wrapper */}
+            <ObsidianButton text="Save" onClick={() => void handleSubmit()} cta />
             <ObsidianButton text="Cancel" onClick={onClose} />
           </ObsidianSetting>
         </>
@@ -192,7 +193,7 @@ const MODEL_SETTINGS_REGISTRY: ModelSettingsRegistry[] = [
       return (
         <>
           <ObsidianSetting
-            name="Extended Thinking"
+            name="Extended thinking" // Sentence case
             desc="Enable extended thinking for Claude. Available for Claude Sonnet 3.7+ and Claude Opus 4.0+."
           >
             <ObsidianToggle
@@ -202,7 +203,7 @@ const MODEL_SETTINGS_REGISTRY: ModelSettingsRegistry[] = [
           </ObsidianSetting>
           {thinkingEnabled && (
             <ObsidianSetting
-              name="Budget Tokens"
+              name="Budget tokens" // Sentence case
               desc="The maximum number of tokens that Claude can use for thinking. Must be at least 1024."
               className="nrlcmp-setting-item--nested"
               required
@@ -217,7 +218,8 @@ const MODEL_SETTINGS_REGISTRY: ModelSettingsRegistry[] = [
           )}
 
           <ObsidianSetting>
-            <ObsidianButton text="Save" onClick={handleSubmit} cta />
+            {/* Fix: Handle floating promise with void wrapper */}
+            <ObsidianButton text="Save" onClick={() => void handleSubmit()} cta />
             <ObsidianButton text="Cancel" onClick={onClose} />
           </ObsidianSetting>
         </>
@@ -271,7 +273,7 @@ const MODEL_SETTINGS_REGISTRY: ModelSettingsRegistry[] = [
       return (
         <>
           <ObsidianSetting
-            name="Search Context Size"
+            name="Search context size" // Sentence case
             desc={`Determines how much search context is retrieved for the model. Choose "low" for minimal context and lower costs, "medium" for a balanced approach, or "high" for maximum context at higher cost. Default is "low".`}
           >
             <ObsidianDropdown
@@ -286,7 +288,8 @@ const MODEL_SETTINGS_REGISTRY: ModelSettingsRegistry[] = [
           </ObsidianSetting>
 
           <ObsidianSetting>
-            <ObsidianButton text="Save" onClick={handleSubmit} cta />
+            {/* Fix: Handle floating promise with void wrapper */}
+            <ObsidianButton text="Save" onClick={() => void handleSubmit()} cta />
             <ObsidianButton text="Cancel" onClick={onClose} />
           </ObsidianSetting>
         </>
