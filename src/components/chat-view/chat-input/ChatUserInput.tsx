@@ -199,7 +199,10 @@ const ChatUserInput = forwardRef<ChatUserInputRef, ChatUserInputProps>(
 
     const handleSubmit = (options: { useVaultSearch?: boolean } = {}) => {
       const content = editorRef.current?.getEditorState()?.toJSON()
-      content && onSubmit(content, options.useVaultSearch)
+      // Fix: Use explicit if instead of && expression
+      if (content) {
+        onSubmit(content, options.useVaultSearch)
+      }
     }
 
     return (
@@ -304,7 +307,8 @@ const ChatUserInput = forwardRef<ChatUserInputRef, ChatUserInputProps>(
   {/* ------------------------------------------- */}
 </div>
           <div className="nrlcmp-chat-user-input-controls__buttons">
-            <ImageUploadButton onUpload={handleUploadImages} />
+            {/* Fix: Wrapped in void function to handle floating promise */}
+            <ImageUploadButton onUpload={(files) => void handleUploadImages(files)} />
             <SubmitButton onClick={() => handleSubmit()} />
             <VaultChatButton
               onClick={() => {
