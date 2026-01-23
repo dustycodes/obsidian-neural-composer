@@ -19,6 +19,8 @@ import forceAtlas2 from 'graphology-layout-forceatlas2';
 import FA2Layout from 'graphology-layout-forceatlas2/worker'; 
 import ForceGraph3D from '3d-force-graph'; 
 import { MergeSelectionModal } from '../components/modals/MergeSelectionModal';
+// Use type import to avoid circular dependency values but get the type
+import type NeuralComposerPlugin from '../main';
 
 export const NATIVE_GRAPH_VIEW_TYPE = 'neural-native-graph';
 
@@ -78,13 +80,22 @@ interface GraphMLParsed {
     }
 }
 
+// Interfaces for external untyped libraries
+interface FA2LayoutInstance {
+    start: () => void;
+    stop: () => void;
+    isRunning: () => boolean;
+    kill: () => void;
+}
+
 export class NativeGraphView extends ItemView {
-  private plugin: any; 
+  private plugin: NeuralComposerPlugin; 
   private graphDataPath: string;
   private workDir: string;
   
   private sigmaInstance: Sigma | null = null;
-  private fa2Layout: any = null;
+  private fa2Layout: FA2LayoutInstance | null = null;
+  // 3d-force-graph does not have official types and is a complex chainable instance
   private graph3D: any = null;
   
   private graph: Graph | null = null;
@@ -101,7 +112,7 @@ export class NativeGraphView extends ItemView {
   private allNodes: GraphNode[] = [];
   private filteredNodes: GraphNode[] = [];
 
-  constructor(leaf: WorkspaceLeaf, plugin: any) {
+  constructor(leaf: WorkspaceLeaf, plugin: NeuralComposerPlugin) {
     super(leaf);
     this.plugin = plugin;
     this.workDir = plugin.settings.lightRagWorkDir;
@@ -112,7 +123,7 @@ export class NativeGraphView extends ItemView {
   getDisplayText() { return 'Neural manager'; }
   getIcon() { return 'brain-circuit'; }
 
-  async onOpen() {
+  onOpen() {
     const container = this.contentEl;
     container.empty();
     
@@ -148,9 +159,8 @@ export class NativeGraphView extends ItemView {
     }, 100);
   }
 
-  async onClose() {
+  onClose() {
       this.cleanup();
-      // Added await to satisfy interface if strictly required, or Promise.resolve
       return Promise.resolve();
   }
 
@@ -176,7 +186,8 @@ export class NativeGraphView extends ItemView {
 
   getFilenames(sourceIds: string): string[] {
       if (!sourceIds) return [];
-      const chunks = sourceIds.split(new RegExp('<SEP>|,')).map(s => s.trim().replace(/['"\[\]]/g, '')).filter(Boolean);
+      // Fixed Regex: Removed unnecessary escape of '['
+      const chunks = sourceIds.split(new RegExp('<SEP>|,')).map(s => s.trim().replace(/['"[\]]/g, '')).filter(Boolean);
       const fileNames = new Set<string>();
       chunks.forEach(chunkId => {
           const chunkData = this.chunkToDocMap[chunkId];
@@ -576,11 +587,13 @@ export class NativeGraphView extends ItemView {
         viewMode.addClass('nrlcmp-visible');
     };
     
-    saveBtn.buttonEl.onclick = async () => {
+    saveBtn.buttonEl.onclick = () => {
         const newName = nameInput.value.trim();
         if(newName) {
-            await this.updateNode(node.id, { entity_name: newName, entity_type: typeInput.value.trim(), description: descInput.value.trim() });
-            if(this.detailsPanel) this.detailsPanel.removeClass('nrlcmp-visible');
+            void (async () => {
+                await this.updateNode(node.id, { entity_name: newName, entity_type: typeInput.value.trim(), description: descInput.value.trim() });
+                if(this.detailsPanel) this.detailsPanel.removeClass('nrlcmp-visible');
+            })();
         }
     };
 
@@ -605,7 +618,8 @@ export class NativeGraphView extends ItemView {
           if (response.status === 200) { 
               new Notice("✅ Node updated!"); 
               setTimeout(() => { 
-                   this.render(this.contentEl.querySelector('#sigma-container') as HTMLElement); 
+                   const container = this.contentEl.querySelector('#sigma-container');
+                   if (container instanceof HTMLElement) this.render(container);
               }, 1500); 
           } else { 
               new Notice(`Error updating: ${response.text}`); 
@@ -707,7 +721,7 @@ export class NativeGraphView extends ItemView {
       }
   }
   
-  async mergeSelectedNodes() {
+  mergeSelectedNodes() {
       const targets = Array.from(this.selectedNodes);
       if (targets.length < 2) { new Notice("Select 2+ nodes"); return; }
       
@@ -724,7 +738,10 @@ export class NativeGraphView extends ItemView {
               if (response.status === 200) { 
                   new Notice("✅ Merged!"); 
                   this.selectedNodes.clear(); 
-                  setTimeout(() => { this.render(this.contentEl.querySelector('#sigma-container') as HTMLElement); }, 1000); 
+                  setTimeout(() => { 
+                      const container = this.contentEl.querySelector('#sigma-container');
+                      if (container instanceof HTMLElement) this.render(container);
+                  }, 1000); 
               } else { 
                   new Notice(`Error: ${response.text}`); 
               }
@@ -732,7 +749,7 @@ export class NativeGraphView extends ItemView {
       }).open();
   }
 
-  async deleteSelectedNodes() {
+  deleteSelectedNodes() {
       const targets = Array.from(this.selectedNodes);
       if (targets.length === 0) return;
       
@@ -748,7 +765,10 @@ export class NativeGraphView extends ItemView {
               }
               new Notice("Deleted!"); 
               this.selectedNodes.clear();
-              setTimeout(() => { this.render(this.contentEl.querySelector('#sigma-container') as HTMLElement); }, 1000);
+              setTimeout(() => { 
+                   const container = this.contentEl.querySelector('#sigma-container');
+                   if (container instanceof HTMLElement) this.render(container); 
+              }, 1000);
           } catch (e) { console.error(e); new Notice("Error deleting nodes"); }
       }).open();
   }
@@ -798,9 +818,11 @@ class ConfirmationModal extends Modal {
         new ButtonComponent(btnContainer)
             .setButtonText('Confirm')
             .setWarning()
-            .onClick(async () => {
-                await this.onConfirm();
-                this.close();
+            .onClick(() => {
+                void (async () => {
+                    await this.onConfirm();
+                    this.close();
+                })();
             });
     }
 
