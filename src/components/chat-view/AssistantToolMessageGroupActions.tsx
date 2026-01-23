@@ -1,5 +1,5 @@
 import * as Tooltip from '@radix-ui/react-tooltip'
-import { Check, CopyIcon, Pencil } from 'lucide-react' // <--- Agregamos Pencil
+import { Check, CopyIcon, Pencil } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import {
@@ -43,7 +43,8 @@ function CopyButton({ messages }: { messages: AssistantToolMessageGroup }) {
       <Tooltip.Root>
         <Tooltip.Trigger asChild>
           <button
-            onClick={copied ? undefined : handleCopy}
+            // Fix: Handle floating promise
+            onClick={copied ? undefined : () => void handleCopy()}
             className="clickable-icon"
             aria-label="Copy"
           >
