@@ -24,8 +24,8 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
       .addToggle((toggle) =>
         toggle
           .setValue(plugin.settings.enableAutoStartServer)
-          .onChange(async (value) => {
-            await plugin.setSettings({ ...plugin.settings, enableAutoStartServer: value });
+          .onChange((value) => {
+             void plugin.setSettings({ ...plugin.settings, enableAutoStartServer: value });
           }),
       );
 
@@ -37,8 +37,8 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
         text
           .setPlaceholder('D:\\...\\lightrag-server.exe')
           .setValue(plugin.settings.lightRagCommand)
-          .onChange(async (value) => {
-            await plugin.setSettings({ ...plugin.settings, lightRagCommand: value });
+          .onChange((value) => {
+             void plugin.setSettings({ ...plugin.settings, lightRagCommand: value });
           }),
       );
 
@@ -49,10 +49,12 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
         text
           .setPlaceholder('D:\\...\\cora_graph_memory')
           .setValue(plugin.settings.lightRagWorkDir)
-          .onChange(async (value) => {
-            await plugin.setSettings({ ...plugin.settings, lightRagWorkDir: value });
-            // updateEnvFile is now sync but wrapped for safety if needed
-            plugin.updateEnvFile(); 
+          .onChange((value) => {
+            // Usamos una IIFE o bloque para agrupar lógica asíncrona dentro de void
+            void (async () => {
+                await plugin.setSettings({ ...plugin.settings, lightRagWorkDir: value });
+                plugin.updateEnvFile();
+            })();
           }),
       );
 
@@ -66,9 +68,11 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
         });
         dropdown.addOption('', 'Same as chat model (default)');
         dropdown.setValue(plugin.settings.lightRagModelId || '');
-        dropdown.onChange(async (value) => {
-          await plugin.setSettings({ ...plugin.settings, lightRagModelId: value });
-          plugin.updateEnvFile();
+        dropdown.onChange((value) => {
+          void (async () => {
+            await plugin.setSettings({ ...plugin.settings, lightRagModelId: value });
+            plugin.updateEnvFile();
+          })();
         });
       });
 
@@ -84,12 +88,14 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
         dropdown.addOption('', 'Same as chat model (default)');
         dropdown.setValue(plugin.settings.lightRagEmbeddingModelId || '');
 
-        dropdown.onChange(async (value) => {
-          await plugin.setSettings({
-            ...plugin.settings,
-            lightRagEmbeddingModelId: value,
-          });
-           plugin.updateEnvFile(); 
+        dropdown.onChange((value) => {
+           void (async () => {
+              await plugin.setSettings({
+                ...plugin.settings,
+                lightRagEmbeddingModelId: value,
+              });
+              plugin.updateEnvFile(); 
+           })();
         });
       });
 
@@ -101,9 +107,11 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
         text
           .setPlaceholder('English')
           .setValue(plugin.settings.lightRagSummaryLanguage)
-          .onChange(async (value) => {
-            await plugin.setSettings({ ...plugin.settings, lightRagSummaryLanguage: value });
-            plugin.updateEnvFile();
+          .onChange((value) => {
+            void (async () => {
+                await plugin.setSettings({ ...plugin.settings, lightRagSummaryLanguage: value });
+                plugin.updateEnvFile();
+            })();
           }),
       );
 
@@ -114,8 +122,8 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
       .addToggle((toggle) =>
         toggle
           .setValue(plugin.settings.lightRagShowCitations)
-          .onChange(async (value) => {
-            await plugin.setSettings({ ...plugin.settings, lightRagShowCitations: value });
+          .onChange((value) => {
+             void plugin.setSettings({ ...plugin.settings, lightRagShowCitations: value });
           }),
       );
 
@@ -128,13 +136,15 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
       .addToggle((toggle) =>
         toggle
           .setValue(useCustomOntology)
-          .onChange(async (value) => {
-            await plugin.setSettings({
-              ...plugin.settings,
-              useCustomEntityTypes: value,
-            });
-            setUseCustomOntology(value); 
-            plugin.updateEnvFile();
+          .onChange((value) => {
+             void (async () => {
+                await plugin.setSettings({
+                  ...plugin.settings,
+                  useCustomEntityTypes: value,
+                });
+                setUseCustomOntology(value); 
+                plugin.updateEnvFile();
+             })();
           }),
       );
 
@@ -142,12 +152,15 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
     if (useCustomOntology) {
         const warningDiv = container.createDiv({ cls: 'nrlcmp-setting-warning' });
         
-        warningDiv.createEl('strong', { text: '⚠️ CRITICAL WARNING:' });
+        // FIX: Sentence case
+        warningDiv.createEl('strong', { text: '⚠️ Critical warning:' });
         warningDiv.createEl('br');
-        warningDiv.createSpan({ text: 'Changing Entity Types fundamentally alters how the Graph is built.' });
+        // FIX: Sentence case (Entity Types -> entity types)
+        warningDiv.createSpan({ text: 'Changing entity types fundamentally alters how the graph is built.' });
         warningDiv.createEl('br');
+        // FIX: Sentence case (Graph Data folder -> graph data folder)
         warningDiv.createSpan({ text: 'If you already have data ingested, you ' });
-        warningDiv.createEl('strong', { text: 'MUST delete your Graph Data folder' });
+        warningDiv.createEl('strong', { text: 'MUST delete your graph data folder' });
         warningDiv.createSpan({ text: ' and re-ingest all documents.' });
 
         new Setting(container)
@@ -157,8 +170,8 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
             text
               .setPlaceholder('Main/Memories')
               .setValue(plugin.settings.lightRagOntologyFolder)
-              .onChange(async (value) => {
-                await plugin.setSettings({ ...plugin.settings, lightRagOntologyFolder: value });
+              .onChange((value) => {
+                 void plugin.setSettings({ ...plugin.settings, lightRagOntologyFolder: value });
               }),
           );
 
@@ -171,22 +184,26 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
             button
               .setButtonText('✨ Analyze & generate')
               .setCta()
-              .onClick(async () => {
-                 const newTypes = await plugin.generateEntityTypes();
-                 if (newTypes && typesTextArea) {
-                     typesTextArea.value = newTypes;
-                     typesTextArea.dispatchEvent(new Event('change'));
-                 }
+              .onClick(() => { // Removed async
+                 void (async () => { // Wrapped in void async IIFE
+                     const newTypes = await plugin.generateEntityTypes();
+                     if (newTypes && typesTextArea) {
+                         typesTextArea.value = newTypes;
+                         typesTextArea.dispatchEvent(new Event('change'));
+                     }
+                 })();
               })
           );
 
         const textAreaContainer = container.createDiv({ cls: 'nrlcmp-textarea-container' });
         typesTextArea = textAreaContainer.createEl('textarea', { cls: 'nrlcmp-setting-textarea' });
         typesTextArea.value = plugin.settings.lightRagEntityTypes;
-        typesTextArea.onchange = async (e) => {
+        typesTextArea.onchange = (e) => { // Removed async
             const target = e.target as HTMLTextAreaElement;
-            await plugin.setSettings({ ...plugin.settings, lightRagEntityTypes: target.value });
-            plugin.updateEnvFile();
+            void (async () => { // Wrapped
+                await plugin.setSettings({ ...plugin.settings, lightRagEntityTypes: target.value });
+                plugin.updateEnvFile();
+            })();
         };
     }
 
@@ -204,18 +221,20 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
         
         dropdown.setValue(currentRerankBinding === 'jina' || currentRerankBinding === 'cohere' ? currentRerankBinding : (currentRerankBinding ? 'custom' : ''));
         
-        dropdown.onChange(async (value) => {
-          const newModel = value === 'jina' ? 'jina-reranker-v2-base-multilingual' : 
-                           value === 'cohere' ? 'rerank-v3.5' : 
-                           plugin.settings.lightRagRerankModel; 
+        dropdown.onChange((value) => {
+          void (async () => {
+              const newModel = value === 'jina' ? 'jina-reranker-v2-base-multilingual' : 
+                               value === 'cohere' ? 'rerank-v3.5' : 
+                               plugin.settings.lightRagRerankModel; 
 
-          await plugin.setSettings({
-            ...plugin.settings,
-            lightRagRerankBinding: value,
-            lightRagRerankModel: newModel
-          });
-          plugin.updateEnvFile();
-          setCurrentRerankBinding(value); 
+              await plugin.setSettings({
+                ...plugin.settings,
+                lightRagRerankBinding: value,
+                lightRagRerankModel: newModel
+              });
+              plugin.updateEnvFile();
+              setCurrentRerankBinding(value); 
+          })();
         });
       });
 
@@ -229,9 +248,11 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
             text
             .setPlaceholder('Model Name')
             .setValue(plugin.settings.lightRagRerankModel)
-            .onChange(async (value) => {
-                await plugin.setSettings({ ...plugin.settings, lightRagRerankModel: value });
-                plugin.updateEnvFile();
+            .onChange((value) => {
+                void (async () => {
+                    await plugin.setSettings({ ...plugin.settings, lightRagRerankModel: value });
+                    plugin.updateEnvFile();
+                })();
             })
         );
 
@@ -243,9 +264,11 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
             text
             .setPlaceholder('sk-...')
             .setValue(plugin.settings.lightRagRerankApiKey)
-            .onChange(async (value) => {
-                await plugin.setSettings({ ...plugin.settings, lightRagRerankApiKey: value });
-                plugin.updateEnvFile();
+            .onChange((value) => {
+                void (async () => {
+                    await plugin.setSettings({ ...plugin.settings, lightRagRerankApiKey: value });
+                    plugin.updateEnvFile();
+                })();
             })
         );
         
@@ -258,9 +281,11 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
                 text
                 .setPlaceholder('http://localhost:8000/v1/rerank')
                 .setValue(plugin.settings.lightRagRerankHost || '') 
-                .onChange(async (value) => {
-                    await plugin.setSettings({ ...plugin.settings, lightRagRerankHost: value });
-                    plugin.updateEnvFile();
+                .onChange((value) => {
+                    void (async () => {
+                        await plugin.setSettings({ ...plugin.settings, lightRagRerankHost: value });
+                        plugin.updateEnvFile();
+                    })();
                 })
             );
             
@@ -272,9 +297,11 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
                 text
                 .setPlaceholder('cohere')
                 .setValue(plugin.settings.lightRagRerankBindingType || 'cohere') 
-                .onChange(async (value) => {
-                    await plugin.setSettings({ ...plugin.settings, lightRagRerankBindingType: value });
-                    plugin.updateEnvFile();
+                .onChange((value) => {
+                    void (async () => {
+                        await plugin.setSettings({ ...plugin.settings, lightRagRerankBindingType: value });
+                        plugin.updateEnvFile();
+                    })();
                 })
             );
         }
@@ -302,8 +329,8 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
             text
                 .setPlaceholder('MAX_TOTAL_TOKENS=30000\nLLM_TIMEOUT=180\n...')
                 .setValue(plugin.settings.lightRagCustomEnv)
-                .onChange(async (value) => {
-                    await plugin.setSettings({ ...plugin.settings, lightRagCustomEnv: value });
+                .onChange((value) => { // Removed async
+                    void plugin.setSettings({ ...plugin.settings, lightRagCustomEnv: value });
                 });
             text.inputEl.addClass('nrlcmp-env-textarea');
         });
@@ -314,12 +341,13 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
         .setDesc('Paste the full list of available LightRAG variables (commented out) into the box above.')
         .addButton(btn => btn
             .setButtonText('📥 Insert template')
-            .onClick(async () => {
-                if (plugin.settings.lightRagCustomEnv.length > 50) {
-                     new Notice("Overwriting existing custom configuration...");
-                }
-                
-                const template = `# --- Query Configuration ---
+            .onClick(() => { // Removed async
+                void (async () => { // Wrapped
+                    if (plugin.settings.lightRagCustomEnv.length > 50) {
+                        new Notice("Overwriting existing custom configuration...");
+                    }
+                    
+                    const template = `# --- Query Configuration ---
 # ENABLE_LLM_CACHE=true
 # TOP_K=40
 # CHUNK_TOP_K=20
@@ -339,10 +367,11 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
 # LIGHTRAG_KV_STORAGE=JsonKVStorage
 # LIGHTRAG_VECTOR_STORAGE=NanoVectorDBStorage
 `;
-                await plugin.setSettings({ ...plugin.settings, lightRagCustomEnv: template });
-                
-                const ta = advancedContainer.querySelector('textarea');
-                if(ta) ta.value = template;
+                    await plugin.setSettings({ ...plugin.settings, lightRagCustomEnv: template });
+                    
+                    const ta = advancedContainer.querySelector('textarea');
+                    if(ta) ta.value = template;
+                })();
             })
         );
 
@@ -350,14 +379,13 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
     new Setting(container)
       .setName('⚠️ Apply changes & restart')
       .setDesc('You MUST restart the server after changing ANY setting above to apply the new configuration (.env).')
-      .setClass('nrlcmp-restart-setting') // CSS Class handles border/padding/bg
+      .setClass('nrlcmp-restart-setting') 
       .addButton((button) =>
         button
           .setButtonText('Restart server now')
           .setCta()
-          .onClick(async () => {
+          .onClick(() => { // Removed async completely as restartLightRagServer is void
             new Notice("Restarting server...");
-            // restartLightRagServer is void/sync wrapper now, but we can treat it as async in logic flow
             plugin.restartLightRagServer();
           }),
       );
@@ -385,8 +413,8 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
         dropdown.addOption('2d', '2D - Fast & clean');
         dropdown.addOption('3d', '3D - Immersive - uses GPU');
         dropdown.setValue(plugin.settings.graphViewMode);
-        dropdown.onChange(async (value) => {
-          await plugin.setSettings({
+        dropdown.onChange((value) => { // Removed async
+          void plugin.setSettings({
             ...plugin.settings,
             graphViewMode: value as '2d' | '3d',
           });
