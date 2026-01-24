@@ -29,8 +29,9 @@ export function ChatModelsSubSection({
   // Removed async keyword as opening modal is synchronous
   const handleDeleteChatModel = (modelId: string) => {
     if (modelId === settings.chatModelId || modelId === settings.applyModelId) {
+      // Fix: Sentence case ("Chat model" -> "chat model")
       new Notice(
-        'Cannot remove model that is currently selected as Chat model or Apply model',
+        'Cannot remove model that is currently selected as chat model or apply model',
       )
       return
     }
@@ -60,8 +61,9 @@ export function ChatModelsSubSection({
       !value &&
       (modelId === settings.chatModelId || modelId === settings.applyModelId)
     ) {
+      // Fix: Sentence case ("Chat model" -> "chat model")
       new Notice(
-        'Cannot disable model that is currently selected as Chat model or Apply model',
+        'Cannot disable model that is currently selected as chat model or apply model',
       )
 
       // to trigger re-render
