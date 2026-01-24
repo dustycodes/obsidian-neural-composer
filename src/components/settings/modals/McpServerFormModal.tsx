@@ -27,7 +27,7 @@ export class AddMcpServerModal extends ReactModal<McpServerFormComponentProps> {
       Component: McpServerFormComponent,
       props: { plugin },
       options: {
-        title: 'Add MCP server',
+        title: 'Add MCP server', // /skip for MCP
       },
     })
   }
@@ -40,7 +40,7 @@ export class EditMcpServerModal extends ReactModal<McpServerFormComponentProps> 
       Component: McpServerFormComponent,
       props: { plugin, serverId: editServerId },
       options: {
-        title: 'Edit MCP server',
+        title: 'Edit MCP server', // /skip for MCP
       },
     })
   }
@@ -214,7 +214,8 @@ function McpServerFormComponent({
       )}
 
       <ObsidianSetting>
-        <ObsidianButton text="Save" onClick={() => void handleSubmit()} cta />
+        {/* FIX: Usamos un bloque explícito { void ... } para evitar errores de linter */}
+        <ObsidianButton text="Save" onClick={() => { void handleSubmit(); }} cta />
         <ObsidianButton text="Cancel" onClick={onClose} />
       </ObsidianSetting>
     </>
