@@ -1,4 +1,4 @@
-import { App, Modal, ButtonComponent, Setting, Notice } from 'obsidian';
+import { App, Modal, ButtonComponent, Notice } from 'obsidian'; // Eliminado 'Setting'
 import NeuralComposerPlugin from '../../main';
 
 export class EnvEditorModal extends Modal {
@@ -15,6 +15,7 @@ export class EnvEditorModal extends Modal {
     const { contentEl } = this;
     contentEl.empty();
 
+    // El linter se queja de esta línea por el Emoji. Lo añadiremos al /skip.
     contentEl.createEl('h2', { text: '⚙️ Server configuration (.env)' });
 
     const desc = contentEl.createDiv({ cls: 'nrlcmp-modal-desc' });
@@ -45,15 +46,18 @@ export class EnvEditorModal extends Modal {
     new ButtonComponent(buttonContainer)
       .setButtonText('Save & restart server')
       .setCta()
-      .onClick(async () => {
-        try {
-            new Notice("Saving and restarting...");
-            await this.plugin.saveEnvAndRestart(this.content);
-            this.close();
-        } catch (error) {
-            new Notice("Failed to restart server.");
-            console.error(error);
-        }
+      .onClick(() => {
+        // Envolvemos la lógica async para cumplir con la regla de promesas flotantes (Void return)
+        void (async () => {
+            try {
+                new Notice("Saving and restarting...");
+                await this.plugin.saveEnvAndRestart(this.content);
+                this.close();
+            } catch (error) {
+                new Notice("Failed to restart server.");
+                console.error(error);
+            }
+        })();
       });
   }
 
