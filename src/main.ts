@@ -1,4 +1,4 @@
-import { Plugin, Notice, requestUrl, Editor, MarkdownView, TFile, TFolder, WorkspaceLeaf, Adapter } from 'obsidian';
+import { Plugin, Notice, requestUrl, Editor, MarkdownView, TFile, TFolder, WorkspaceLeaf } from 'obsidian';
 import { spawn, execSync, ChildProcess } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -36,8 +36,8 @@ const TEXT_BASED_EXTENSIONS = [
     'css', 'scss', 'less'
 ];
 
-// Helper interface for safe casting of the vault adapter
-interface FileSystemAdapterWithBasePath extends Adapter {
+// Definition for internal use, as 'Adapter' is not exported directly
+interface FileSystemAdapterWithBasePath {
     getBasePath: () => string;
 }
 
@@ -61,10 +61,11 @@ export default class NeuralComposerPlugin extends Plugin {
 
     // --- ZERO-CONFIG & PORTABILITY ---
     if (!this.settings.lightRagWorkDir) {
-        // Safe casting to avoid 'Unexpected any'
+        // Safe casting to check for desktop adapter capabilities
         const adapter = this.app.vault.adapter;
-        if ('getBasePath' in adapter) {
-            const vaultRoot = (adapter as FileSystemAdapterWithBasePath).getBasePath();
+        // Check if getBasePath exists (Desktop only)
+        if (typeof (adapter as any).getBasePath === 'function') {
+            const vaultRoot = (adapter as unknown as FileSystemAdapterWithBasePath).getBasePath();
             const defaultPath = path.join(vaultRoot, '.neural_memory');
             
             if (!fs.existsSync(defaultPath)) {
@@ -689,8 +690,8 @@ export default class NeuralComposerPlugin extends Plugin {
         try {
           this.ragEngine = new RAGEngine(
             this.app, this.settings, {} as any,
-            // Updated to remove async since restartLightRagServer is void
-            () => { this.restartLightRagServer(); }
+            // FIX: Restore promise return type for compatibility
+            async () => { this.restartLightRagServer(); }
           );
           return this.ragEngine;
         } catch (error) {
