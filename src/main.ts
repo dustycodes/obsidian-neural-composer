@@ -1,4 +1,4 @@
-import { Plugin, Notice, requestUrl, Editor, MarkdownView, TFile, TFolder, WorkspaceLeaf } from 'obsidian';
+import { Plugin, Notice, requestUrl, Editor, MarkdownView, TFile, TFolder, WorkspaceLeaf, Adapter } from 'obsidian';
 import { spawn, execSync, ChildProcess } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -36,6 +36,11 @@ const TEXT_BASED_EXTENSIONS = [
     'css', 'scss', 'less'
 ];
 
+// Helper interface for safe casting of the vault adapter
+interface FileSystemAdapterWithBasePath extends Adapter {
+    getBasePath: () => string;
+}
+
 export default class NeuralComposerPlugin extends Plugin {
   settings: NeuralComposerSettings;
   initialChatProps?: ChatProps;
@@ -56,21 +61,24 @@ export default class NeuralComposerPlugin extends Plugin {
 
     // --- ZERO-CONFIG & PORTABILITY ---
     if (!this.settings.lightRagWorkDir) {
-        // @ts-ignore: getBasePath is part of Obsidian desktop API but not typed
-        const vaultRoot = (this.app.vault.adapter as any).getBasePath(); 
-        const defaultPath = path.join(vaultRoot, '.neural_memory');
-        
-        if (!fs.existsSync(defaultPath)) {
-            try {
-                fs.mkdirSync(defaultPath, { recursive: true });
-            } catch (e) {
-                console.error("Failed to create default folder:", e);
-                new Notice("Failed to create default .neural_memory folder.");
+        // Safe casting to avoid 'Unexpected any'
+        const adapter = this.app.vault.adapter;
+        if ('getBasePath' in adapter) {
+            const vaultRoot = (adapter as FileSystemAdapterWithBasePath).getBasePath();
+            const defaultPath = path.join(vaultRoot, '.neural_memory');
+            
+            if (!fs.existsSync(defaultPath)) {
+                try {
+                    fs.mkdirSync(defaultPath, { recursive: true });
+                } catch (e) {
+                    console.error("Failed to create default folder:", e);
+                    new Notice("Failed to create default .neural_memory folder.");
+                }
             }
+            
+            this.settings.lightRagWorkDir = defaultPath;
+            await this.saveData(this.settings);
         }
-        
-        this.settings.lightRagWorkDir = defaultPath;
-        await this.saveData(this.settings);
     }
     
     this.registerView(CHAT_VIEW_TYPE, (leaf) => new ChatView(leaf, this));
@@ -89,18 +97,21 @@ export default class NeuralComposerPlugin extends Plugin {
     this.addCommand({
       id: 'open-native-graph',
       name: '🕸️ Open native graph view',
-      callback: async () => {
-        const { workspace } = this.app;
-        let leaf: WorkspaceLeaf | null = null;
-        const leaves = workspace.getLeavesOfType(NATIVE_GRAPH_VIEW_TYPE);
+      callback: () => {
+        // Wrapped in void async IIFE to satisfy void return expectation
+        void (async () => {
+            const { workspace } = this.app;
+            let leaf: WorkspaceLeaf | null = null;
+            const leaves = workspace.getLeavesOfType(NATIVE_GRAPH_VIEW_TYPE);
 
-        if (leaves.length > 0) {
-          leaf = leaves[0];
-        } else {
-          leaf = workspace.getLeaf(true);
-          await leaf.setViewState({ type: NATIVE_GRAPH_VIEW_TYPE, active: true });
-        }
-        if (leaf) await workspace.revealLeaf(leaf);
+            if (leaves.length > 0) {
+              leaf = leaves[0];
+            } else {
+              leaf = workspace.getLeaf(true);
+              await leaf.setViewState({ type: NATIVE_GRAPH_VIEW_TYPE, active: true });
+            }
+            if (leaf) await workspace.revealLeaf(leaf);
+        })();
       },
     });
 
@@ -234,7 +245,7 @@ export default class NeuralComposerPlugin extends Plugin {
 
             await new Promise(r => setTimeout(r, 1500)); // Polling 1.5s
 
-        } catch (e) {
+        } catch (_) { // Underscore to indicate unused variable
             errors++;
             if (errors > 3) isBusy = false;
             await new Promise(r => setTimeout(r, 2000));
@@ -471,15 +482,14 @@ export default class NeuralComposerPlugin extends Plugin {
     }
   }
 
-  public async saveEnvAndRestart(content: string) {
+  // Removed async keyword as it performs sync IO and calls void method
+  public saveEnvAndRestart(content: string) {
       const workDir = this.settings.lightRagWorkDir;
       if (!workDir) return;
       
       try {
           const envPath = path.join(workDir, '.env');
           fs.writeFileSync(envPath, content);
-          // restartLightRagServer is now sync/void, but wraps async logic internally.
-          // We can just call it.
           this.restartLightRagServer();
       } catch (e) {
           new Notice("Error saving .env file");
@@ -535,10 +545,13 @@ export default class NeuralComposerPlugin extends Plugin {
     new Notice("🚀 Starting LightRAG...");
 
     try {
+        // Safe typing for process.env
+        const envVars = { ...process.env } as NodeJS.ProcessEnv;
+        
         this.serverProcess = spawn(command, ['--port', '9621', '--working-dir', workDir,'--workers', '1'], {
             cwd: workDir,
             shell: true,
-            env: { ...process.env, PYTHONIOENCODING: 'utf-8', FORCE_COLOR: '1' }
+            env: { ...envVars, PYTHONIOENCODING: 'utf-8', FORCE_COLOR: '1' }
         });
 
         this.serverProcess.stderr?.on('data', (data) => {
@@ -676,8 +689,8 @@ export default class NeuralComposerPlugin extends Plugin {
         try {
           this.ragEngine = new RAGEngine(
             this.app, this.settings, {} as any,
-            // Updated to use the now sync method wrapped in lambda if needed, but here we can just call it
-            async () => { this.restartLightRagServer(); }
+            // Updated to remove async since restartLightRagServer is void
+            () => { this.restartLightRagServer(); }
           );
           return this.ragEngine;
         } catch (error) {
