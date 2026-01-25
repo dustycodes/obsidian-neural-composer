@@ -33,6 +33,10 @@ interface GraphNode {
     val: number; 
     degree?: number;
     file_paths?: string[];
+    // For 3D graph coords
+    x?: number;
+    y?: number;
+    z?: number;
 }
 
 interface ChunkDocMap {
@@ -88,6 +92,27 @@ interface FA2LayoutInstance {
     kill: () => void;
 }
 
+// Partial typing for 3d-force-graph chainable instance
+interface ForceGraph3DInstance {
+    (element: HTMLElement): ForceGraph3DInstance;
+    graphData: (data: { nodes: any[]; links: any[] }) => ForceGraph3DInstance;
+    backgroundColor: (color: string) => ForceGraph3DInstance;
+    nodeAutoColorBy: (attr: string) => ForceGraph3DInstance;
+    nodeVal: (attr: string) => ForceGraph3DInstance;
+    nodeRelSize: (size: number) => ForceGraph3DInstance;
+    nodeLabel: (attr: string) => ForceGraph3DInstance;
+    nodeOpacity: (opacity: number) => ForceGraph3DInstance;
+    linkWidth: (width: number) => ForceGraph3DInstance;
+    linkOpacity: (opacity: number) => ForceGraph3DInstance;
+    cooldownTicks: (ticks: number) => ForceGraph3DInstance;
+    onNodeClick: (callback: (node: any) => void) => ForceGraph3DInstance;
+    width: (width: number) => ForceGraph3DInstance;
+    height: (height: number) => ForceGraph3DInstance;
+    cameraPosition: (pos: {x: number, y: number, z: number}, lookAt?: any, ms?: number) => ForceGraph3DInstance;
+    zoomToFit: (ms: number, padding: number) => ForceGraph3DInstance;
+    _destructor: () => void;
+}
+
 export class NativeGraphView extends ItemView {
   private plugin: NeuralComposerPlugin; 
   private graphDataPath: string;
@@ -95,8 +120,8 @@ export class NativeGraphView extends ItemView {
   
   private sigmaInstance: Sigma | null = null;
   private fa2Layout: FA2LayoutInstance | null = null;
-  // 3d-force-graph does not have official types and is a complex chainable instance
-  private graph3D: any = null;
+  // Use defined interface instead of any
+  private graph3D: ForceGraph3DInstance | null = null;
   
   private graph: Graph | null = null;
   private chunkToDocMap: Record<string, ChunkDocMap> = {};
@@ -153,7 +178,7 @@ export class NativeGraphView extends ItemView {
     this.buildSidebar(sidebar);
 
     // Initial render - SYNC call inside timeout
-    setTimeout(() => { 
+    window.setTimeout(() => { 
         try {
             this.render(graphContainer);
         } catch (err) {
@@ -162,9 +187,8 @@ export class NativeGraphView extends ItemView {
     }, 100);
   }
 
-  onClose() {
+  async onClose() {
       this.cleanup();
-      return Promise.resolve();
   }
 
   // --- DATA LOGIC (Sync now) ---
@@ -360,7 +384,7 @@ export class NativeGraphView extends ItemView {
   }
 
   // --- ENGINE 2D ---
-  render2D(container: HTMLElement, nodes: any[], edges: any[]) {
+  render2D(container: HTMLElement, nodes: GraphNode[], edges: any[]) {
     this.graph = new Graph();
     const LABEL_THRESHOLD = 4;
 
@@ -458,13 +482,14 @@ export class NativeGraphView extends ItemView {
   }
 
   // --- ENGINE 3D ---
-  render3D(container: HTMLElement, nodes: any[], edges: any[]) {
+  render3D(container: HTMLElement, nodes: GraphNode[], edges: any[]) {
       const gData = {
           nodes: nodes.map(n => ({ ...n, type: n.type })),
           links: edges.map((e: any) => ({ source: e.normalizedSource || e.source, target: e.normalizedTarget || e.target }))
       };
       
-      this.graph3D = (ForceGraph3D as any)()(container)
+      // Use casting to unknown then to specific function signature to avoid implicit any
+      this.graph3D = (ForceGraph3D as unknown as () => ForceGraph3DInstance)()(container)
           .graphData(gData)
           .backgroundColor('#000005') 
           .nodeAutoColorBy('type')
@@ -474,7 +499,9 @@ export class NativeGraphView extends ItemView {
               this.showNodeDetails(node);
               const dist = 40;
               const ratio = 1 + dist/Math.hypot(node.x, node.y, node.z);
-              this.graph3D.cameraPosition({ x: node.x * ratio, y: node.y * ratio, z: node.z * ratio }, node, 2000);
+              if (this.graph3D) {
+                   this.graph3D.cameraPosition({ x: node.x * ratio, y: node.y * ratio, z: node.z * ratio }, node, 2000);
+              }
           });
       this.graph3D.width(container.clientWidth);
       this.graph3D.height(container.clientHeight);
@@ -483,7 +510,7 @@ export class NativeGraphView extends ItemView {
   cleanup() {
       if (this.sigmaInstance) { this.sigmaInstance.kill(); this.sigmaInstance = null; }
       if (this.fa2Layout) { this.fa2Layout.stop(); this.fa2Layout = null; }
-      if (this.graph3D) { (this.graph3D as any)._destructor(); this.graph3D = null; }
+      if (this.graph3D) { this.graph3D._destructor(); this.graph3D = null; }
   }
 
   updateSidebarList() {
@@ -782,7 +809,9 @@ export class NativeGraphView extends ItemView {
       const lower = query.toLowerCase();
       
       if (this.plugin.settings.graphViewMode === '3d' && this.graph3D) {
-          const { nodes } = this.graph3D.graphData();
+          // Use type casting to access internal data if needed or rely on the typed interface if extended enough
+          // For now, assume graphData() returns the expected object
+           const { nodes } = (this.graph3D as any).graphData();
           const target = nodes.find((n: any) => n.id.toLowerCase().includes(lower));
           if (target) {
               this.showNodeDetails(target);
