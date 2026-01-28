@@ -8,6 +8,22 @@ import { EmbeddingModelClient } from '../../types/embedding'
 
 import { getEmbeddingModelClient } from './embedding'
 
+// Interface for internal results to avoid 'any'
+interface RagResult extends Partial<SelectEmbedding> {
+    id: number;
+    model?: string;
+    path: string;
+    content: string;
+    similarity: number;
+    mtime?: number;
+    metadata?: {
+        startLine: number;
+        endLine: number;
+        fileName?: string;
+        content?: string;
+    };
+}
+
 export class RAGEngine {
   private app: App
   private settings: NeuralComposerSettings
@@ -45,13 +61,14 @@ export class RAGEngine {
     })
   }
 
-  async updateVaultIndex(
+  // Removed async keyword to avoid 'Async method has no await'
+  // Returns Promise<void> directly
+  updateVaultIndex(
     options: { reindexAll: boolean } = { reindexAll: false },
     onQueryProgressChange?: (queryProgress: QueryProgressState) => void,
   ): Promise<void> {
-    // Placeholder for future implementation
-    if (!this.embeddingModel) throw new Error('Embedding model is not set')
-    // Added explicit return to satisfy Promise<void> without empty async warning
+    if (!this.embeddingModel) return Promise.reject(new Error('Embedding model is not set'));
+    // Placeholder implementation
     return Promise.resolve();
   }
 
@@ -142,7 +159,7 @@ export class RAGEngine {
     
     // 1. LOCAL STRATEGY
     if (scope && scope.files && scope.files.length > 0) {
-        const localResults: any[] = [];
+        const localResults: RagResult[] = [];
         for (const filePath of scope.files) {
              const file = this.app.vault.getAbstractFileByPath(filePath);
              if (file instanceof TFile) {
@@ -154,7 +171,7 @@ export class RAGEngine {
              }
         }
         onQueryProgressChange?.({ type: 'querying-done', queryResult: [] });
-        return localResults;
+        return localResults as any; // Cast only at return to satisfy legacy interface
     }
 
     // 2. GLOBAL STRATEGY
@@ -205,7 +222,7 @@ export class RAGEngine {
           }
       }
 
-      const results: any[] = [];
+      const results: RagResult[] = [];
       const graphAnswer = typeof data === 'string' ? data : (data.response || "");
       
       let masterContent = graphAnswer;
@@ -241,18 +258,21 @@ export class RAGEngine {
       }
 
       onQueryProgressChange?.({ type: 'querying-done', queryResult: [] })
-      return results;
+      return results as any;
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("❌ Final error:", error);
       
+      // Safe error message extraction
+      const message = error instanceof Error ? error.message : String(error);
+      
       // Friendly chat error
-      const errorDoc: any = {
+      const errorDoc: RagResult = {
           id: -2, path: "⚠️ Query Error",
-          content: `No response could be obtained from Graph.\n\nPossible cause: ${error.message}\n\nIf you use Reranking, check your credits.`,
+          content: `No response could be obtained from Graph.\n\nPossible cause: ${message}\n\nIf you use Reranking, check your credits.`,
           similarity: 1.0, metadata: { startLine: 0, endLine: 0 }
       };
-      return [errorDoc];
+      return [errorDoc] as any;
     }
   }
 

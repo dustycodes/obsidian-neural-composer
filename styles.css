@@ -2632,3 +2632,33 @@ button.nrlcmp-chat-input-model-select {
     width: 720px;
     max-width: 90vw; /* Responsive safety */
 }
+
+/* --- Chat Input Controls --- */
+
+/* Contenedor flexible para alinear el selector de modelo y el de modo */
+.nrlcmp-chat-user-input-controls__model-select-container {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Estilo para el selector de Modo (Mix, Hybrid, etc.) */
+.nrlcmp-query-mode-select {
+  background-color: var(--background-modifier-form-field);
+  color: var(--text-muted);
+  border: 1px solid var(--background-modifier-border);
+  /* He cambiado 0px por var(--input-radius) o 4px para que se vea más nativo de Obsidian, 
+     pero puedes volver a poner 0px si prefieres bordes rectos */
+  border-radius: 4px; 
+  font-size: 0.8em;
+  padding: 2px 4px;
+  cursor: pointer;
+  outline: none;
+  height: 24px; /* Altura consistente */
+}
+
+/* Efecto Hover para mejor UX */
+.nrlcmp-query-mode-select:hover {
+  border-color: var(--interactive-accent);
+  color: var(--text-normal);
+}
