@@ -36,6 +36,8 @@ import { NodeMutations } from './plugins/on-mutation/OnMutationPlugin'
 import { SubmitButton } from './SubmitButton'
 import ToolBadge from './ToolBadge'
 import { VaultChatButton } from './VaultChatButton'
+// Import type for safe casting
+import { NeuralComposerSettings } from '../../../settings/schema/setting.types'
 
 export type ChatUserInputRef = {
   focus: () => void
@@ -199,7 +201,6 @@ const ChatUserInput = forwardRef<ChatUserInputRef, ChatUserInputProps>(
 
     const handleSubmit = (options: { useVaultSearch?: boolean } = {}) => {
       const content = editorRef.current?.getEditorState()?.toJSON()
-      // Fix: Use explicit if instead of && expression
       if (content) {
         onSubmit(content, options.useVaultSearch)
       }
@@ -225,7 +226,6 @@ const ChatUserInput = forwardRef<ChatUserInputRef, ChatUserInputProps>(
                   m.file &&
                   mentionableKey === displayedMentionableKey
                 ) {
-                  // open file on click again
                   openMarkdownFile(
                     app,
                     m.file.path,
@@ -277,37 +277,31 @@ const ChatUserInput = forwardRef<ChatUserInputRef, ChatUserInputProps>(
         />
 
         <div className="nrlcmp-chat-user-input-controls">
-<div className="nrlcmp-chat-user-input-controls__model-select-container" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-  <ModelSelect />
-  
-  {/* --- CORA MOD: Selector de Modo LightRAG --- */}
-  <select 
-    value={settings.lightRagQueryMode}
-    onChange={(e) => {
-      setSettings({ ...settings, lightRagQueryMode: e.target.value as any });
-    }}
-    className="nrlcmp-query-mode-select"
-    title="LightRAG Enfoque"
-    style={{
-        backgroundColor: 'var(--background-modifier-form-field)',
-        color: 'var(--text-muted)',
-        border: '1px solid var(--background-modifier-border)',
-        borderRadius: '0px',
-        fontSize: '0.8em',
-        padding: '2px 4px',
-        cursor: 'pointer'
-    }}
-  >
-    <option value="mix">🎯 Mix</option>
-    <option value="hybrid">🧬 Hybrid</option>
-    <option value="local">🔍 Local</option>
-    <option value="global">🌐 Global</option>
-    <option value="naive">📝 Naive</option>
-  </select>
-  {/* ------------------------------------------- */}
-</div>
+            {/* FIX: Inline styles removed (partially), replaced with class. Wrapper style kept simple or moved to CSS recommended */}
+            <div className="nrlcmp-chat-user-input-controls__model-select-container">
+            <ModelSelect />
+            
+            {/* --- CORA MOD: Selector de Modo LightRAG --- */}
+            <select 
+                value={settings.lightRagQueryMode}
+                onChange={(e) => {
+                    // FIX: Void operator for floating promise + Safe casting instead of 'any'
+                    void setSettings({ 
+                        ...settings, 
+                        lightRagQueryMode: e.target.value as NeuralComposerSettings['lightRagQueryMode'] 
+                    });
+                }}
+                className="nrlcmp-query-mode-select"
+                title="LightRAG Enfoque"
+            >
+                <option value="mix">🎯 Mix</option>
+                <option value="hybrid">🧬 Hybrid</option>
+                <option value="local">🔍 Local</option>
+                <option value="global">🌐 Global</option>
+                <option value="naive">📝 Naive</option>
+            </select>
+            </div>
           <div className="nrlcmp-chat-user-input-controls__buttons">
-            {/* Fix: Wrapped in void function to handle floating promise */}
             <ImageUploadButton onUpload={(files) => void handleUploadImages(files)} />
             <SubmitButton onClick={() => handleSubmit()} />
             <VaultChatButton
@@ -348,7 +342,7 @@ function MentionableContentPreview({
     queryKey: [
       'file',
       displayedMentionableKey,
-      mentionables.map((m) => getMentionableKey(serializeMentionable(m))), // should be updated when mentionables change (especially on delete)
+      mentionables.map((m) => getMentionableKey(serializeMentionable(m))), 
     ],
     queryFn: async () => {
       if (!displayedMentionable) return null
