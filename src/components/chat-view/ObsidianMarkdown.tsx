@@ -44,7 +44,8 @@ const ObsidianMarkdown = memo(function ObsidianMarkdown({
   }, [app, content, chatView])
 
   useEffect(() => {
-    renderMarkdown()
+    // FIX: Use void operator to explicitly ignore the returned promise
+    void renderMarkdown()
   }, [renderMarkdown])
 
   return (
@@ -72,7 +73,10 @@ function setupMarkdownLinks(
       evt.preventDefault()
       const linktext = el.getAttribute('href')
       if (linktext) {
-        app.workspace.openLinkText(linktext, sourcePath, Keymap.isModEvent(evt))
+        // FIX: Wrap async call in a void IIFE to prevent floating promise in event listener
+        void (async () => {
+            await app.workspace.openLinkText(linktext, sourcePath, Keymap.isModEvent(evt))
+        })();
       }
     })
 
