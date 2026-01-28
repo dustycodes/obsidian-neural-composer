@@ -43,17 +43,24 @@ export class ChatView extends ItemView {
   }
 
   async onOpen() {
-    await this.render()
+    // Render is now sync, so we don't await it to avoid "await of non-Promise"
+    this.render()
 
     // Consume chatProps
     this.initialChatProps = undefined
+    
+    // Satisfy linter "Async method has no await" and best practices
+    await super.onOpen()
   }
 
   async onClose() {
     this.root?.unmount()
+    // Satisfy linter "Async method has no await"
+    await super.onClose()
   }
 
-  async render() {
+  // Removed 'async' as root.render is not awaitable in this context
+  render() {
     if (!this.root) {
       this.root = createRoot(this.containerEl.children[1])
     }
@@ -75,9 +82,10 @@ export class ChatView extends ItemView {
           <AppProvider app={this.app}>
             <SettingsProvider
               settings={this.plugin.settings}
-              setSettings={(newSettings) =>
-                this.plugin.setSettings(newSettings)
-              }
+              setSettings={(newSettings) => {
+                 // Prevent floating promise in prop
+                 void this.plugin.setSettings(newSettings)
+              }}
               addSettingsChangeListener={(listener) =>
                 this.plugin.addSettingsChangeListener(listener)
               }
