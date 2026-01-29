@@ -219,14 +219,18 @@ export default class NeuralComposerPlugin extends Plugin {
     this.addSettingTab(new NeuralComposerSettingTab(this.app, this));
 
     // --- AGGRESSIVE AUTO-START ---
-    this.app.workspace.onLayoutReady(async () => {
+this.app.workspace.onLayoutReady(() => {
         if (this.settings.enableAutoStartServer) {
-            this.stopLightRagServer();
-            // Wait for port release
-            await new Promise(resolve => setTimeout(resolve, 1500));
             void this.startLightRagServer();
         }
-        this.startStatusHeartbeat();
+        // --- LATIDO LEGAL Y SEGURO ---
+        // registerInterval asegura que el proceso muera si el plugin se apaga
+        this.registerInterval(window.setInterval(() => {
+            void this.checkAndUpdateStatus();
+        }, 30000));
+        
+        // Primera revisión inmediata
+        void this.checkAndUpdateStatus();
     });
   }
 
@@ -548,7 +552,7 @@ export default class NeuralComposerPlugin extends Plugin {
     });
   }
 
-  async startLightRagServer() {
+async startLightRagServer() {
     const command = this.settings.lightRagCommand;
     const workDir = this.settings.lightRagWorkDir;
 
@@ -561,14 +565,14 @@ export default class NeuralComposerPlugin extends Plugin {
 
     const isAlive = await this.isPortInUse(9621);
     if (isAlive) {
+        this.updateStatusUI('online'); // Si ya está vivo, lo ponemos verde
         return;
     }
 
     new Notice("🚀 Starting LightRAG...");
-    this.updateStatusUI('busy');
+    this.updateStatusUI('busy'); // Amarillo mientras arranca
 
     try {
-        // Safe typing for process.env
         const envVars = { ...process.env } as NodeJS.ProcessEnv;
         
         this.serverProcess = spawn(command, ['--port', '9621', '--working-dir', workDir,'--workers', '1'], {
@@ -581,9 +585,7 @@ export default class NeuralComposerPlugin extends Plugin {
             const msg = data.toString();
             const now = Date.now();
             
-            // Error debouncing
             if (!this.lastErrorTime || (now - this.lastErrorTime > 5000)) {
-                
                 if (msg.includes("503") || msg.includes("overloaded") || msg.includes("UNAVAILABLE")) {
                     new Notice("⚠️ Provider Error: Model Overloaded (503).\nServer is busy, please wait a moment.", 0);
                     this.lastErrorTime = now;
@@ -608,14 +610,31 @@ export default class NeuralComposerPlugin extends Plugin {
      
         this.serverProcess.on('close', (code) => {
             this.serverProcess = null;
+            this.updateStatusUI('offline'); // Si se cierra solo, rojo
         });
 
-        this.timeoutIds.push(setTimeout(() => {
-            if (this.serverProcess) new Notice("✅ LightRAG Activated");
-        }, 5000));
+        // --- DETECCIÓN REACTIVA (LINTER SAFE) ---
+        // Reemplazamos el setTimeout de 5s por este bucle inteligente
+        // El 'void' evita que el bot de Obsidian se queje de la promesa no esperada
+        void (async () => {
+            for (let i = 0; i < 15; i++) { // Intentar por 15 segundos
+                await new Promise(r => setTimeout(r, 1000));
+                const alive = await this.isPortInUse(9621);
+                if (alive) {
+                    this.updateStatusUI('online'); // ¡Cambio a verde instantáneo!
+                    new Notice("✅ LightRAG Activated");
+                    return;
+                }
+            }
+            // Si pasaron 15 segundos y no abrió el puerto:
+            this.updateStatusUI('offline');
+            new Notice("❌ Server failed to respond in time.");
+        })();
+
     } catch (error) {
         console.error("❌ Error starting server:", error);
         new Notice("❌ Fatal error starting server.");
+        this.updateStatusUI('offline');
     }
   }
 
@@ -871,7 +890,13 @@ export default class NeuralComposerPlugin extends Plugin {
       void this.checkAndUpdateStatus();
   }
 
-  private async checkAndUpdateStatus() {
+private async checkAndUpdateStatus() {
+      // Si el proceso no existe y no está el auto-start, está offline
+      if (!this.settings.enableAutoStartServer && !this.serverProcess) {
+          this.updateStatusUI('offline');
+          return;
+      }
+
       try {
           const response = await requestUrl({
               url: "http://localhost:9621/health",
@@ -880,8 +905,9 @@ export default class NeuralComposerPlugin extends Plugin {
           });
           
           if (response.status === 200) {
-              // @ts-ignore
-              const isBusy = response.json?.pipeline_busy ?? false;
+              // Usamos casting seguro para leer la propiedad sin que TS llore
+              const data = response.json as { pipeline_busy?: boolean };
+              const isBusy = data?.pipeline_busy ?? false;
               this.updateStatusUI(isBusy ? 'busy' : 'online');
           } else {
               this.updateStatusUI('offline');
