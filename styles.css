@@ -2662,3 +2662,32 @@ button.nrlcmp-chat-input-model-select {
   border-color: var(--interactive-accent);
   color: var(--text-normal);
 }
+
+/* --- STATUS BAR INDICATORS --- */
+.nrlcmp-status-bar-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.nrlcmp-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--text-muted); /* Por defecto gris */
+    display: inline-block;
+}
+
+.nrlcmp-status-dot.is-online {
+    background-color: #2ecc71; /* Verde */
+    box-shadow: 0 0 5px #2ecc71;
+}
+
+.nrlcmp-status-dot.is-offline {
+    background-color: #e74c3c; /* Rojo */
+}
+
+.nrlcmp-status-dot.is-busy {
+    background-color: #f1c40f; /* Amarillo */
+}

@@ -1,4 +1,4 @@
-import { Plugin, Notice, requestUrl, Editor, MarkdownView, TFile, TFolder, WorkspaceLeaf } from 'obsidian';
+import { Plugin, Notice, requestUrl, Editor, MarkdownView, TFile, TFolder, WorkspaceLeaf, setTooltip } from 'obsidian';
 import { spawn, execSync, ChildProcess } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -56,6 +56,11 @@ export default class NeuralComposerPlugin extends Plugin {
   private serverProcess: ChildProcess | null = null;
   private lastErrorTime: number = 0; 
 
+  // --- STATUS BAR PROPERTIES ---
+  private statusBarEl: HTMLElement;
+  private statusDotEl: HTMLElement;
+  private heartbeatInterval: number;
+
   async onload() {
     await this.loadSettings();
 
@@ -82,6 +87,17 @@ export default class NeuralComposerPlugin extends Plugin {
         }
     }
     
+// --- STATUS BAR INITIALIZATION ---
+    this.statusBarEl = this.addStatusBarItem();
+    this.statusBarEl.addClass('nrlcmp-status-bar-item');
+    this.statusDotEl = this.statusBarEl.createSpan({ cls: 'nrlcmp-status-dot' });
+    this.statusBarEl.createSpan({ text: 'Neural' });
+    setTooltip(this.statusBarEl, 'LightRAG server status');
+    
+    this.statusBarEl.onclick = () => {
+        void this.handleStatusBarClick();
+    };
+
     this.registerView(CHAT_VIEW_TYPE, (leaf) => new ChatView(leaf, this));
     this.registerView(APPLY_VIEW_TYPE, (leaf) => new ApplyView(leaf));
     
@@ -210,11 +226,13 @@ export default class NeuralComposerPlugin extends Plugin {
             await new Promise(resolve => setTimeout(resolve, 1500));
             void this.startLightRagServer();
         }
+        this.startStatusHeartbeat();
     });
   }
 
   // --- MONITORING LOGIC ---
   async monitorPipeline(notice: Notice) {
+    this.updateStatusUI('busy');
     let isBusy = true;
     let errors = 0;
     // Wait for server to register task
@@ -253,6 +271,7 @@ export default class NeuralComposerPlugin extends Plugin {
         }
     }
     
+    this.updateStatusUI('online');
     notice.setMessage("🎉 Integrated Knowledge!\nThe graph is up to date.");
     setTimeout(() => notice.hide(), 5000);
   }
@@ -322,6 +341,7 @@ export default class NeuralComposerPlugin extends Plugin {
   // --- LIFECYCLE & SERVER MANAGEMENT ---
   
   onunload() {
+    window.clearInterval(this.heartbeatInterval);
     this.timeoutIds.forEach((id) => clearTimeout(id));
     this.timeoutIds = [];
     
@@ -358,7 +378,8 @@ export default class NeuralComposerPlugin extends Plugin {
     } catch (error) {
         // Ignore kill errors if process not found
     }
-  }
+    this.updateStatusUI('offline');  
+}
 
   public restartLightRagServer() {
     new Notice("🔄 Restarting System Backend...");
@@ -544,6 +565,7 @@ export default class NeuralComposerPlugin extends Plugin {
     }
 
     new Notice("🚀 Starting LightRAG...");
+    this.updateStatusUI('busy');
 
     try {
         // Safe typing for process.env
@@ -838,4 +860,61 @@ export default class NeuralComposerPlugin extends Plugin {
       const data = response.json;
       return data.choices?.[0]?.message?.content || "";
   }
+
+  // --- STATUS BAR LOGIC ---
+  private startStatusHeartbeat() {
+      // Revisar cada 30 segundos
+      this.heartbeatInterval = window.setInterval(() => {
+          void this.checkAndUpdateStatus();
+      }, 30000);
+      // Primera revisión inmediata
+      void this.checkAndUpdateStatus();
+  }
+
+  private async checkAndUpdateStatus() {
+      try {
+          const response = await requestUrl({
+              url: "http://localhost:9621/health",
+              method: "GET",
+              throw: false
+          });
+          
+          if (response.status === 200) {
+              // @ts-ignore
+              const isBusy = response.json?.pipeline_busy ?? false;
+              this.updateStatusUI(isBusy ? 'busy' : 'online');
+          } else {
+              this.updateStatusUI('offline');
+          }
+      } catch (_) {
+          this.updateStatusUI('offline');
+      }
+  }
+
+  private updateStatusUI(status: 'online' | 'offline' | 'busy') {
+      if (!this.statusDotEl) return;
+      this.statusDotEl.removeClass('is-online', 'is-offline', 'is-busy');
+      
+      if (status === 'online') {
+          this.statusDotEl.addClass('is-online');
+          setTooltip(this.statusBarEl, 'LightRAG: Online');
+      } else if (status === 'busy') {
+          this.statusDotEl.addClass('is-busy');
+          setTooltip(this.statusBarEl, 'LightRAG: Processing...');
+      } else {
+          this.statusDotEl.addClass('is-offline');
+          setTooltip(this.statusBarEl, 'LightRAG: Offline (Click to restart)');
+      }
+  }
+
+  private async handleStatusBarClick() {
+      const isAlive = await this.isPortInUse(9621);
+      if (!isAlive) {
+          new Notice("🚀 Starting LightRAG from status bar...");
+          void this.startLightRagServer();
+      } else {
+          new Notice("✅ System is already online.");
+      }
+  }
+
 }
