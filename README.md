@@ -65,7 +65,9 @@ This plugin requires a small backend setup (Python) to run the LightRAG engine.
     *(We recommend using a virtual environment).*
 
 ### 2. Install the Plugin
-Download `main.js`, `manifest.json`, and `styles.css` from the **[Releases](../../releases)** page and place them in your `.obsidian/plugins/obsidian-neural-composer` folder. Enable it in Obsidian.
+- Recommended: install via BRAT
+- Manual Installation:
+Download `main.js`, `manifest.json`, and `styles.css` from the **[Releases](../../releases)** page and place them in your `.obsidian/plugins/neural-composer` folder. Enable it in Obsidian.
 
 ### 3. Connect & Go
 Go to **Settings > Neural Composer**.
