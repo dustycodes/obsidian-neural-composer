@@ -875,9 +875,10 @@ export class NativeGraphView extends ItemView {
           },
           // Acción: Sugerencia AI
           async (source, targets) => {
+              const targetLang = this.plugin.settings.lightRagSummaryLanguage || 'English';
               const prompt = `Act as a Knowledge Graph Architect. 
               The user wants to connect the node "${source}" with the following nodes: ${targets.join(', ')}.
-              Write a ONE-SENTENCE description in the language of the notes (Spanish) that explains a logical connection between these concepts. 
+              Write a ONE-SENTENCE description in the language of the notes (${targetLang}) that explains a logical connection between these concepts. 
               Be concise and technical. Output ONLY the sentence.`;
               
               return await this.plugin.simpleLLMCall(prompt);
