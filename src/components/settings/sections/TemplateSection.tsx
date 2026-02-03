@@ -59,17 +59,20 @@ export function TemplateSection({ app }: TemplateSectionProps) {
     (template: TemplateMetadata) => {
       const message = `Are you sure you want to delete template "${template.name}"?`
       new ConfirmModal(app, {
-        title: 'Delete Template',
+        title: 'Delete template', // Fix: Sentence case
         message: message,
         ctaText: 'Delete',
-        onConfirm: async () => {
-          try {
-            await templateManager.deleteTemplate(template.id)
-            fetchTemplateList()
-          } catch (error) {
-            console.error('Failed to delete template:', error)
-            new Notice('Failed to delete template. Please try again.')
-          }
+        // Fix: Wrap async confirm handler to prevent floating promise return
+        onConfirm: () => {
+            void (async () => {
+                try {
+                    await templateManager.deleteTemplate(template.id)
+                    await fetchTemplateList()
+                } catch (error) {
+                    console.error('Failed to delete template:', error)
+                    new Notice('Failed to delete template. Please try again.')
+                }
+            })()
         },
       }).open()
     },
@@ -77,12 +80,13 @@ export function TemplateSection({ app }: TemplateSectionProps) {
   )
 
   useEffect(() => {
-    fetchTemplateList()
+    // Fix: Explicitly mark promise as ignored
+    void fetchTemplateList()
   }, [fetchTemplateList])
 
   return (
     <div className="nrlcmp-settings-section">
-      <div className="nrlcmp-settings-header">Prompt Templates</div>
+      <div className="nrlcmp-settings-header">Prompt templates</div>
 
       <div className="nrlcmp-settings-desc nrlcmp-settings-callout">
         <strong>How to use:</strong> Create templates with reusable content that
@@ -93,8 +97,8 @@ export function TemplateSection({ app }: TemplateSectionProps) {
       </div>
 
       <div className="nrlcmp-settings-sub-header-container">
-        <div className="nrlcmp-settings-sub-header">Saved Templates</div>
-        <ObsidianButton text="Add Prompt Template" onClick={handleCreate} />
+        <div className="nrlcmp-settings-sub-header">Saved templates</div>
+        <ObsidianButton text="Add prompt template" onClick={handleCreate} />
       </div>
 
       <div className="nrlcmp-templates-container">
@@ -141,14 +145,14 @@ function TemplateItem({
         <div className="nrlcmp-template-actions">
           <button
             className="clickable-icon"
-            aria-label="Edit Template"
+            aria-label="Edit template"
             onClick={onEdit}
           >
             <Edit size={16} />
           </button>
           <button
             className="clickable-icon"
-            aria-label="Delete Template"
+            aria-label="Delete template"
             onClick={onDelete}
           >
             <Trash2 size={16} />
