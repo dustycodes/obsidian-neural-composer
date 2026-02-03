@@ -97,7 +97,7 @@ interface FA2LayoutInstance {
 // Partial typing for 3d-force-graph chainable instance
 interface ForceGraph3DInstance {
     (element: HTMLElement): ForceGraph3DInstance;
-    graphData: (data: { nodes: any[]; links: any[] }) => ForceGraph3DInstance;
+    graphData: (data?: { nodes: any[]; links: any[] }) => ForceGraph3DInstance | { nodes: any[]; links: any[] };
     backgroundColor: (color: string) => ForceGraph3DInstance;
     nodeAutoColorBy: (attr: string) => ForceGraph3DInstance;
     nodeVal: (attr: string) => ForceGraph3DInstance;
@@ -182,15 +182,18 @@ export class NativeGraphView extends ItemView {
     // Initial render - SYNC call inside timeout
     window.setTimeout(() => { 
         try {
-            this.render(graphContainer);
+            // Fix: Void for potential floating promise in render
+            void this.render(graphContainer);
         } catch (err) {
             console.error("Render failed:", err);
         }
     }, 100);
   }
 
-  async onClose() {
+  // Fix: Removed async as there is no await expression. Returns Promise for interface compat.
+  onClose(): Promise<void> {
       this.cleanup();
+      return Promise.resolve();
   }
 
   // --- DATA LOGIC (Sync now) ---
@@ -652,7 +655,7 @@ export class NativeGraphView extends ItemView {
               new Notice("✅ Node updated!"); 
               setTimeout(() => { 
                    const container = this.contentEl.querySelector('#sigma-container');
-                   if (container instanceof HTMLElement) this.render(container);
+                   if (container instanceof HTMLElement) void this.render(container);
               }, 1500); 
           } else { 
               new Notice(`Error updating: ${response.text}`); 
@@ -676,7 +679,8 @@ export class NativeGraphView extends ItemView {
       const btnReload = tb.createEl('button', { cls: 'nrlcmp-toolbar-btn' });
       setIcon(btnReload, 'refresh-cw'); 
       setTooltip(btnReload, 'Reload graph');
-      btnReload.onclick = () => { this.render(graphContainer); };
+      // Fix: Handle floating promise in onclick
+      btnReload.onclick = () => { void this.render(graphContainer); };
       
       const btnReset = tb.createEl('button', { cls: 'nrlcmp-toolbar-btn' });
       setIcon(btnReset, 'maximize'); 
@@ -703,7 +707,8 @@ export class NativeGraphView extends ItemView {
       new ButtonComponent(actionButtons)
         .setButtonText('Link')
         .setTooltip('Create relationships between selected nodes')
-        .onClick(() => { void this.createRelationBetweenSelected(); });
+        // Fix: Removed async keyword, wrapped internal logic in void IIFE if needed, but here createRelationBetweenSelected is now sync/void
+        .onClick(() => { this.createRelationBetweenSelected(); });
       new ButtonComponent(actionButtons).setButtonText('Delete').setWarning().onClick(() => { void this.deleteSelectedNodes(); });
 
       const filterBar = header.createDiv({ cls: 'nrlcmp-sidebar-filters' });
@@ -779,7 +784,7 @@ export class NativeGraphView extends ItemView {
                   this.selectedNodes.clear(); 
                   setTimeout(() => { 
                       const container = this.contentEl.querySelector('#sigma-container');
-                      if (container instanceof HTMLElement) this.render(container);
+                      if (container instanceof HTMLElement) void this.render(container);
                   }, 1000); 
               } else { 
                   new Notice(`Error: ${response.text}`); 
@@ -806,7 +811,7 @@ export class NativeGraphView extends ItemView {
               this.selectedNodes.clear();
               setTimeout(() => { 
                    const container = this.contentEl.querySelector('#sigma-container');
-                   if (container instanceof HTMLElement) this.render(container); 
+                   if (container instanceof HTMLElement) void this.render(container); 
               }, 1000);
           } catch (e) { console.error(e); new Notice("Error deleting nodes"); }
       }).open();
@@ -817,9 +822,13 @@ export class NativeGraphView extends ItemView {
       const lower = query.toLowerCase();
       
       if (this.plugin.settings.graphViewMode === '3d' && this.graph3D) {
-          // Use type casting to access internal data if needed or rely on the typed interface if extended enough
-          // For now, assume graphData() returns the expected object
-           const { nodes } = (this.graph3D as any).graphData();
+          // Use type interface to access data safely
+           const graphData = this.graph3D.graphData();
+           // ForceGraph3D's graphData returns { nodes: [], links: [] }
+           // We use 'as any' only if strict typing of the external lib fails, but interface should handle it
+           // However, to be safe against 'Unexpected any' from linter:
+           const nodes = (graphData as { nodes: any[] }).nodes || [];
+           
           const target = nodes.find((n: any) => n.id.toLowerCase().includes(lower));
           if (target) {
               this.showNodeDetails(target);
@@ -838,7 +847,8 @@ export class NativeGraphView extends ItemView {
       }
   }
 
-  async createRelationBetweenSelected() {
+  // Removed async as it doesn't await anything critical before opening modal
+  createRelationBetweenSelected() {
       const targets = Array.from(this.selectedNodes);
       if (targets.length < 2) { 
           new Notice("⚠️ Select at least 2 nodes to link."); 
@@ -887,8 +897,6 @@ export class NativeGraphView extends ItemView {
   }
 
 }
-
-
 
 // Helper: Safe Confirmation Modal
 class ConfirmationModal extends Modal {
