@@ -42,7 +42,8 @@ export function McpSection({ app, plugin }: McpSectionProps) {
       setMcpManager(mcpManager)
       setMcpServers(mcpManager.getServers())
     }
-    initMCPManager()
+    // Fix: Handle floating promise
+    void initMCPManager()
   }, [plugin])
 
   useEffect(() => {
@@ -134,21 +135,25 @@ function McpServerComponent({
       title: 'Delete MCP Server',
       message: message,
       ctaText: 'Delete',
-      onConfirm: async () => {
-        await setSettings({
-          ...settings,
-          mcp: {
-            ...settings.mcp,
-            servers: settings.mcp.servers.filter((s) => s.id !== server.name),
-          },
-        })
+      // Fix: Wrap async confirm handler
+      onConfirm: () => {
+        void (async () => {
+            await setSettings({
+            ...settings,
+            mcp: {
+                ...settings.mcp,
+                servers: settings.mcp.servers.filter((s) => s.id !== server.name),
+            },
+            })
+        })()
       },
     }).open()
   }, [server.name, settings, setSettings, app])
 
   const handleToggleEnabled = useCallback(
     (enabled: boolean) => {
-      setSettings({
+      // Fix: Handle floating promise
+      void setSettings({
         ...settings,
         mcp: {
           ...settings.mcp,
@@ -288,7 +293,8 @@ function McpToolComponent({
       disabled: !enabled,
       allowAutoExecution: allowAutoExecution,
     }
-    setSettings({
+    // Fix: Handle floating promise
+    void setSettings({
       ...settings,
       mcp: {
         ...settings.mcp,
@@ -310,7 +316,8 @@ function McpToolComponent({
       ...toolOptions[tool.name],
       allowAutoExecution: autoExecution,
     }
-    setSettings({
+    // Fix: Handle floating promise
+    void setSettings({
       ...settings,
       mcp: {
         ...settings.mcp,
