@@ -19,7 +19,7 @@ export function EmbeddingModelsSubSection({
 }: EmbeddingModelsSubSectionProps) {
   const { settings, setSettings } = useSettings()
 
-  // Removed 'async' as opening a modal is synchronous and we don't await the result here
+  // Removed 'async' as opening a modal is synchronous
   const handleDeleteEmbeddingModel = (modelId: string) => {
     if (modelId === settings.embeddingModelId) {
       new Notice(
@@ -33,29 +33,32 @@ export function EmbeddingModelsSubSection({
       `This will also delete all embeddings generated using this model from the database.`
 
     new ConfirmModal(app, {
-      title: 'Delete embedding model', // Sentence case
+      title: 'Delete embedding model',
       message: message,
       ctaText: 'Delete',
-      onConfirm: async () => {
-        const vectorManager = (await plugin.getDbManager()).getVectorManager()
-        const embeddingStats = await vectorManager.getEmbeddingStats()
-        const embeddingStat = embeddingStats.find((v) => v.model === modelId)
+      // Fix: Wrap async confirm handler to prevent floating promise return
+      onConfirm: () => {
+        void (async () => {
+            const vectorManager = (await plugin.getDbManager()).getVectorManager()
+            const embeddingStats = await vectorManager.getEmbeddingStats()
+            const embeddingStat = embeddingStats.find((v) => v.model === modelId)
 
-        if (embeddingStat?.rowCount && embeddingStat.rowCount > 0) {
-          // only clear when there's data
-          const embeddingModelClient = getEmbeddingModelClient({
-            settings,
-            embeddingModelId: modelId,
-          })
-          await vectorManager.clearAllVectors(embeddingModelClient)
-        }
+            if (embeddingStat?.rowCount && embeddingStat.rowCount > 0) {
+              // only clear when there's data
+              const embeddingModelClient = getEmbeddingModelClient({
+                settings,
+                embeddingModelId: modelId,
+              })
+              await vectorManager.clearAllVectors(embeddingModelClient)
+            }
 
-        await setSettings({
-          ...settings,
-          embeddingModels: [...settings.embeddingModels].filter(
-            (v) => v.id !== modelId,
-          ),
-        })
+            await setSettings({
+              ...settings,
+              embeddingModels: [...settings.embeddingModels].filter(
+                (v) => v.id !== modelId,
+              ),
+            })
+        })()
       },
     }).open()
   }
