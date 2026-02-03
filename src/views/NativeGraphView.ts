@@ -22,6 +22,8 @@ import { MergeSelectionModal } from '../components/modals/MergeSelectionModal';
 // Use type import to avoid circular dependency values but get the type
 import type NeuralComposerPlugin from '../main';
 
+import { CreateRelationModal } from '../components/modals/CreateRelationModal';
+
 export const NATIVE_GRAPH_VIEW_TYPE = 'neural-native-graph';
 
 // --- Interfaces for Strict Typing ---
@@ -697,6 +699,11 @@ export class NativeGraphView extends ItemView {
 
       const actionButtons = header.createDiv({ cls: 'nrlcmp-sidebar-actions' });
       new ButtonComponent(actionButtons).setButtonText('Merge').setCta().onClick(() => { void this.mergeSelectedNodes(); });
+            // NUEVO BOTÓN: CREATE RELATION
+      new ButtonComponent(actionButtons)
+        .setButtonText('Link')
+        .setTooltip('Create relationships between selected nodes')
+        .onClick(() => { void this.createRelationBetweenSelected(); });
       new ButtonComponent(actionButtons).setButtonText('Delete').setWarning().onClick(() => { void this.deleteSelectedNodes(); });
 
       const filterBar = header.createDiv({ cls: 'nrlcmp-sidebar-filters' });
@@ -707,6 +714,7 @@ export class NativeGraphView extends ItemView {
       setTooltip(orphansBtn, 'Show disconnected nodes');
       orphansBtn.onclick = () => this.filterOrphans();
 
+      
       this.sidebarListEl = container.createDiv({ cls: 'nrlcmp-sidebar-list' });
   }
 
@@ -829,7 +837,58 @@ export class NativeGraphView extends ItemView {
           } else { new Notice("Node not found"); }
       }
   }
+
+  async createRelationBetweenSelected() {
+      const targets = Array.from(this.selectedNodes);
+      if (targets.length < 2) { 
+          new Notice("⚠️ Select at least 2 nodes to link."); 
+          return; 
+      }
+
+      new CreateRelationModal(
+          this.app, 
+          targets, 
+          // Acción: Enviar a la API
+          async (data) => {
+              for (const target of data.targets) {
+                  try {
+                      await requestUrl({
+                          url: "http://localhost:9621/graph/relation/create",
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                              source_entity: data.source,
+                              target_entity: target,
+                              relation_data: {
+                                  description: data.description,
+                                  keywords: data.keywords,
+                                  weight: 1.0
+                              }
+                          })
+                      });
+                  } catch (e) { console.error(e); }
+              }
+              new Notice(`✅ Created ${data.targets.length} relationships.`);
+              this.selectedNodes.clear();
+              // Recargar grafo para ver las nuevas líneas
+              setTimeout(() => { void this.render(this.contentEl.querySelector('#sigma-container') as HTMLElement); }, 1000);
+          },
+          // Acción: Sugerencia AI
+          async (source, targets) => {
+              const targetLang = this.plugin.settings.lightRagSummaryLanguage || 'English';
+              const prompt = `Act as a Knowledge Graph Architect. 
+              The user wants to connect the node "${source}" with the following nodes: ${targets.join(', ')}.
+              Write a ONE-SENTENCE description in the language of the notes (${targetLang}) that explains a logical connection between these concepts. 
+              Be concise and technical. Output ONLY the sentence.`;
+              
+              return await this.plugin.simpleLLMCall(prompt);
+          }
+      ).open();
+  }
+
 }
+
+
 
 // Helper: Safe Confirmation Modal
 class ConfirmationModal extends Modal {
