@@ -97,7 +97,8 @@ interface FA2LayoutInstance {
 // Partial typing for 3d-force-graph chainable instance
 interface ForceGraph3DInstance {
     (element: HTMLElement): ForceGraph3DInstance;
-    graphData: (data?: { nodes: any[]; links: any[] }) => ForceGraph3DInstance | { nodes: any[]; links: any[] };
+    // Fix 1: Return only Instance to allow chaining .backgroundColor()
+    graphData: (data?: { nodes: any[]; links: any[] }) => ForceGraph3DInstance;
     backgroundColor: (color: string) => ForceGraph3DInstance;
     nodeAutoColorBy: (attr: string) => ForceGraph3DInstance;
     nodeVal: (attr: string) => ForceGraph3DInstance;
@@ -508,8 +509,9 @@ export class NativeGraphView extends ItemView {
                    this.graph3D.cameraPosition({ x: node.x * ratio, y: node.y * ratio, z: node.z * ratio }, node, 2000);
               }
           });
-      this.graph3D.width(container.clientWidth);
-      this.graph3D.height(container.clientHeight);
+      // Fix 2: Use optional chaining to handle possible null value from this.graph3D
+      this.graph3D?.width(container.clientWidth);
+      this.graph3D?.height(container.clientHeight);
   }
 
   cleanup() {
@@ -679,7 +681,6 @@ export class NativeGraphView extends ItemView {
       const btnReload = tb.createEl('button', { cls: 'nrlcmp-toolbar-btn' });
       setIcon(btnReload, 'refresh-cw'); 
       setTooltip(btnReload, 'Reload graph');
-      // Fix: Handle floating promise in onclick
       btnReload.onclick = () => { void this.render(graphContainer); };
       
       const btnReset = tb.createEl('button', { cls: 'nrlcmp-toolbar-btn' });
@@ -707,7 +708,6 @@ export class NativeGraphView extends ItemView {
       new ButtonComponent(actionButtons)
         .setButtonText('Link')
         .setTooltip('Create relationships between selected nodes')
-        // Fix: Removed async keyword, wrapped internal logic in void IIFE if needed, but here createRelationBetweenSelected is now sync/void
         .onClick(() => { this.createRelationBetweenSelected(); });
       new ButtonComponent(actionButtons).setButtonText('Delete').setWarning().onClick(() => { void this.deleteSelectedNodes(); });
 
@@ -823,11 +823,10 @@ export class NativeGraphView extends ItemView {
       
       if (this.plugin.settings.graphViewMode === '3d' && this.graph3D) {
           // Use type interface to access data safely
-           const graphData = this.graph3D.graphData();
-           // ForceGraph3D's graphData returns { nodes: [], links: [] }
-           // We use 'as any' only if strict typing of the external lib fails, but interface should handle it
-           // However, to be safe against 'Unexpected any' from linter:
-           const nodes = (graphData as { nodes: any[] }).nodes || [];
+           // Force casting to generic object first to access the 'getter' behavior of the library
+           // This bypasses the strict TypeScript interface which is designed for chaining (setter)
+           const graphData = (this.graph3D as any).graphData();
+           const nodes = graphData?.nodes || [];
            
           const target = nodes.find((n: any) => n.id.toLowerCase().includes(lower));
           if (target) {
