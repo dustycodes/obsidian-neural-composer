@@ -573,7 +573,7 @@ async startLightRagServer() {
     this.updateStatusUI('busy'); // Amarillo mientras arranca
 
     try {
-        const envVars = { ...process.env } as NodeJS.ProcessEnv;
+        const envVars = { ...process.env };
         
         this.serverProcess = spawn(command, ['--port', '9621', '--working-dir', workDir,'--workers', '1'], {
             cwd: workDir,
@@ -731,8 +731,11 @@ async startLightRagServer() {
         try {
           this.ragEngine = new RAGEngine(
             this.app, this.settings, {} as any,
-            // FIX: Restore promise return type for compatibility
-            async () => { this.restartLightRagServer(); }
+            // FIX: Satisfy Promise<void> signature without using async/await unnecessarily
+            () => { 
+                this.restartLightRagServer(); 
+                return Promise.resolve();
+            }
           );
           return this.ragEngine;
         } catch (error) {
@@ -905,7 +908,6 @@ private async checkAndUpdateStatus() {
           });
           
           if (response.status === 200) {
-              // Usamos casting seguro para leer la propiedad sin que TS llore
               const data = response.json as { pipeline_busy?: boolean };
               const isBusy = data?.pipeline_busy ?? false;
               this.updateStatusUI(isBusy ? 'busy' : 'online');
