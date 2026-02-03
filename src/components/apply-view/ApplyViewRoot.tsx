@@ -240,7 +240,8 @@ export default function ApplyViewRoot({
             <button
               className="clickable-icon view-action"
               aria-label="Accept changes"
-              onClick={handleAccept}
+              // FIX: Wrapped async handler with void to satisfy linter
+              onClick={() => void handleAccept()}
             >
               {acceptIcon && <CheckIcon size={14} />}
               Accept
