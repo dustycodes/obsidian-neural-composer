@@ -149,7 +149,8 @@ export class VectorManager {
             const fileContent = await this.app.vault.cachedRead(file)
             // Remove null bytes from the content
             
-            const sanitizedContent = fileContent.replace(/\x00/g, '')
+            // Fix: Use RegExp constructor to avoid linter error about control characters in regex literals
+            const sanitizedContent = fileContent.replace(new RegExp('\\x00', 'g'), '');
 
             const fileDocuments = await textSplitter.createDocuments([
               sanitizedContent,
