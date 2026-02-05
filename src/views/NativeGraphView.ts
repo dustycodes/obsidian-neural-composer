@@ -94,26 +94,30 @@ interface FA2LayoutInstance {
     kill: () => void;
 }
 
-// Partial typing for 3d-force-graph chainable instance
+// Fix 1: Improved typing for 3d-force-graph chainable instance (Setter mode)
 interface ForceGraph3DInstance {
     (element: HTMLElement): ForceGraph3DInstance;
-    // Fix 1: Return only Instance to allow chaining .backgroundColor()
-    graphData: (data?: { nodes: any[]; links: any[] }) => ForceGraph3DInstance;
-    backgroundColor: (color: string) => ForceGraph3DInstance;
-    nodeAutoColorBy: (attr: string) => ForceGraph3DInstance;
-    nodeVal: (attr: string) => ForceGraph3DInstance;
-    nodeRelSize: (size: number) => ForceGraph3DInstance;
-    nodeLabel: (attr: string) => ForceGraph3DInstance;
-    nodeOpacity: (opacity: number) => ForceGraph3DInstance;
-    linkWidth: (width: number) => ForceGraph3DInstance;
-    linkOpacity: (opacity: number) => ForceGraph3DInstance;
-    cooldownTicks: (ticks: number) => ForceGraph3DInstance;
-    onNodeClick: (callback: (node: any) => void) => ForceGraph3DInstance;
-    width: (width: number) => ForceGraph3DInstance;
-    height: (height: number) => ForceGraph3DInstance;
-    cameraPosition: (pos: {x: number, y: number, z: number}, lookAt?: any, ms?: number) => ForceGraph3DInstance;
-    zoomToFit: (ms: number, padding: number) => ForceGraph3DInstance;
-    _destructor: () => void;
+    graphData(data: { nodes: any[]; links: any[] }): ForceGraph3DInstance;
+    backgroundColor(color: string): ForceGraph3DInstance;
+    nodeAutoColorBy(attr: string): ForceGraph3DInstance;
+    nodeVal(attr: string): ForceGraph3DInstance;
+    nodeRelSize(size: number): ForceGraph3DInstance;
+    nodeLabel(attr: string): ForceGraph3DInstance;
+    nodeOpacity(opacity: number): ForceGraph3DInstance;
+    linkWidth(width: number): ForceGraph3DInstance;
+    linkOpacity(opacity: number): ForceGraph3DInstance;
+    cooldownTicks(ticks: number): ForceGraph3DInstance;
+    onNodeClick(callback: (node: any) => void): ForceGraph3DInstance;
+    width(width: number): ForceGraph3DInstance;
+    height(height: number): ForceGraph3DInstance;
+    cameraPosition(pos: {x: number, y: number, z: number}, lookAt?: any, ms?: number): ForceGraph3DInstance;
+    zoomToFit(ms: number, padding: number): ForceGraph3DInstance;
+    _destructor(): void;
+}
+
+// Fix 2: Separate interface for Getter usage to avoid 'any'
+interface ForceGraph3DGetter {
+    graphData(): { nodes: any[]; links: any[] };
 }
 
 export class NativeGraphView extends ItemView {
@@ -123,7 +127,6 @@ export class NativeGraphView extends ItemView {
   
   private sigmaInstance: Sigma | null = null;
   private fa2Layout: FA2LayoutInstance | null = null;
-  // Use defined interface instead of any
   private graph3D: ForceGraph3DInstance | null = null;
   
   private graph: Graph | null = null;
@@ -152,7 +155,6 @@ export class NativeGraphView extends ItemView {
   getIcon() { return 'brain-circuit'; }
 
   async onOpen() {
-    // Await super.onOpen() satisfies both the interface (Promise<void>) and the linter (await usage)
     await super.onOpen();
 
     const container = this.contentEl;
@@ -160,7 +162,6 @@ export class NativeGraphView extends ItemView {
     
     container.addClass('nrlcmp-graph-view'); 
     
-    // Apply mode-specific class for CSS background variables
     const is3D = this.plugin.settings.graphViewMode === '3d';
     container.addClass(is3D ? 'nrlcmp-mode-3d' : 'nrlcmp-mode-2d');
 
@@ -183,7 +184,7 @@ export class NativeGraphView extends ItemView {
     // Initial render - SYNC call inside timeout
     window.setTimeout(() => { 
         try {
-            // Fix: Void for potential floating promise in render
+            // Fix: Void for potential floating promise
             void this.render(graphContainer);
         } catch (err) {
             console.error("Render failed:", err);
@@ -191,13 +192,13 @@ export class NativeGraphView extends ItemView {
     }, 100);
   }
 
-  // Fix: Removed async as there is no await expression. Returns Promise for interface compat.
+  // Fix: Removed async (no await). Returns Promise to match interface.
   onClose(): Promise<void> {
       this.cleanup();
       return Promise.resolve();
   }
 
-  // --- DATA LOGIC (Sync now) ---
+  // --- DATA LOGIC ---
   loadReferenceMaps() {
       try {
           const chunksPath = path.join(this.workDir, 'kv_store_text_chunks.json');
@@ -219,7 +220,6 @@ export class NativeGraphView extends ItemView {
 
   getFilenames(sourceIds: string): string[] {
       if (!sourceIds) return [];
-      // Fixed Regex: Removed unnecessary escape of '['
       const chunks = sourceIds.split(new RegExp('<SEP>|,')).map(s => s.trim().replace(/['"[\]]/g, '')).filter(Boolean);
       const fileNames = new Set<string>();
       chunks.forEach(chunkId => {
@@ -233,7 +233,7 @@ export class NativeGraphView extends ItemView {
       return Array.from(fileNames);
   }
 
-  // --- MAIN RENDER (Sync now) ---
+  // --- MAIN RENDER ---
   render(container: HTMLElement, label?: HTMLElement) {
     this.cleanup();
     container.empty();
@@ -494,7 +494,7 @@ export class NativeGraphView extends ItemView {
           links: edges.map((e: any) => ({ source: e.normalizedSource || e.source, target: e.normalizedTarget || e.target }))
       };
       
-      // Use casting to unknown then to specific function signature to avoid implicit any
+      // Fix: Cast to unknown then to specific function signature
       this.graph3D = (ForceGraph3D as unknown as () => ForceGraph3DInstance)()(container)
           .graphData(gData)
           .backgroundColor('#000005') 
@@ -509,7 +509,8 @@ export class NativeGraphView extends ItemView {
                    this.graph3D.cameraPosition({ x: node.x * ratio, y: node.y * ratio, z: node.z * ratio }, node, 2000);
               }
           });
-      // Fix 2: Use optional chaining to handle possible null value from this.graph3D
+      
+      // Fix: Optional chaining for potentially null object
       this.graph3D?.width(container.clientWidth);
       this.graph3D?.height(container.clientHeight);
   }
@@ -708,6 +709,7 @@ export class NativeGraphView extends ItemView {
       new ButtonComponent(actionButtons)
         .setButtonText('Link')
         .setTooltip('Create relationships between selected nodes')
+        // Fix: Removed async keyword
         .onClick(() => { this.createRelationBetweenSelected(); });
       new ButtonComponent(actionButtons).setButtonText('Delete').setWarning().onClick(() => { void this.deleteSelectedNodes(); });
 
@@ -822,10 +824,8 @@ export class NativeGraphView extends ItemView {
       const lower = query.toLowerCase();
       
       if (this.plugin.settings.graphViewMode === '3d' && this.graph3D) {
-          // Use type interface to access data safely
-           // Force casting to generic object first to access the 'getter' behavior of the library
-           // This bypasses the strict TypeScript interface which is designed for chaining (setter)
-           const graphData = (this.graph3D as any).graphData();
+          // Fix 3: Use safe casting to Getter interface to access graph data without 'any'
+           const graphData = (this.graph3D as unknown as ForceGraph3DGetter).graphData();
            const nodes = graphData?.nodes || [];
            
           const target = nodes.find((n: any) => n.id.toLowerCase().includes(lower));
@@ -833,8 +833,9 @@ export class NativeGraphView extends ItemView {
               this.showNodeDetails(target);
               const dist = 40;
               const ratio = 1 + dist/Math.hypot(target.x, target.y, target.z);
-              this.graph3D.cameraPosition({ x: target.x * ratio, y: target.y * ratio, z: target.z * ratio }, target, 2000);
-              new Notice(`Found: ${target.id}`);
+              if (this.graph3D) {
+                   this.graph3D.cameraPosition({ x: target.x * ratio, y: target.y * ratio, z: target.z * ratio }, target, 2000);
+              }
           } else { new Notice("Node not found"); }
       } 
       else if (this.sigmaInstance && this.graph) {
