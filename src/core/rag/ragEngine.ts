@@ -276,9 +276,9 @@ export class RAGEngine {
     }
   }
 
-  // Marked as private and potentially unused, but keeping it compliant
-  private async getQueryEmbedding(query: string): Promise<number[]> {
-    if (!this.embeddingModel) throw new Error('Embedding model not set');
+  // Fix: Removed async keyword because it directly returns the Promise
+  private getQueryEmbedding(query: string): Promise<number[]> {
+    if (!this.embeddingModel) return Promise.reject(new Error('Embedding model not set'));
     return this.embeddingModel.getEmbedding(query)
   }
 }
