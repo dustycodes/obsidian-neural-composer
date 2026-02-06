@@ -8,7 +8,10 @@ import { EmbeddingModelClient } from '../../types/embedding'
 
 import { getEmbeddingModelClient } from './embedding'
 
-// Interface for internal results to avoid 'any'
+// Helper type matching the method signature to avoid 'any' casting
+type RagQueryResult = (Omit<SelectEmbedding, 'embedding'> & { similarity: number })[];
+
+// Interface for internal results
 interface RagResult extends Partial<SelectEmbedding> {
     id: number;
     model?: string;
@@ -40,7 +43,6 @@ export class RAGEngine {
     this.app = app
     this.settings = settings
     this.vectorManager = vectorManager
-    // Fix: Explicitly handle the promise in the default callback
     this.restartServerCallback = restartServerCallback || (() => Promise.resolve()); 
     this.embeddingModel = getEmbeddingModelClient({
       settings,
@@ -61,14 +63,12 @@ export class RAGEngine {
     })
   }
 
-  // Removed async keyword to avoid 'Async method has no await'
-  // Returns Promise<void> directly
+  // Correct: Returns Promise<void> directly without async/await overhead
   updateVaultIndex(
     options: { reindexAll: boolean } = { reindexAll: false },
     onQueryProgressChange?: (queryProgress: QueryProgressState) => void,
   ): Promise<void> {
     if (!this.embeddingModel) return Promise.reject(new Error('Embedding model is not set'));
-    // Placeholder implementation
     return Promise.resolve();
   }
 
@@ -89,7 +89,7 @@ export class RAGEngine {
       }
       return true;
     } catch (error) {
-      console.error("❌ Error in input of text:", error);
+      console.error("Error in input of text:", error);
       new Notice(`Error saving to the graph: ${error instanceof Error ? error.message : String(error)}`);
       return false;
     }
@@ -100,14 +100,11 @@ export class RAGEngine {
     try {
       const fileData = await this.app.vault.readBinary(file);
       
-      // 1. Create Multipart Boundary
       const boundary = "----ObsidianBoundary" + Date.now().toString(16);
       
-      // 2. Build Header and Footer
       const prePart = `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${file.name}"\r\nContent-Type: application/octet-stream\r\n\r\n`;
       const postPart = `\r\n--${boundary}--\r\n`;
 
-      // 3. Merge into Uint8Array
       const preBuffer = new TextEncoder().encode(prePart);
       const postBuffer = new TextEncoder().encode(postPart);
       const bodyBuffer = new Uint8Array(preBuffer.length + fileData.byteLength + postBuffer.length);
@@ -116,7 +113,6 @@ export class RAGEngine {
       bodyBuffer.set(new Uint8Array(fileData), preBuffer.length);
       bodyBuffer.set(postBuffer, preBuffer.length + fileData.byteLength);
 
-      // 4. Send via requestUrl
       const response = await requestUrl({
         url: "http://localhost:9621/documents/upload",
         method: "POST",
@@ -133,13 +129,13 @@ export class RAGEngine {
 
       return true;
     } catch (error) {
-      console.error("❌ Error uploading file:", error);
+      console.error("Error uploading file:", error);
       new Notice(`Error uploading ${file.name}: ${error instanceof Error ? error.message : String(error)}`);
       return false;
     }
   }
 
-// --- 3. MASTER QUERY (PASSTHROUGH) ---
+  // --- 3. MASTER QUERY ---
   async processQuery({
     query,
     scope,
@@ -151,11 +147,7 @@ export class RAGEngine {
       folders: string[]
     }
     onQueryProgressChange?: (queryProgress: QueryProgressState) => void
-  }): Promise<
-    (Omit<SelectEmbedding, 'embedding'> & {
-      similarity: number
-    })[]
-  > {
+  }): Promise<RagQueryResult> {
     
     // 1. LOCAL STRATEGY
     if (scope && scope.files && scope.files.length > 0) {
@@ -171,7 +163,8 @@ export class RAGEngine {
              }
         }
         onQueryProgressChange?.({ type: 'querying-done', queryResult: [] });
-        return localResults as any; // Cast only at return to satisfy legacy interface
+        // Safe casting to expected return type
+        return localResults as unknown as RagQueryResult;
     }
 
     // 2. GLOBAL STRATEGY
@@ -190,15 +183,12 @@ export class RAGEngine {
         
         if (response.status >= 400) {
             const errorText = response.text;
-            
-            // Detect common Reranking issues
             if (errorText.toLowerCase().includes("quota") || errorText.toLowerCase().includes("credit") || errorText.toLowerCase().includes("429")) {
-                new Notice("⚠️ RERANK ERROR: Quota Exceeded.\nPlease check your Jina/Cohere API Key.", 0);
+                new Notice("Rerank error: quota exceeded. Please check your Jina/Cohere API key.", 0);
             }
             else if (errorText.toLowerCase().includes("rerank")) {
-                new Notice(`⚠️ Reranking Error: ${errorText}`, 5000);
+                new Notice(`Reranking error: ${errorText}`, 5000);
             }
-            
             throw new Error(`Status ${response.status}: ${errorText}`);
         }
         return response.json;
@@ -209,11 +199,10 @@ export class RAGEngine {
       try {
           data = await performQuery();
       } catch (firstError) {
-          // Resurrection Logic
-          console.warn("⚠️ First attempt failed...", firstError);
+          console.warn("First attempt failed...", firstError);
           if (this.settings.enableAutoStartServer) {
               onQueryProgressChange?.({ type: 'querying' }); 
-              new Notice("🧠 Waking up the system...");
+              new Notice("Waking up the system...");
               await this.restartServerCallback();
               await new Promise(resolve => setTimeout(resolve, 4000));
               data = await performQuery();
@@ -236,21 +225,20 @@ export class RAGEngine {
 
       if (masterContent) {
           results.push({
-              id: -1, model: 'lightrag-master', path: "🧠 Graph's Memory",
+              id: -1, model: 'lightrag-master', path: "Graph's memory",
               content: masterContent, similarity: 1.0, mtime: Date.now(),
-              metadata: { startLine: 0, endLine: 0, fileName: "GraphAnswer", content: masterContent }
+              metadata: { startLine: 0, endLine: 0, fileName: "Graph answer", content: masterContent }
           });
       }
 
-      // Breakdown References
       if (data.references && Array.isArray(data.references)) {
           for (let i = 0; i < data.references.length; i++) {
               const ref = data.references[i];
               const filePath = ref.file_path || `Source #${i+1}`;
               const docName = `[${i + 1}] ${filePath}`; 
               results.push({
-                  id: -(i + 2), model: 'lightrag-ref', path: `📂 ${docName}`,
-                  content: `[Full Content of ${docName}]:\n${ref.content || "..."}`, 
+                  id: -(i + 2), model: 'lightrag-ref', path: `${docName}`,
+                  content: `[Full content of ${docName}]:\n${ref.content || "..."}`, 
                   similarity: 0.5, mtime: Date.now(),
                   metadata: { startLine: 0, endLine: 0, fileName: filePath }
               });
@@ -258,25 +246,20 @@ export class RAGEngine {
       }
 
       onQueryProgressChange?.({ type: 'querying-done', queryResult: [] })
-      return results as any;
+      return results as unknown as RagQueryResult;
 
     } catch (error: unknown) {
-      console.error("❌ Final error:", error);
-      
-      // Safe error message extraction
+      console.error("Final error:", error);
       const message = error instanceof Error ? error.message : String(error);
-      
-      // Friendly chat error
       const errorDoc: RagResult = {
-          id: -2, path: "⚠️ Query Error",
-          content: `No response could be obtained from Graph.\n\nPossible cause: ${message}\n\nIf you use Reranking, check your credits.`,
+          id: -2, path: "Query error",
+          content: `No response could be obtained from graph.\n\nPossible cause: ${message}\n\nIf you use reranking, check your credits.`,
           similarity: 1.0, metadata: { startLine: 0, endLine: 0 }
       };
-      return [errorDoc] as any;
+      return [errorDoc] as unknown as RagQueryResult;
     }
   }
 
-  // Fix: Removed async keyword because it directly returns the Promise
   private getQueryEmbedding(query: string): Promise<number[]> {
     if (!this.embeddingModel) return Promise.reject(new Error('Embedding model not set'));
     return this.embeddingModel.getEmbedding(query)
