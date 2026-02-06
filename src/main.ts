@@ -724,25 +724,31 @@ async startLightRagServer() {
       return Promise.resolve({} as DatabaseManager); 
   }
 
-  async getRAGEngine(): Promise<RAGEngine> {
-    if (this.ragEngine) return this.ragEngine;
+// Fix: Removed 'async' keyword as the method implementation is synchronous
+  // wrapping the result in Promises manually to satisfy the interface.
+  getRAGEngine(): Promise<RAGEngine> {
+    if (this.ragEngine) return Promise.resolve(this.ragEngine);
+    
     if (!this.ragEngineInitPromise) {
-      this.ragEngineInitPromise = (async () => {
+      // Fix: Replaced async IIFE with a standard Promise execution
+      // to avoid "Async arrow function has no 'await' expression"
+      this.ragEngineInitPromise = new Promise<RAGEngine>((resolve, reject) => {
         try {
           this.ragEngine = new RAGEngine(
-            this.app, this.settings, {} as any,
-            // FIX: Satisfy Promise<void> signature without using async/await unnecessarily
+            this.app, 
+            this.settings, 
+            {} as any, // Placeholder for VectorManager if not immediately needed
             () => { 
                 this.restartLightRagServer(); 
                 return Promise.resolve();
             }
           );
-          return this.ragEngine;
+          resolve(this.ragEngine);
         } catch (error) {
           this.ragEngineInitPromise = null;
-          throw error;
+          reject(error);
         }
-      })();
+      });
     }
     return this.ragEngineInitPromise;
   }
