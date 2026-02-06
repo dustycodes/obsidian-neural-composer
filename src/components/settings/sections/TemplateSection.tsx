@@ -40,7 +40,8 @@ export function TemplateSection({ app }: TemplateSectionProps) {
     new CreateTemplateModal({
       app,
       selectedSerializedNodes: null,
-      onSubmit: fetchTemplateList,
+      // Fix: Wrap async callback to void to satisfy linter
+      onSubmit: () => void fetchTemplateList(),
     }).open()
   }, [fetchTemplateList, app])
 
@@ -49,7 +50,8 @@ export function TemplateSection({ app }: TemplateSectionProps) {
       new EditTemplateModal({
         app,
         templateId: template.id,
-        onSubmit: fetchTemplateList,
+        // Fix: Wrap async callback to void to satisfy linter
+        onSubmit: () => void fetchTemplateList(),
       }).open()
     },
     [fetchTemplateList, app],
@@ -59,10 +61,9 @@ export function TemplateSection({ app }: TemplateSectionProps) {
     (template: TemplateMetadata) => {
       const message = `Are you sure you want to delete template "${template.name}"?`
       new ConfirmModal(app, {
-        title: 'Delete template', // Fix: Sentence case
+        title: 'Delete template',
         message: message,
         ctaText: 'Delete',
-        // Fix: Wrap async confirm handler to prevent floating promise return
         onConfirm: () => {
             void (async () => {
                 try {
@@ -80,7 +81,6 @@ export function TemplateSection({ app }: TemplateSectionProps) {
   )
 
   useEffect(() => {
-    // Fix: Explicitly mark promise as ignored
     void fetchTemplateList()
   }, [fetchTemplateList])
 
