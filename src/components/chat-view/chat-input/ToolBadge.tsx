@@ -25,7 +25,7 @@ export default function ToolBadge() {
   const handleToolToggle = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       e.stopPropagation()
-      // Fix: Handle floating promise from setSettings
+      // Fix: Handle floating promise from setSettings explicitly
       void setSettings({
         ...settings,
         chatOptions: {
@@ -51,16 +51,15 @@ export default function ToolBadge() {
 
   useEffect(() => {
     if (mcpManager) {
-      // Fix: Callback expects void return, but async returns Promise.
-      // Wrapped in synchronous function with void IIFE.
-      const unsubscribe = mcpManager.subscribeServersChange(
-        (_servers) => {
-          void (async () => {
-            const tools = await mcpManager.listAvailableTools()
-            setToolCount(tools.length)
-          })()
-        },
-      )
+      // Fix: Refactored to explicit sync function calling void async to satisfy linter
+      const unsubscribe = mcpManager.subscribeServersChange((_servers) => {
+        const updateTools = async () => {
+          const tools = await mcpManager.listAvailableTools()
+          setToolCount(tools.length)
+        }
+        void updateTools()
+      })
+      
       return () => {
         unsubscribe()
       }
