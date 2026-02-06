@@ -63,19 +63,23 @@ export default function ApplyViewRoot({
     scrollToDiffBlock(currentDiffIndex + 1)
   }, [currentDiffIndex, scrollToDiffBlock])
 
-  const handleAccept = async () => {
-    const newContent = diff
-      .map((diffBlock) => {
-        if (diffBlock.type === 'modified') {
-          return diffBlock.modifiedValue
-        } else {
-          return diffBlock.value
-        }
-      })
-      .join('\n')
-    await app.vault.modify(state.file, newContent)
-    close()
-  }
+  // FIX: Changed from 'const handleAccept = async () => ...' to sync function with void IIFE
+  // This completely removes the Promise return signature from the handler itself.
+  const handleAccept = useCallback(() => {
+    void (async () => {
+      const newContent = diff
+        .map((diffBlock) => {
+          if (diffBlock.type === 'modified') {
+            return diffBlock.modifiedValue
+          } else {
+            return diffBlock.value
+          }
+        })
+        .join('\n')
+      await app.vault.modify(state.file, newContent)
+      close()
+    })()
+  }, [diff, app.vault, state.file, close])
 
   const handleReject = () => {
     close()
@@ -86,7 +90,6 @@ export default function ApplyViewRoot({
       const currentPart = prevDiff[index]
 
       if (currentPart.type === 'unchanged') {
-        // Should not happen
         return prevDiff
       }
 
@@ -115,7 +118,6 @@ export default function ApplyViewRoot({
       const currentPart = prevDiff[index]
 
       if (currentPart.type === 'unchanged') {
-        // Should not happen
         return prevDiff
       }
 
@@ -144,7 +146,6 @@ export default function ApplyViewRoot({
       const currentPart = prevDiff[index]
 
       if (currentPart.type === 'unchanged') {
-        // Should not happen
         return prevDiff
       }
 
@@ -169,9 +170,8 @@ export default function ApplyViewRoot({
 
     const scrollerRect = scroller.getBoundingClientRect()
     const scrollerTop = scrollerRect.top
-    const visibleThreshold = 10 // pixels from top to consider element "visible"
+    const visibleThreshold = 10 
 
-    // Find the first visible diff block
     for (let i = 0; i < modifiedBlockIndices.length; i++) {
       const element = diffBlockRefs.current[modifiedBlockIndices[i]]
       if (!element) continue
@@ -179,7 +179,6 @@ export default function ApplyViewRoot({
       const rect = element.getBoundingClientRect()
       const relativeTop = rect.top - scrollerTop
 
-      // If element is visible (slightly below the top of the viewport)
       if (relativeTop >= -visibleThreshold) {
         setCurrentDiffIndex(i)
         break
@@ -240,8 +239,7 @@ export default function ApplyViewRoot({
             <button
               className="clickable-icon view-action"
               aria-label="Accept changes"
-              // FIX: Wrapped async handler with void to satisfy linter
-              onClick={() => void handleAccept()}
+              onClick={handleAccept}
             >
               {acceptIcon && <CheckIcon size={14} />}
               Accept
