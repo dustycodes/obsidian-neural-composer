@@ -160,7 +160,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
         warningDiv.createEl('br');
         // FIX: Sentence case (Graph Data folder -> graph data folder)
         warningDiv.createSpan({ text: 'If you already have data ingested, you ' });
-        warningDiv.createEl('strong', { text: 'MUST delete your graph data folder' });
+        warningDiv.createEl('strong', { text: 'Must delete your graph data folder' });
         warningDiv.createSpan({ text: ' and re-ingest all documents.' });
 
         new Setting(container)
