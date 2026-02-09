@@ -143,7 +143,8 @@ function CurrentFileBadge({
   const handleCurrentFileToggle = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       e.stopPropagation()
-      setSettings({
+      // FIX: Handle floating promise from setSettings
+      void setSettings({
         ...settings,
         chatOptions: {
           ...settings.chatOptions,
