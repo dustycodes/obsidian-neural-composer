@@ -791,7 +791,7 @@ export class NativeGraphView extends ItemView {
               } else { 
                   new Notice(`Error: ${response.text}`); 
               }
-          } catch (e) { console.error(e); new Notice("API Error"); }
+          } catch (e) { console.error(e); new Notice("API error"); }
       }).open();
   }
 
