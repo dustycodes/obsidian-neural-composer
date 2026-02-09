@@ -63,7 +63,8 @@ export function useChatStreamManager({
         }
         // Fallback to the first chat model if the selected chat model is not found
         const firstChatModel = settings.chatModels[0]
-        setSettings({
+        // FIX: Handle floating promise from setSettings within useMemo side-effect
+        void setSettings({
           ...settings,
           chatModelId: firstChatModel.id,
           chatModels: settings.chatModels.map((model) =>
