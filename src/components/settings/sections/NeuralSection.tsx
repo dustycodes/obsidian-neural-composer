@@ -79,7 +79,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
     // 3.5 Graph Embedding Model
     new Setting(container)
       .setName('Graph embedding model')
-      .setDesc('Select the model used for vectorizing your notes. (Must match the dimensions used during ingestion).')
+      .setDesc('Select the model used for vectorizing your notes, (must match the dimensions used during ingestion).')
       .addDropdown((dropdown) => {
         plugin.settings.embeddingModels.forEach((model) => {
           dropdown.addOption(model.id, `${model.providerId} - ${model.model} (${model.dimension || '?'} dim)`);
