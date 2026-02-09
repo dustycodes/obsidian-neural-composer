@@ -404,7 +404,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
       );
 
     // VISUALIZATION
-    container.createEl('h4', { text: '🎨 Visualization' });
+    container.createEl('h4', { text: 'Visualization' });
 
     new Setting(container)
       .setName('Graph rendering engine')

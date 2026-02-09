@@ -184,7 +184,7 @@ export class RAGEngine {
         if (response.status >= 400) {
             const errorText = response.text;
             if (errorText.toLowerCase().includes("quota") || errorText.toLowerCase().includes("credit") || errorText.toLowerCase().includes("429")) {
-                new Notice("Rerank error: quota exceeded. Please check your Jina/Cohere API key.", 0);
+                new Notice("Rerank error: quota exceeded. Please check your API key.", 0);
             }
             else if (errorText.toLowerCase().includes("rerank")) {
                 new Notice(`Reranking error: ${errorText}`, 5000);
