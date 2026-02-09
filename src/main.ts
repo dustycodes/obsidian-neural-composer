@@ -259,7 +259,7 @@ this.app.workspace.onLayoutReady(() => {
                 
                 notice.setMessage(
                     `🧠 System processing...\n` +
-                    `⚙️ Progress: ${percent}% (${current}/${total})\n` +
+                    `Progress: ${percent}% (${current}/${total})\n` +
                     `📝 ${status.latest_message || "Analyzing..."}`
                 );
             }

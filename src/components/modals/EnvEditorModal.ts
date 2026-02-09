@@ -16,7 +16,7 @@ export class EnvEditorModal extends Modal {
     contentEl.empty();
 
     // El linter se queja de esta línea por el Emoji. Lo añadiremos al /skip.
-    contentEl.createEl('h2', { text: '⚙️ Server configuration (.env)' });
+    contentEl.createEl('h2', { text: 'Server configuration (.env)' });
 
     const desc = contentEl.createDiv({ cls: 'nrlcmp-modal-desc' });
     desc.createSpan({ text: 'Review the generated configuration below. ' });

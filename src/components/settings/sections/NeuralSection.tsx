@@ -308,7 +308,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
     }
 
     // --- ADVANCED ENV SECTION ---
-    container.createEl('h4', { text: '⚙️ Advanced configuration (total control)' });
+    container.createEl('h4', { text: 'Advanced configuration (total control)' });
     
     const details = container.createEl('details');
     // Using class for cursor pointer instead of inline style
@@ -396,7 +396,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
       .setDesc('Review the generated .env file, tweak advanced parameters, and restart the server.')
       .addButton((button) =>
         button
-          .setButtonText('⚙️ Review .env & restart')
+          .setButtonText('Review .env & restart')
           .setCta()
           .onClick(() => {
             new EnvEditorModal(plugin.app, plugin).open();
