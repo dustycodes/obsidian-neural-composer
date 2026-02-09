@@ -607,7 +607,7 @@ export class NativeGraphView extends ItemView {
     const actions = editMode.createDiv({ cls: 'nrlcmp-edit-actions' });
     
     const cancelBtn = new ButtonComponent(actions).setButtonText("Cancel");
-    const saveBtn = new ButtonComponent(actions).setButtonText("💾 Save changes");
+    const saveBtn = new ButtonComponent(actions).setButtonText("Save changes");
     saveBtn.setCta();
 
     // Wiring
