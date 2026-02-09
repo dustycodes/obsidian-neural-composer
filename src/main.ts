@@ -592,7 +592,7 @@ async startLightRagServer() {
                 }
                 else if (msg.includes("Invalid API key") || msg.includes("401")) {
                     if (msg.includes("Rerank")) new Notice("Rerank error: invalid API key.", 0);
-                    else new Notice("LLM/Embed Error: Invalid API Key.", 0);
+                    else new Notice("LLM/Embed error: Invalid API key.", 0);
                     this.lastErrorTime = now;
                 }
                 else if (msg.includes("Quota") || msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED")) {
