@@ -832,7 +832,7 @@ async startLightRagServer() {
                 lightRagEntityTypes: cleanTypes
             });
             
-            new Notice("Ontology Generated!");
+            new Notice("Ontology generated!");
             this.updateEnvFile();
             
             return cleanTypes; 
