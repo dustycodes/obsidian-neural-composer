@@ -773,7 +773,7 @@ async startLightRagServer() {
     const sourcePath = this.settings.lightRagOntologyFolder;
     
     if (!sourcePath) {
-        new Notice("Please define an 'Ontology source folder' first.");
+        new Notice("Please define an 'ontology source folder' first.");
         return null;
     }
 
