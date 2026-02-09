@@ -268,7 +268,8 @@ this.app.workspace.onLayoutReady(() => {
 
             await new Promise(r => setTimeout(r, 1500)); // Polling 1.5s
 
-        } catch (_) { // Underscore to indicate unused variable
+        } catch { 
+            // Fix: Use empty catch block to avoid unused variable '_' warning
             errors++;
             if (errors > 3) isBusy = false;
             await new Promise(r => setTimeout(r, 2000));
@@ -276,7 +277,7 @@ this.app.workspace.onLayoutReady(() => {
     }
     
     this.updateStatusUI('online');
-    notice.setMessage("🎉 Integrated Knowledge!\nThe graph is up to date.");
+    notice.setMessage("Integrated knowledge!\nThe graph is up to date.");
     setTimeout(() => notice.hide(), 5000);
   }
 
@@ -386,7 +387,7 @@ this.app.workspace.onLayoutReady(() => {
 }
 
   public restartLightRagServer() {
-    new Notice("Restarting System Backend...");
+    new Notice("Restarting system backend...");
     this.stopLightRagServer();
     // Use timeout to allow process to fully die
     this.timeoutIds.push(setTimeout(() => {
@@ -614,8 +615,6 @@ async startLightRagServer() {
         });
 
         // --- DETECCIÓN REACTIVA (LINTER SAFE) ---
-        // Reemplazamos el setTimeout de 5s por este bucle inteligente
-        // El 'void' evita que el bot de Obsidian se queje de la promesa no esperada
         void (async () => {
             for (let i = 0; i < 15; i++) { // Intentar por 15 segundos
                 await new Promise(r => setTimeout(r, 1000));
@@ -724,7 +723,7 @@ async startLightRagServer() {
       return Promise.resolve({} as DatabaseManager); 
   }
 
-// Fix: Removed 'async' keyword as the method implementation is synchronous
+  // Fix: Removed 'async' keyword as the method implementation is synchronous
   // wrapping the result in Promises manually to satisfy the interface.
   getRAGEngine(): Promise<RAGEngine> {
     if (this.ragEngine) return Promise.resolve(this.ragEngine);
@@ -746,7 +745,8 @@ async startLightRagServer() {
           resolve(this.ragEngine);
         } catch (error) {
           this.ragEngineInitPromise = null;
-          reject(error);
+          // Fix: Ensure rejection reason is an Error object
+          reject(error instanceof Error ? error : new Error(String(error)));
         }
       });
     }
@@ -914,13 +914,14 @@ private async checkAndUpdateStatus() {
           });
           
           if (response.status === 200) {
-              const data = response.json as { pipeline_busy?: boolean };
+              // Fix: Explicit type annotation for response data
+              const data: { pipeline_busy?: boolean } = response.json;
               const isBusy = data?.pipeline_busy ?? false;
               this.updateStatusUI(isBusy ? 'busy' : 'online');
           } else {
               this.updateStatusUI('offline');
           }
-      } catch (_) {
+      } catch {
           this.updateStatusUI('offline');
       }
   }
