@@ -72,7 +72,7 @@ export class CreateRelationModal extends Modal {
                 const suggestion = await this.onSuggestAI(this.selectedSource, targets);
                 descArea.setValue(suggestion);
                 this.description = suggestion;
-                aiBtn.setDisabled(false).setButtonText("🪄 Suggest with AI");
+                aiBtn.setDisabled(false).setButtonText("Suggest with AI");
             })();
         });
 
