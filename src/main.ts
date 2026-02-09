@@ -201,7 +201,7 @@ export default class NeuralComposerPlugin extends Plugin {
                 }
 
                 if (success) {
-                    notice.setMessage(`✅ Sent. Processing in background...`);
+                    notice.setMessage(`Sent. Processing in background...`);
                     await this.monitorPipeline(notice);
                 } else {
                     notice.setMessage(`❌ Upload failed.`);
@@ -332,7 +332,7 @@ this.app.workspace.onLayoutReady(() => {
             }
         }
 
-        notice.setMessage(`✅ Uploaded files (${successCount}).\nStart processing...`);
+        notice.setMessage(`Uploaded files (${successCount}).\nStart processing...`);
         await this.monitorPipeline(notice);
 
     } catch (error) {
@@ -622,7 +622,7 @@ async startLightRagServer() {
                 const alive = await this.isPortInUse(9621);
                 if (alive) {
                     this.updateStatusUI('online'); // ¡Cambio a verde instantáneo!
-                    new Notice("✅ LightRAG Activated");
+                    new Notice("LightRAG Activated");
                     return;
                 }
             }
@@ -832,7 +832,7 @@ async startLightRagServer() {
                 lightRagEntityTypes: cleanTypes
             });
             
-            new Notice("✅ Ontology Generated!");
+            new Notice("Ontology Generated!");
             this.updateEnvFile();
             
             return cleanTypes; 
@@ -947,7 +947,7 @@ private async checkAndUpdateStatus() {
           new Notice("🚀 Starting LightRAG from status bar...");
           void this.startLightRagServer();
       } else {
-          new Notice("✅ System is already online.");
+          new Notice("System is already online.");
       }
   }
 

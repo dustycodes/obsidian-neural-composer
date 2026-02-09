@@ -655,7 +655,7 @@ export class NativeGraphView extends ItemView {
           });
 
           if (response.status === 200) { 
-              new Notice("✅ Node updated!"); 
+              new Notice("Node updated!"); 
               setTimeout(() => { 
                    const container = this.contentEl.querySelector('#sigma-container');
                    if (container instanceof HTMLElement) void this.render(container);
@@ -782,7 +782,7 @@ export class NativeGraphView extends ItemView {
               });
 
               if (response.status === 200) { 
-                  new Notice("✅ Merged!"); 
+                  new Notice("Merged!"); 
                   this.selectedNodes.clear(); 
                   setTimeout(() => { 
                       const container = this.contentEl.querySelector('#sigma-container');
@@ -878,7 +878,7 @@ export class NativeGraphView extends ItemView {
                       });
                   } catch (e) { console.error(e); }
               }
-              new Notice(`✅ Created ${data.targets.length} relationships.`);
+              new Notice(`Created ${data.targets.length} relationships.`);
               this.selectedNodes.clear();
               // Recargar grafo para ver las nuevas líneas
               setTimeout(() => { void this.render(this.contentEl.querySelector('#sigma-container') as HTMLElement); }, 1000);
