@@ -27,6 +27,16 @@ interface RagResult extends Partial<SelectEmbedding> {
     };
 }
 
+// FIX: New interface to type the API response and avoid 'any'
+interface LightRagAPIResponse {
+    response?: string;
+    references?: {
+        file_path?: string;
+        content?: string;
+    }[];
+    [key: string]: unknown; // Allow other props safely
+}
+
 export class RAGEngine {
   private app: App
   private settings: NeuralComposerSettings
@@ -170,7 +180,8 @@ export class RAGEngine {
     // 2. GLOBAL STRATEGY
     onQueryProgressChange?.({ type: 'querying' })
 
-    const performQuery = async () => {
+    // FIX: Typed return promise to avoid implicit 'any' from response.json
+    const performQuery = async (): Promise<LightRagAPIResponse> => {
         const response = await requestUrl({
             url: "http://localhost:9621/query",
             method: "POST",
@@ -191,11 +202,13 @@ export class RAGEngine {
             }
             throw new Error(`Status ${response.status}: ${errorText}`);
         }
-        return response.json;
+        // FIX: Cast to interface instead of returning 'any'
+        return response.json as LightRagAPIResponse;
     };
 
     try {
-      let data;
+      // FIX: Explicit type for data variable
+      let data: LightRagAPIResponse;
       try {
           data = await performQuery();
       } catch (firstError) {
@@ -212,7 +225,8 @@ export class RAGEngine {
       }
 
       const results: RagResult[] = [];
-      const graphAnswer = typeof data === 'string' ? data : (data.response || "");
+      // Data is now typed, so we can access properties safely
+      const graphAnswer = data.response || "";
       
       let masterContent = graphAnswer;
       if (data.references && Array.isArray(data.references)) {
