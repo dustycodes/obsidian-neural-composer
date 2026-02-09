@@ -340,7 +340,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
         .setName('Load full configuration template')
         .setDesc('Paste the full list of available LightRAG variables (commented out) into the box above.')
         .addButton(btn => btn
-            .setButtonText('📥 Insert template')
+            .setButtonText('Insert template')
             .onClick(() => { // Removed async
                 void (async () => { // Wrapped
                     if (plugin.settings.lightRagCustomEnv.length > 50) {
