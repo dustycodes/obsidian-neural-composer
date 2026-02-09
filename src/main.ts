@@ -591,12 +591,12 @@ async startLightRagServer() {
                     this.lastErrorTime = now;
                 }
                 else if (msg.includes("Invalid API key") || msg.includes("401")) {
-                    if (msg.includes("Rerank")) new Notice("Rerank Error: Invalid API Key.", 0);
+                    if (msg.includes("Rerank")) new Notice("Rerank error: invalid API key.", 0);
                     else new Notice("LLM/Embed Error: Invalid API Key.", 0);
                     this.lastErrorTime = now;
                 }
                 else if (msg.includes("Quota") || msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED")) {
-                    if (msg.includes("Rerank")) new Notice("Rerank Quota Exceeded.", 0);
+                    if (msg.includes("Rerank")) new Notice("Rerank quota exceeded.", 0);
                     else if (msg.includes("google") || msg.includes("gemini")) new Notice("Gemini quota exceeded.\nReduce MAX_ASYNC in settings.", 0);
                     else new Notice("API rate limit hit.", 0);
                     this.lastErrorTime = now;
