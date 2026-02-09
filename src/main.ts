@@ -622,7 +622,7 @@ async startLightRagServer() {
                 const alive = await this.isPortInUse(9621);
                 if (alive) {
                     this.updateStatusUI('online'); // ¡Cambio a verde instantáneo!
-                    new Notice("LightRAG Activated");
+                    new Notice("LightRAG activated");
                     return;
                 }
             }
