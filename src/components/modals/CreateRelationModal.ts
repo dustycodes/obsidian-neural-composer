@@ -102,7 +102,7 @@ export class CreateRelationModal extends Modal {
                     new Notice("Please provide a description.");
                     return;
                 }
-                saveBtn.setDisabled(true).setButtonText("⏳ Connecting...");
+                saveBtn.setDisabled(true).setButtonText("Connecting...");
                 const targets = this.sources.filter(n => n !== this.selectedSource);
                 await this.onSubmit({
                     source: this.selectedSource,

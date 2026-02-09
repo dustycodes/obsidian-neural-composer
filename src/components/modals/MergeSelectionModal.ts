@@ -83,7 +83,7 @@ export class MergeSelectionModal extends Modal {
             // Wrapped async logic to satisfy linter (void return expected)
             void (async () => {
                 // Estado de carga
-                submitButton.setButtonText('⏳ Merging...').setDisabled(true);
+                submitButton.setButtonText('Merging...').setDisabled(true);
                 cancelBtn.setDisabled(true);
                 
                 try {
