@@ -128,7 +128,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
       );
 
     // --- ONTOLOGY SECTION ---
-    container.createEl('h4', { text: '🧬 Ontology (categories)' });
+    container.createEl('h4', { text: 'Ontology (categories)' });
 
     new Setting(container)
       .setName('Use custom entity types')

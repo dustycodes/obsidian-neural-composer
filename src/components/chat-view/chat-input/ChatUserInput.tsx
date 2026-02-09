@@ -295,7 +295,7 @@ const ChatUserInput = forwardRef<ChatUserInputRef, ChatUserInputProps>(
                 title="LightRAG Enfoque"
             >
                 <option value="mix">🎯 Mix</option>
-                <option value="hybrid">🧬 Hybrid</option>
+                <option value="hybrid">Hybrid</option>
                 <option value="local">🔍 Local</option>
                 <option value="global">🌐 Global</option>
                 <option value="naive">📝 Naive</option>
