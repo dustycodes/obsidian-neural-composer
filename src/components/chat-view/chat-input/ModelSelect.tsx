@@ -27,7 +27,8 @@ export function ModelSelect() {
                 <DropdownMenu.Item
                   key={chatModelOption.id}
                   onSelect={() => {
-                    setSettings({
+                    // FIX: Handle floating promise from setSettings
+                    void setSettings({
                       ...settings,
                       chatModelId: chatModelOption.id,
                     })
