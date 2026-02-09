@@ -15,7 +15,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
     settingsRef.current.empty();
     const container = settingsRef.current;
 
-    container.createEl('h3', { text: '🧠 Neural backend (LightRAG)' });
+    container.createEl('h3', { text: 'Neural backend (LightRAG)' });
 
     // 1. Auto-start
     new Setting(container)

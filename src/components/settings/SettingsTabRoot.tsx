@@ -22,7 +22,7 @@ export function SettingsTabRoot({ app, plugin }: SettingsTabRootProps) {
     <>
       {/* 1. HEADER & IDENTITY */}
       <div style={{ textAlign: 'center', marginBottom: '30px', marginTop: '10px' }}>
-        <h1 style={{ marginBottom: '5px', fontSize: '1.8em' }}>🧠 Neural Composer</h1>
+        <h1 style={{ marginBottom: '5px', fontSize: '1.8em' }}>Neural Composer</h1>
         <p style={{ opacity: 0.7, marginTop: '0' }}>Graph-Powered Memory for Obsidian</p>
       </div>
 

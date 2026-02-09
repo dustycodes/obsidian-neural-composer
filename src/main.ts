@@ -161,7 +161,7 @@ export default class NeuralComposerPlugin extends Plugin {
         if (file instanceof TFolder) {
           menu.addItem((item) => {
             item
-              .setTitle('🧠 Ingest folder into graph')
+              .setTitle('Ingest folder into graph')
               .setIcon('layers')
               .onClick(() => {
                 void this.batchIngestFolder(file);
@@ -174,7 +174,7 @@ export default class NeuralComposerPlugin extends Plugin {
     // --- SINGLE FILE INGEST COMMAND ---
     this.addCommand({
       id: 'ingest-current-file',
-      name: '🧠 Ingest current file into knowledge graph',
+      name: 'Ingest current file into knowledge graph',
       checkCallback: (checking: boolean) => {
         const file = this.app.workspace.getActiveFile();
         if (!file || !SUPPORTED_EXTENSIONS.includes(file.extension.toLowerCase())) {
@@ -186,7 +186,7 @@ export default class NeuralComposerPlugin extends Plugin {
         void (async () => {
             const title = file.basename;
             const ext = file.extension.toLowerCase();
-            const notice = new Notice(`🧠 Sending "${file.name}" to the system...`, 0);
+            const notice = new Notice(`Sending "${file.name}" to the system...`, 0);
 
             try {
                 const ragEngine = await this.getRAGEngine();
@@ -258,7 +258,7 @@ this.app.workspace.onLayoutReady(() => {
                 const percent = Math.round((current / total) * 100);
                 
                 notice.setMessage(
-                    `🧠 System processing...\n` +
+                    `System processing...\n` +
                     `Progress: ${percent}% (${current}/${total})\n` +
                     `📝 ${status.latest_message || "Analyzing..."}`
                 );
@@ -332,7 +332,7 @@ this.app.workspace.onLayoutReady(() => {
             }
         }
 
-        notice.setMessage(`✅ Uploaded files (${successCount}).\n🧠 Start processing...`);
+        notice.setMessage(`✅ Uploaded files (${successCount}).\nStart processing...`);
         await this.monitorPipeline(notice);
 
     } catch (error) {
@@ -783,7 +783,7 @@ async startLightRagServer() {
         return null;
     }
 
-    new Notice(`🧠 Analyzing notes in "${sourcePath}"...`);
+    new Notice(`Analyzing notes in "${sourcePath}"...`);
 
     try {
         const allFiles = this.getAllSupportedFiles(folder);
