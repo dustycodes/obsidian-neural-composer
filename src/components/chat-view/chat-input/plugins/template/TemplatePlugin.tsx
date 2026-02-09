@@ -68,7 +68,8 @@ export default function TemplatePlugin() {
 
   useEffect(() => {
     if (queryString == null) return
-    templateManager.searchTemplates(queryString).then(setSearchResults)
+    // FIX: Use void operator to explicitly ignore the returned promise
+    void templateManager.searchTemplates(queryString).then(setSearchResults)
   }, [queryString, templateManager])
 
   const options = useMemo(
