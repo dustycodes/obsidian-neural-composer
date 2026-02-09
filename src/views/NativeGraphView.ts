@@ -117,7 +117,8 @@ interface ForceGraph3DInstance {
 
 // Fix 2: Separate interface for Getter usage to avoid 'any'
 interface ForceGraph3DGetter {
-    graphData(): { nodes: any[]; links: any[] };
+    // Return explicit GraphNode array to avoid casting errors in search
+    graphData(): { nodes: GraphNode[]; links: any[] };
 }
 
 export class NativeGraphView extends ItemView {
@@ -727,7 +728,8 @@ export class NativeGraphView extends ItemView {
 
   toggleSort() { 
       this.sortAscending = !this.sortAscending; 
-      if (this.sortBtnEl) this.sortBtnEl.textContent = `Sort: Degree ${this.sortAscending ? '⬆' : '⬇'}`; 
+      // Fix: Sentence case "Sort: degree"
+      if (this.sortBtnEl) this.sortBtnEl.textContent = `Sort: degree ${this.sortAscending ? '⬆' : '⬇'}`; 
       this.filteredNodes.sort((a, b) => this.sortAscending ? a.val - b.val : b.val - a.val); 
       this.renderList(); 
   }
@@ -828,13 +830,14 @@ export class NativeGraphView extends ItemView {
            const graphData = (this.graph3D as unknown as ForceGraph3DGetter).graphData();
            const nodes = graphData?.nodes || [];
            
-          const target = nodes.find((n: any) => n.id.toLowerCase().includes(lower));
+          // Fix 4: Explicit type for 'n' to avoid implicit any
+          const target = nodes.find((n: GraphNode) => n.id.toLowerCase().includes(lower));
           if (target) {
               this.showNodeDetails(target);
               const dist = 40;
-              const ratio = 1 + dist/Math.hypot(target.x, target.y, target.z);
+              const ratio = 1 + dist/Math.hypot(target.x || 0, target.y || 0, target.z || 0);
               if (this.graph3D) {
-                   this.graph3D.cameraPosition({ x: target.x * ratio, y: target.y * ratio, z: target.z * ratio }, target, 2000);
+                   this.graph3D.cameraPosition({ x: (target.x || 0) * ratio, y: (target.y || 0) * ratio, z: (target.z || 0) * ratio }, target, 2000);
               }
           } else { new Notice("Node not found"); }
       } 
