@@ -212,7 +212,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
 
     new Setting(container)
       .setName('Rerank provider')
-      .setDesc('Service to re-order results. Use "Custom" for local servers (e.g. vLLM, TEI).')
+      .setDesc('Service to re-order results. Use "custom" for local servers (e.g. vLLM, TEI).')
       .addDropdown((dropdown) => {
         dropdown.addOption('', 'None (disabled)');
         dropdown.addOption('jina', 'Jina AI');
