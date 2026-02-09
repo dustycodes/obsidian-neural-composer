@@ -386,7 +386,7 @@ this.app.workspace.onLayoutReady(() => {
 }
 
   public restartLightRagServer() {
-    new Notice("🔄 Restarting System Backend...");
+    new Notice("Restarting System Backend...");
     this.stopLightRagServer();
     // Use timeout to allow process to fully die
     this.timeoutIds.push(setTimeout(() => {
