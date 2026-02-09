@@ -246,7 +246,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
         .setDesc('E.g. "BAAI/bge-reranker-v2-m3" for local.')
         .addText((text) =>
             text
-            .setPlaceholder('Model Name')
+            .setPlaceholder('Model name')
             .setValue(plugin.settings.lightRagRerankModel)
             .onChange((value) => {
                 void (async () => {
