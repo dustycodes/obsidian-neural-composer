@@ -239,7 +239,7 @@ export class NativeGraphView extends ItemView {
     container.empty();
 
     if (!fs.existsSync(this.graphDataPath)) {
-        if(label) label.setText("❌ No data");
+        if(label) label.setText("No data");
         return;
     }
 
