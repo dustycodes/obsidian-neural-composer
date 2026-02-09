@@ -597,7 +597,7 @@ async startLightRagServer() {
                 }
                 else if (msg.includes("Quota") || msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED")) {
                     if (msg.includes("Rerank")) new Notice("Rerank Quota Exceeded.", 0);
-                    else if (msg.includes("google") || msg.includes("gemini")) new Notice("Gemini Quota Exceeded.\nReduce MAX_ASYNC in settings.", 0);
+                    else if (msg.includes("google") || msg.includes("gemini")) new Notice("Gemini quota exceeded.\nReduce MAX_ASYNC in settings.", 0);
                     else new Notice("API rate limit hit.", 0);
                     this.lastErrorTime = now;
                 }
