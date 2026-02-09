@@ -208,7 +208,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
     }
 
     // --- RERANKING SECTION ---
-    container.createEl('h4', { text: '🎯 Reranking (precision)' });
+    container.createEl('h4', { text: 'Reranking (precision)' });
 
     new Setting(container)
       .setName('Rerank provider')

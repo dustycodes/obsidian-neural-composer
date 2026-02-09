@@ -294,7 +294,7 @@ const ChatUserInput = forwardRef<ChatUserInputRef, ChatUserInputProps>(
                 className="nrlcmp-query-mode-select"
                 title="LightRAG Enfoque"
             >
-                <option value="mix">🎯 Mix</option>
+                <option value="mix">Mix</option>
                 <option value="hybrid">Hybrid</option>
                 <option value="local">🔍 Local</option>
                 <option value="global">🌐 Global</option>
