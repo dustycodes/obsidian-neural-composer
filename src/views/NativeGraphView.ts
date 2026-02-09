@@ -547,7 +547,7 @@ export class NativeGraphView extends ItemView {
     header.createSpan({ text: type.toUpperCase(), cls: 'nrlcmp-details-type' });
 
     const btnGroup = header.createDiv({ cls: 'nrlcmp-btn-group' });
-    const editBtn = btnGroup.createEl("button", { text: "✏️ Edit", cls: 'nrlcmp-details-btn-edit' });
+    const editBtn = btnGroup.createEl("button", { text: "✏️", cls: 'nrlcmp-details-btn-edit' });
     const closeBtn = btnGroup.createEl("button", { text: "✕", cls: 'nrlcmp-details-close' });
     closeBtn.onclick = () => { if (this.detailsPanel) this.detailsPanel.removeClass('nrlcmp-visible'); };
 
