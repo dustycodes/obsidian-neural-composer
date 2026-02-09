@@ -43,7 +43,7 @@ We designed this to fit into different workflows. Here is how it might help you:
 We wanted the experience to be as smooth as possible:
 
 *   **⚡ Automated Server:** No need to fiddle with terminals. The plugin handles the background Python server for you (starts and stops automatically).
-*   **🕸️ Hybrid Search:** You don't have to choose. It combines Vector search with Graph traversal for the best results.
+*   **Hybrid Search:** You don't have to choose. It combines Vector search with Graph traversal for the best results.
 *   **Easy Ingestion:** Right-click any folder to add your notes to the graph. It supports PDFs, DOCX, and more...  <details> <summary> Complete list of supported formats </summary> md, txt, docx, pdf, pptx, xlsx, rtf, odt, epub, html, htm, xml, json, yaml, yml, csv, tex, log, conf, ini, properties, sql, bat, sh, c, cpp, py, java, js, ts, swift, go, rb, php, css, scss, less  </details>
 *   **🔍 Transparency:** The chat shows you exactly which files and text segments were used to generate the answer (with citations like `[1]`), so you can always verify the source.
 *   **🔒 Local & Private:** You can use local models (like Ollama) for a completely offline experience, or connect to Gemini/OpenAI if you prefer.

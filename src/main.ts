@@ -113,7 +113,7 @@ export default class NeuralComposerPlugin extends Plugin {
 
     this.addCommand({
       id: 'open-native-graph',
-      name: '🕸️ Open native graph view',
+      name: 'Open native graph view',
       callback: () => {
         // Wrapped in void async IIFE to satisfy void return expectation
         void (async () => {
