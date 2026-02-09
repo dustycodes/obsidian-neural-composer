@@ -673,7 +673,7 @@ export class NativeGraphView extends ItemView {
       const tb = container.createDiv({ cls: 'nrlcmp-toolbar' });
       const searchInput = tb.createEl('input', { cls: 'nrlcmp-toolbar-input' });
       searchInput.type = 'text'; 
-      searchInput.placeholder = '🚀 Search...';
+      searchInput.placeholder = 'Search...';
       
       searchInput.addEventListener('keydown', (e) => { 
           if (e.key === 'Enter') this.searchNode(searchInput.value); 
@@ -714,7 +714,7 @@ export class NativeGraphView extends ItemView {
       new ButtonComponent(actionButtons).setButtonText('Delete').setWarning().onClick(() => { void this.deleteSelectedNodes(); });
 
       const filterBar = header.createDiv({ cls: 'nrlcmp-sidebar-filters' });
-      this.sortBtnEl = filterBar.createEl('span', { text: 'Sort: Degree ⬇', cls: 'nrlcmp-sort-btn' });
+      this.sortBtnEl = filterBar.createEl('span', { text: 'Sort: degree ⬇', cls: 'nrlcmp-sort-btn' });
       this.sortBtnEl.onclick = () => this.toggleSort();
       
       const orphansBtn = filterBar.createEl('span', { text: 'Show orphans', cls: 'nrlcmp-orphans-btn' });

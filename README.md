@@ -50,7 +50,7 @@ We wanted the experience to be as smooth as possible:
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 > Full documentation (in construction) on [wiki](https://github.com/oscampo/obsidian-neural-composer/wiki)
 

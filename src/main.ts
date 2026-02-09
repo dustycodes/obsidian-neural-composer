@@ -569,7 +569,7 @@ async startLightRagServer() {
         return;
     }
 
-    new Notice("🚀 Starting LightRAG...");
+    new Notice("Starting LightRAG...");
     this.updateStatusUI('busy'); // Amarillo mientras arranca
 
     try {
@@ -944,7 +944,7 @@ private async checkAndUpdateStatus() {
   private async handleStatusBarClick() {
       const isAlive = await this.isPortInUse(9621);
       if (!isAlive) {
-          new Notice("🚀 Starting LightRAG from status bar...");
+          new Notice("Starting LightRAG from status bar...");
           void this.startLightRagServer();
       } else {
           new Notice("System is already online.");
