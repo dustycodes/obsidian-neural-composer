@@ -26,7 +26,7 @@ export class CreateRelationModal extends Modal {
     const { contentEl } = this;
     contentEl.empty();
 
-    contentEl.createEl('h3', { text: '🕸️ Create new relationship' });
+    contentEl.createEl('h3', { text: 'Create new relationship' });
 
     // --- SELECCIÓN DEL NODO ORIGEN (HUB) ---
     // Fix: Sentence case "The Hub" -> "the hub"
@@ -67,7 +67,7 @@ export class CreateRelationModal extends Modal {
         // Fix: Handle floating promise with void wrapper
         .onClick(() => {
             void (async () => {
-                aiBtn.setDisabled(true).setButtonText("🧠 Thinking...");
+                aiBtn.setDisabled(true).setButtonText("Thinking...");
                 const targets = this.sources.filter(n => n !== this.selectedSource);
                 const suggestion = await this.onSuggestAI(this.selectedSource, targets);
                 descArea.setValue(suggestion);
