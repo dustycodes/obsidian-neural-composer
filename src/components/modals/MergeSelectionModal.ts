@@ -16,7 +16,7 @@ export class MergeSelectionModal extends Modal {
     const { contentEl } = this;
     contentEl.empty();
 
-    contentEl.createEl('h2', { text: '🔗 Merge entities' });
+    contentEl.createEl('h2', { text: 'Merge entities' });
     
     // 1. Instrucción Principal
     contentEl.createEl('p', { 
