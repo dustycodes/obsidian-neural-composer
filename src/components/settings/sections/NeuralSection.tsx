@@ -318,7 +318,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
     const advancedContainer = details.createDiv({ cls: 'nrlcmp-advanced-container' });
 
     advancedContainer.createEl('p', { 
-        text: 'Variables defined here will be appended to the .env file and will OVERRIDE any plugin defaults. Use this for advanced tuning (Context limits, Timeouts, Chunking strategies).',
+        text: 'Variables defined here will be appended to the .env file and will *override* any plugin defaults. Use this for advanced tuning (context limits, timeouts, chunking strategies).',
         cls: 'setting-item-description'
     });
 
