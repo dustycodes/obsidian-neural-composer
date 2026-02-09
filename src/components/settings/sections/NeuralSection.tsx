@@ -378,7 +378,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
     // 7. RESTART BUTTON (EMPHASIS)
     new Setting(container)
       .setName('Apply changes & restart')
-      .setDesc('You MUST restart the server after changing ANY setting above to apply the new configuration (.env).')
+      .setDesc('You *must* restart the server after changing *any* setting above to apply the new configuration (.env).')
       .setClass('nrlcmp-restart-setting') 
       .addButton((button) =>
         button
