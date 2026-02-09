@@ -204,12 +204,12 @@ export default class NeuralComposerPlugin extends Plugin {
                     notice.setMessage(`Sent. Processing in background...`);
                     await this.monitorPipeline(notice);
                 } else {
-                    notice.setMessage(`❌ Upload failed.`);
+                    notice.setMessage(`Upload failed.`);
                     setTimeout(() => notice.hide(), 5000);
                 }
             } catch (error) {
                 console.error(error);
-                notice.setMessage(`❌ Critical error connecting to backend.`);
+                notice.setMessage(`Critical error connecting to backend.`);
                 setTimeout(() => notice.hide(), 5000);
             }
         })();
@@ -337,7 +337,7 @@ this.app.workspace.onLayoutReady(() => {
 
     } catch (error) {
         console.error("Batch error:", error);
-        notice.setMessage("❌ Error starting upload.");
+        notice.setMessage("Error starting upload.");
         setTimeout(() => notice.hide(), 5000);
     }
   }
@@ -503,7 +503,7 @@ this.app.workspace.onLayoutReady(() => {
         return envContent;
 
       } catch (err) {
-        console.error("❌ Error generating config:", err);
+        console.error("Error generating config:", err);
         return "";
     }
   }
@@ -628,12 +628,12 @@ async startLightRagServer() {
             }
             // Si pasaron 15 segundos y no abrió el puerto:
             this.updateStatusUI('offline');
-            new Notice("❌ Server failed to respond in time.");
+            new Notice("Server failed to respond in time.");
         })();
 
     } catch (error) {
-        console.error("❌ Error starting server:", error);
-        new Notice("❌ Fatal error starting server.");
+        console.error("Error starting server:", error);
+        new Notice("Fatal error starting server.");
         this.updateStatusUI('offline');
     }
   }
@@ -779,7 +779,7 @@ async startLightRagServer() {
 
     const folder = this.app.vault.getAbstractFileByPath(sourcePath);
     if (!folder || !(folder instanceof TFolder)) {
-        new Notice(`❌ Folder not found: "${sourcePath}"`);
+        new Notice(`Folder not found: "${sourcePath}"`);
         return null;
     }
 
@@ -840,7 +840,7 @@ async startLightRagServer() {
 
     } catch (e) {
         console.error(e);
-        new Notice("❌ Error generating ontology.");
+        new Notice("Error generating ontology.");
     }
     return null;
   }
