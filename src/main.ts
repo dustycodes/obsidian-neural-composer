@@ -587,7 +587,7 @@ async startLightRagServer() {
             
             if (!this.lastErrorTime || (now - this.lastErrorTime > 5000)) {
                 if (msg.includes("503") || msg.includes("overloaded") || msg.includes("UNAVAILABLE")) {
-                    new Notice("Provider Error: Model Overloaded (503).\nServer is busy, please wait a moment.", 0);
+                    new Notice("Provider error: model overloaded (503).\nServer is busy, please wait a moment.", 0);
                     this.lastErrorTime = now;
                 }
                 else if (msg.includes("Invalid API key") || msg.includes("401")) {
