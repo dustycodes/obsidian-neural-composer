@@ -603,9 +603,10 @@ https://github.com/glowingjade/obsidian-smart-composer/issues/286`,
     throw new Error(`Unsupported tool choice: ${JSON.stringify(toolChoice)}`)
   }
 
-  async getEmbedding(_model: string, _text: string): Promise<number[]> {
-    throw new Error(
-      `Provider ${this.provider.id} does not support embeddings. Please use a different provider.`,
-    )
+  getEmbedding(_model: string, _text: string): Promise<number[]> {
+  return Promise.reject(new Error(`Provider ${this.provider.id} does not support embeddings. Please use a different provider.`)),
   }
+}
+
+
 }
