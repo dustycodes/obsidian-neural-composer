@@ -63,7 +63,7 @@ export class CreateRelationModal extends Modal {
     aiBtnContainer.setCssProps({ "margin-top": "10px" });
     
     const aiBtn = new ButtonComponent(aiBtnContainer)
-        .setButtonText("🪄 Suggest with AI")
+        .setButtonText("Suggest with AI")
         // Fix: Handle floating promise with void wrapper
         .onClick(() => {
             void (async () => {
