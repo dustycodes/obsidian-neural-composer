@@ -149,7 +149,7 @@ export default class NeuralComposerPlugin extends Plugin {
     // --- QUICK RESTART COMMAND ---
     this.addCommand({
       id: 'restart-neural-backend',
-      name: '♻️ Restart neural backend (LightRAG)',
+      name: 'Restart neural backend (LightRAG)',
       callback: () => {
         this.restartLightRagServer();
       },
