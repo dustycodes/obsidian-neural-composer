@@ -182,7 +182,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
           .setDesc('Define the "categories" of your field of knowledge.')
           .addButton((button) => 
             button
-              .setButtonText('✨ Analyze & generate')
+              .setButtonText('Analyze & generate')
               .setCta()
               .onClick(() => { // Removed async
                  void (async () => { // Wrapped in void async IIFE

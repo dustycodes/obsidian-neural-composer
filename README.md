@@ -38,7 +38,7 @@ We designed this to fit into different workflows. Here is how it might help you:
 
 ---
 
-## ✨ Features
+## Features
 
 We wanted the experience to be as smooth as possible:
 
