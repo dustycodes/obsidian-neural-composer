@@ -298,7 +298,7 @@ this.app.workspace.onLayoutReady(() => {
   async batchIngestFolder(folder: TFolder) {
     const files = this.getAllSupportedFiles(folder);
     if (files.length === 0) {
-        new Notice("⚠️ Empty folder or no supported files.");
+        new Notice("Empty folder or no supported files.");
         return;
     }
 
@@ -557,7 +557,7 @@ async startLightRagServer() {
     const workDir = this.settings.lightRagWorkDir;
 
     if (!workDir || !command) {
-        new Notice("⚠️ Configure LightRAG paths in settings.");
+        new Notice("Configure LightRAG paths in settings.");
         return;
     }
 
@@ -587,18 +587,18 @@ async startLightRagServer() {
             
             if (!this.lastErrorTime || (now - this.lastErrorTime > 5000)) {
                 if (msg.includes("503") || msg.includes("overloaded") || msg.includes("UNAVAILABLE")) {
-                    new Notice("⚠️ Provider Error: Model Overloaded (503).\nServer is busy, please wait a moment.", 0);
+                    new Notice("Provider Error: Model Overloaded (503).\nServer is busy, please wait a moment.", 0);
                     this.lastErrorTime = now;
                 }
                 else if (msg.includes("Invalid API key") || msg.includes("401")) {
-                    if (msg.includes("Rerank")) new Notice("⚠️ Rerank Error: Invalid API Key.", 0);
-                    else new Notice("⚠️ LLM/Embed Error: Invalid API Key.", 0);
+                    if (msg.includes("Rerank")) new Notice("Rerank Error: Invalid API Key.", 0);
+                    else new Notice("LLM/Embed Error: Invalid API Key.", 0);
                     this.lastErrorTime = now;
                 }
                 else if (msg.includes("Quota") || msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED")) {
-                    if (msg.includes("Rerank")) new Notice("⚠️ Rerank Quota Exceeded.", 0);
-                    else if (msg.includes("google") || msg.includes("gemini")) new Notice("⚠️ Gemini Quota Exceeded.\nReduce MAX_ASYNC in settings.", 0);
-                    else new Notice("⚠️ API Rate Limit Hit.", 0);
+                    if (msg.includes("Rerank")) new Notice("Rerank Quota Exceeded.", 0);
+                    else if (msg.includes("google") || msg.includes("gemini")) new Notice("Gemini Quota Exceeded.\nReduce MAX_ASYNC in settings.", 0);
+                    else new Notice("API Rate Limit Hit.", 0);
                     this.lastErrorTime = now;
                 }
             }
@@ -773,7 +773,7 @@ async startLightRagServer() {
     const sourcePath = this.settings.lightRagOntologyFolder;
     
     if (!sourcePath) {
-        new Notice("⚠️ Please define an 'Ontology source folder' first.");
+        new Notice("Please define an 'Ontology source folder' first.");
         return null;
     }
 

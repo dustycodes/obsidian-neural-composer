@@ -153,7 +153,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
         const warningDiv = container.createDiv({ cls: 'nrlcmp-setting-warning' });
         
         // FIX: Sentence case
-        warningDiv.createEl('strong', { text: '⚠️ Critical warning:' });
+        warningDiv.createEl('strong', { text: 'Critical warning:' });
         warningDiv.createEl('br');
         // FIX: Sentence case (Entity Types -> entity types)
         warningDiv.createSpan({ text: 'Changing entity types fundamentally alters how the graph is built.' });
@@ -377,7 +377,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
 
     // 7. RESTART BUTTON (EMPHASIS)
     new Setting(container)
-      .setName('⚠️ Apply changes & restart')
+      .setName('Apply changes & restart')
       .setDesc('You MUST restart the server after changing ANY setting above to apply the new configuration (.env).')
       .setClass('nrlcmp-restart-setting') 
       .addButton((button) =>

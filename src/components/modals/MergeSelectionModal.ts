@@ -27,7 +27,7 @@ export class MergeSelectionModal extends Modal {
     // 2. Caja de Advertencia
     const warningBox = contentEl.createDiv({ cls: 'nrlcmp-merge-warning' });
     
-    warningBox.createEl("strong", { text: "⚠️ Note: " });
+    warningBox.createEl("strong", { text: "Note: " });
     warningBox.createSpan({ text: "This action " });
     warningBox.createEl("strong", { text: "cannot be undone" });
     warningBox.createSpan({ text: "." });

@@ -851,7 +851,7 @@ export class NativeGraphView extends ItemView {
   createRelationBetweenSelected() {
       const targets = Array.from(this.selectedNodes);
       if (targets.length < 2) { 
-          new Notice("⚠️ Select at least 2 nodes to link."); 
+          new Notice("Select at least 2 nodes to link."); 
           return; 
       }
 
