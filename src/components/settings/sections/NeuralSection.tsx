@@ -179,7 +179,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
         
         new Setting(container)
           .setName('Entity types definition')
-          .setDesc('Define the "Categories" of your field of knowledge.')
+          .setDesc('Define the "categories" of your field of knowledge.')
           .addButton((button) => 
             button
               .setButtonText('✨ Analyze & generate')
