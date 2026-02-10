@@ -94,10 +94,18 @@ interface FA2LayoutInstance {
     kill: () => void;
 }
 
-// Fix 1: Improved typing for 3d-force-graph chainable instance (Setter mode)
+
+// Helper interface for links inside the 3D graph
+interface GraphLink {
+    source: string;
+    target: string;
+}
+
+// Fix 1: Improved typing for 3d-force-graph replacing 'any' with GraphNode/GraphLink
 interface ForceGraph3DInstance {
     (element: HTMLElement): ForceGraph3DInstance;
-    graphData(data: { nodes: any[]; links: any[] }): ForceGraph3DInstance;
+    // Fix [8, 9]: Typed nodes and links instead of any[]
+    graphData(data: { nodes: GraphNode[]; links: GraphLink[] }): ForceGraph3DInstance;
     backgroundColor(color: string): ForceGraph3DInstance;
     nodeAutoColorBy(attr: string): ForceGraph3DInstance;
     nodeVal(attr: string): ForceGraph3DInstance;
@@ -107,18 +115,19 @@ interface ForceGraph3DInstance {
     linkWidth(width: number): ForceGraph3DInstance;
     linkOpacity(opacity: number): ForceGraph3DInstance;
     cooldownTicks(ticks: number): ForceGraph3DInstance;
-    onNodeClick(callback: (node: any) => void): ForceGraph3DInstance;
+    // Fix [10]: Callback receives a GraphNode, not any
+    onNodeClick(callback: (node: GraphNode) => void): ForceGraph3DInstance;
     width(width: number): ForceGraph3DInstance;
     height(height: number): ForceGraph3DInstance;
-    cameraPosition(pos: {x: number, y: number, z: number}, lookAt?: any, ms?: number): ForceGraph3DInstance;
+    // Fix [11]: lookAt expects a GraphNode (or coordinates), avoiding any
+    cameraPosition(pos: {x: number, y: number, z: number}, lookAt?: GraphNode, ms?: number): ForceGraph3DInstance;
     zoomToFit(ms: number, padding: number): ForceGraph3DInstance;
     _destructor(): void;
 }
 
-// Fix 2: Separate interface for Getter usage to avoid 'any'
+// Fix [12]: Interface for Getter usage ensuring strict return types
 interface ForceGraph3DGetter {
-    // Return explicit GraphNode array to avoid casting errors in search
-    graphData(): { nodes: GraphNode[]; links: any[] };
+    graphData(): { nodes: GraphNode[]; links: GraphLink[] };
 }
 
 export class NativeGraphView extends ItemView {
