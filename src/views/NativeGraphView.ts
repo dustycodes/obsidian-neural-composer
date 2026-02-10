@@ -39,6 +39,8 @@ interface GraphNode {
     x?: number;
     y?: number;
     z?: number;
+    // Fix: Added optional property to match usage in showNodeDetails
+    node_type?: string; 
 }
 
 interface ChunkDocMap {
@@ -396,7 +398,11 @@ export class NativeGraphView extends ItemView {
       this.graph.setNodeAttribute(nodeId, 'label', nodeId);
       this.graph.setNodeAttribute(nodeId, 'size', (visualData?.size || attrs.size || 5) * 1.5);
 
-      this.showNodeDetails({ id: nodeId, ...attrs, type: attrs.node_type });
+      this.showNodeDetails({ 
+          id: nodeId, 
+          ...attrs, 
+          type: attrs.node_type || attrs.type 
+      } as unknown as GraphNode);
   }
 
   // --- ENGINE 2D ---
@@ -547,12 +553,13 @@ export class NativeGraphView extends ItemView {
   }
 
 // --- UI DETAILS ---
-  showNodeDetails(node: any) {
+showNodeDetails(node: Partial<GraphNode>) {
     if (!this.detailsPanel) return;
     this.detailsPanel.empty();
 
     const files = node.file_paths || [];
     const type = node.node_type || node.type || "Unknown";
+    const nodeId = node.id || "Unknown"; // Safe fallback
     const desc = node.desc || "No description.";
 
     // 1. Header
@@ -574,9 +581,9 @@ export class NativeGraphView extends ItemView {
     
     const meta = viewMode.createDiv({ cls: 'nrlcmp-details-meta' });
     meta.createSpan({ text: "Links: " });
-    meta.createEl("b", { text: String(node.val), cls: 'nrlcmp-text-highlight' });
+    meta.createEl("b", { text: String(node.val || 0), cls: 'nrlcmp-text-highlight' });
 
-    viewMode.createEl("h2", { text: node.id, cls: 'nrlcmp-details-title' });
+    viewMode.createEl("h2", { text: nodeId, cls: 'nrlcmp-details-title' });
 
     const descBox = viewMode.createDiv({ cls: 'nrlcmp-details-desc-box' });
     descBox.setText(desc);
@@ -609,7 +616,7 @@ export class NativeGraphView extends ItemView {
         return i;
     };
 
-    const nameInput = makeInput("Name (ID)", node.id);
+    const nameInput = makeInput("Name (ID)", nodeId);
     const typeInput = makeInput("Type", type);
     
     editMode.createEl("label", { text: "Description", cls: 'nrlcmp-edit-label' });
@@ -641,9 +648,9 @@ export class NativeGraphView extends ItemView {
     
     saveBtn.buttonEl.onclick = () => {
         const newName = nameInput.value.trim();
-        if(newName) {
+        if(newName && nodeId !== "Unknown") {
             void (async () => {
-                await this.updateNode(node.id, { entity_name: newName, entity_type: typeInput.value.trim(), description: descInput.value.trim() });
+                await this.updateNode(nodeId, { entity_name: newName, entity_type: typeInput.value.trim(), description: descInput.value.trim() });
                 if(this.detailsPanel) this.detailsPanel.removeClass('nrlcmp-visible');
             })();
         }
@@ -652,7 +659,7 @@ export class NativeGraphView extends ItemView {
     this.detailsPanel.addClass('nrlcmp-visible');
   }
 
-  async updateNode(oldName: string, data: any) {
+  async updateNode(oldName: string, data: Record<string, unknown>) {
       new Notice(`Updating node "${oldName}"...`);
       try {
           const response = await requestUrl({
