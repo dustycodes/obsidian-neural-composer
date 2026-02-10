@@ -400,7 +400,7 @@ export class NativeGraphView extends ItemView {
   }
 
   // --- ENGINE 2D ---
-  render2D(container: HTMLElement, nodes: GraphNode[], edges: any[]) {
+  render2D(container: HTMLElement, nodes: GraphNode[], edges: GraphMLRawEdge[]) {
     this.graph = new Graph();
     const LABEL_THRESHOLD = 4;
 
@@ -498,7 +498,7 @@ export class NativeGraphView extends ItemView {
   }
 
   // --- ENGINE 3D ---
-  render3D(container: HTMLElement, nodes: GraphNode[], edges: any[]) {
+  render3D(container: HTMLElement, nodes: GraphNode[], edges: GraphMLRawEdge[]) {
       const gData = {
           nodes: nodes.map(n => ({ ...n, type: n.type })),
           links: edges.map((e: any) => ({ source: e.normalizedSource || e.source, target: e.normalizedTarget || e.target }))
@@ -511,16 +511,19 @@ export class NativeGraphView extends ItemView {
           .nodeAutoColorBy('type')
           .nodeVal('val') .nodeRelSize(4) .nodeLabel('id') .nodeOpacity(0.9)
           .linkWidth(0.6).linkOpacity(0.2).cooldownTicks(100)
-          .onNodeClick((node: any) => {
+          // Fix [16]: Typed callback argument
+          .onNodeClick((node: GraphNode) => {
               this.showNodeDetails(node);
-              const dist = 40;
-              const ratio = 1 + dist/Math.hypot(node.x, node.y, node.z);
-              if (this.graph3D) {
-                   this.graph3D.cameraPosition({ x: node.x * ratio, y: node.y * ratio, z: node.z * ratio }, node, 2000);
+              // Safe check for coordinates before using them
+              if (typeof node.x === 'number' && typeof node.y === 'number' && typeof node.z === 'number') {
+                  const dist = 40;
+                  const ratio = 1 + dist/Math.hypot(node.x, node.y, node.z);
+                  if (this.graph3D) {
+                       this.graph3D.cameraPosition({ x: node.x * ratio, y: node.y * ratio, z: node.z * ratio }, node, 2000);
+                  }
               }
           });
       
-      // Fix: Optional chaining for potentially null object
       this.graph3D?.width(container.clientWidth);
       this.graph3D?.height(container.clientHeight);
   }
