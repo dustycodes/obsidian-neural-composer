@@ -709,7 +709,7 @@ showNodeDetails(node: Partial<GraphNode>) {
       setTooltip(btnReset, 'Reset camera');
       btnReset.onclick = () => { 
           if (this.graph3D) this.graph3D.zoomToFit(1000, 50); 
-          if (this.sigmaInstance) this.sigmaInstance.getCamera().animate({ x: 0.5, y: 0.5, ratio: 0.1 }, { duration: 500 });
+          if (this.sigmaInstance) void this.sigmaInstance.getCamera().animate({ x: 0.5, y: 0.5, ratio: 0.1 }, { duration: 500 });
       };
   }
 
