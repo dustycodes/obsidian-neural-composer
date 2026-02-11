@@ -45,11 +45,13 @@ export default function MarkdownReferenceBlock({
       setBlockContent(content)
     }
 
-    fetchBlockContent()
+    // FIX: Use void operator to explicitly ignore the floating promise
+    void fetchBlockContent()
   }, [filename, startLine, endLine, app.vault])
 
   const handleOpenFile = () => {
-    openMarkdownFile(app, filename, startLine)
+    // FIX: Ensure this promise is also marked as ignored if openMarkdownFile is async
+    void openMarkdownFile(app, filename, startLine)
   }
 
   return (
