@@ -39,8 +39,8 @@ export class MergeSelectionModal extends Modal {
     // 3. Lista de Selección
     const listContainer = contentEl.createDiv({ cls: 'nrlcmp-merge-list' });
 
-    // Referencia al botón para actualizarlo dinámicamente
-    let submitButton: ButtonComponent;
+    // Referencia inicializada como null/undefined explícitamente para claridad
+    let submitButton: ButtonComponent | undefined;
 
     this.selectedNodes.forEach((node) => {
         const row = listContainer.createDiv({ cls: 'nrlcmp-merge-item' });
@@ -59,7 +59,8 @@ export class MergeSelectionModal extends Modal {
         // --- REACTIVIDAD DEL BOTÓN ---
         rb.onchange = () => { 
             this.selectedTarget = node;
-            if (submitButton) {
+            // FIX: Usamos 'instanceof' para asegurar al linter que esto NO es una Promesa
+            if (submitButton instanceof ButtonComponent) {
                 submitButton.setButtonText(`Merge into "${node}"`);
             }
         };
@@ -83,7 +84,7 @@ export class MergeSelectionModal extends Modal {
             // Wrapped async logic to satisfy linter (void return expected)
             void (async () => {
                 // Estado de carga
-                submitButton.setButtonText('Merging...').setDisabled(true);
+                submitButton?.setButtonText('Merging...').setDisabled(true);
                 cancelBtn.setDisabled(true);
                 
                 try {
@@ -92,9 +93,8 @@ export class MergeSelectionModal extends Modal {
                     this.close();
                 } catch (error) {
                     console.error("Merge failed", error);
-                    // Restaurar estado en caso de error para permitir reintento o cancelación
-                    // Fix: Sentence case "Retry merge"
-                    submitButton.setButtonText('Retry merge').setDisabled(false);
+                    // Restaurar estado en caso de error
+                    submitButton?.setButtonText('Retry merge').setDisabled(false);
                     cancelBtn.setDisabled(false);
                 }
             })();
