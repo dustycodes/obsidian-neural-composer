@@ -385,7 +385,7 @@ onunload() {
             // Force kill tree
             execSync('taskkill /F /IM lightrag-server.exe /T', { stdio: 'ignore' });
         }
-    } catch (error) {
+    } catch {
         // Ignore kill errors if process not found
     }
     this.updateStatusUI('offline');  
