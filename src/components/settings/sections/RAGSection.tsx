@@ -54,18 +54,14 @@ export function RAGSection({ app, plugin }: RAGSectionProps) {
       >
         <ObsidianButton
           text="Test patterns"
+          // FIX: Removed unnecessary async wrapper (L58)
           onClick={() => {
-            void (async () => {
-              const patterns = settings.ragOptions.includePatterns
-              // findFilesMatchingPatterns is now sync in our previous fix, 
-              // but if the interface hasn't updated in this context or is mixed, 
-              // keeping async wrapper is safe.
-              const includedFiles = findFilesMatchingPatterns(
-                patterns,
-                plugin.app.vault,
-              )
-              new IncludedFilesModal(app, includedFiles, patterns).open()
-            })()
+            const patterns = settings.ragOptions.includePatterns
+            const includedFiles = findFilesMatchingPatterns(
+              patterns,
+              plugin.app.vault,
+            )
+            new IncludedFilesModal(app, includedFiles, patterns).open()
           }}
         />
       </ObsidianSetting>
@@ -97,15 +93,14 @@ export function RAGSection({ app, plugin }: RAGSectionProps) {
       >
         <ObsidianButton
           text="Test patterns"
+          // FIX: Removed unnecessary async wrapper (L101)
           onClick={() => {
-            void (async () => {
-              const patterns = settings.ragOptions.excludePatterns
-              const excludedFiles = findFilesMatchingPatterns(
-                patterns,
-                plugin.app.vault,
-              )
-              new ExcludedFilesModal(app, excludedFiles).open()
-            })()
+            const patterns = settings.ragOptions.excludePatterns
+            const excludedFiles = findFilesMatchingPatterns(
+              patterns,
+              plugin.app.vault,
+            )
+            new ExcludedFilesModal(app, excludedFiles).open()
           }}
         />
       </ObsidianSetting>
