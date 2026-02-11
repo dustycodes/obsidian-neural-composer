@@ -507,7 +507,7 @@ export class NativeGraphView extends ItemView {
   render3D(container: HTMLElement, nodes: GraphNode[], edges: GraphMLRawEdge[]) {
       const gData = {
           nodes: nodes.map(n => ({ ...n, type: n.type })),
-          links: edges.map((e: any) => ({ source: e.normalizedSource || e.source, target: e.normalizedTarget || e.target }))
+          links: edges.map((e) => ({ source: e.normalizedSource || e.source, target: e.normalizedTarget || e.target }))
       };
       
       // Fix: Cast to unknown then to specific function signature
