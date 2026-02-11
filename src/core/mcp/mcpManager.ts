@@ -37,7 +37,7 @@ export class McpManager {
 
   private availableToolsCache: McpTool[] | null = null
 
-  constructor({
+constructor({
     settings,
     registerSettingsListener,
   }: {
@@ -48,7 +48,8 @@ export class McpManager {
   }) {
     this.settings = settings
     this.unsubscribeFromSettings = registerSettingsListener((newSettings) => {
-      this.handleSettingsUpdate(newSettings)
+      // FIX: Use void operator to handle floating promise from async method
+      void this.handleSettingsUpdate(newSettings)
     })
   }
 
