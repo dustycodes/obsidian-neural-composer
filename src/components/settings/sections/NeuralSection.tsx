@@ -262,7 +262,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
         .setDesc('Leave empty for local open servers.')
         .addText((text) =>
             text
-            .setPlaceholder('sk-...')
+            .setPlaceholder('Your key here')
             .setValue(plugin.settings.lightRagRerankApiKey)
             .onChange((value) => {
                 void (async () => {
