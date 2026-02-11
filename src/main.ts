@@ -19,6 +19,7 @@ import {
 import { parseNeuralComposerSettings } from './settings/schema/settings';
 import { NeuralComposerSettingTab } from './settings/SettingTab';
 import { getMentionableBlockData } from './utils/obsidian';
+import { VectorManager } from './database/modules/vector/VectorManager';
 
 // --- MASTER EXTENSION LIST ---
 const SUPPORTED_EXTENSIONS = [
@@ -735,14 +736,14 @@ async activateChatView(chatProps?: ChatProps, openNewChat = false) {
     if (this.ragEngine) return Promise.resolve(this.ragEngine);
     
     if (!this.ragEngineInitPromise) {
-      // Fix: Replaced async IIFE with a standard Promise execution
-      // to avoid "Async arrow function has no 'await' expression"
       this.ragEngineInitPromise = new Promise<RAGEngine>((resolve, reject) => {
         try {
           this.ragEngine = new RAGEngine(
             this.app, 
             this.settings, 
-            {} as any, // Placeholder for VectorManager if not immediately needed
+            // FIX: Use safe double-casting instead of 'any'
+            // We cast to unknown first, then to the expected type.
+            {} as unknown as VectorManager, 
             () => { 
                 this.restartLightRagServer(); 
                 return Promise.resolve();
@@ -751,7 +752,6 @@ async activateChatView(chatProps?: ChatProps, openNewChat = false) {
           resolve(this.ragEngine);
         } catch (error) {
           this.ragEngineInitPromise = null;
-          // Fix: Ensure rejection reason is an Error object
           reject(error instanceof Error ? error : new Error(String(error)));
         }
       });
