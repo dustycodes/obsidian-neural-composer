@@ -674,7 +674,7 @@ async startLightRagServer() {
     void this.activateChatView({ selectedBlock: selectedBlockData ?? undefined }, openNewChat);
   }
 
-  async activateChatView(chatProps?: ChatProps, openNewChat = false) {
+async activateChatView(chatProps?: ChatProps, openNewChat = false) {
     this.initialChatProps = chatProps;
     let leaf = this.app.workspace.getLeavesOfType(CHAT_VIEW_TYPE)[0];
     
@@ -692,7 +692,9 @@ async startLightRagServer() {
     leaf = this.app.workspace.getLeavesOfType(CHAT_VIEW_TYPE)[0];
 
     if (leaf) {
-        this.app.workspace.revealLeaf(leaf);
+        // FIX: Add await because revealLeaf returns a Promise
+        await this.app.workspace.revealLeaf(leaf);
+        
         if (openNewChat && leaf.view instanceof ChatView) {
             leaf.view.openNewChat(chatProps?.selectedBlock);
         }
