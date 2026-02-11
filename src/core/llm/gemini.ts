@@ -256,7 +256,7 @@ export class GeminiProvider extends BaseLLMProvider<
                   args,
                 },
               }
-            } catch (error) {
+            } catch {
               // If the arguments are not valid JSON, return an empty object
               return {
                 functionCall: {
