@@ -673,7 +673,7 @@ async startLightRagServer() {
       void this.activateChatView(undefined, openNewChat);
       return;
     }
-    const selectedBlockData = await getMentionableBlockData(editor, view);
+    const selectedBlockData = getMentionableBlockData(editor, view);
     void this.activateChatView({ selectedBlock: selectedBlockData ?? undefined }, openNewChat);
   }
 
@@ -705,7 +705,7 @@ async activateChatView(chatProps?: ChatProps, openNewChat = false) {
   }
 
   async addSelectionToChat(editor: Editor, view: MarkdownView) {
-    const data = await getMentionableBlockData(editor, view);
+    const data = getMentionableBlockData(editor, view);
     if (!data) return;
     
     const leaves = this.app.workspace.getLeavesOfType(CHAT_VIEW_TYPE);
