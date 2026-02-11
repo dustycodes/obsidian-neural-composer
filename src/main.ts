@@ -666,7 +666,7 @@ async startLightRagServer() {
     };
   }
 
-  async openChatView(openNewChat = false) {
+  openChatView(openNewChat = false) { 
     const view = this.app.workspace.getActiveViewOfType(MarkdownView);
     const editor = view?.editor;
     if (!view || !editor) {
