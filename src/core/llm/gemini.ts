@@ -369,7 +369,7 @@ export class GeminiProvider extends BaseLLMProvider<
     }
   }
 
-private static removeAdditionalProperties(schema: unknown): unknown {
+  private static removeAdditionalProperties(schema: unknown): unknown {
     // TODO: Remove this function when Gemini supports additionalProperties field in JSON schema
     if (typeof schema !== 'object' || schema === null) {
       return schema
@@ -379,17 +379,16 @@ private static removeAdditionalProperties(schema: unknown): unknown {
       return schema.map((item) => this.removeAdditionalProperties(item))
     }
 
-    // FIX: Instead of destructuring into an unused variable ('_'),
-    // we use filter to exclude the key. This satisfies the linter.
-    const record = schema as Record<string, unknown>
+    const { additionalProperties: _, ...rest } = schema as Record< // ISSUE
+      string,
+      unknown
+    >
 
     return Object.fromEntries(
-      Object.entries(record)
-        .filter(([key]) => key !== 'additionalProperties') // Exclude here
-        .map(([key, value]) => [
-          key,
-          this.removeAdditionalProperties(value),
-        ]),
+      Object.entries(rest).map(([key, value]) => [
+        key,
+        this.removeAdditionalProperties(value),
+      ]),
     )
   }
 
