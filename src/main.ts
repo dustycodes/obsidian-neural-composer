@@ -718,7 +718,7 @@ async activateChatView(chatProps?: ChatProps, openNewChat = false) {
     await this.app.workspace.revealLeaf(leaf);
     
     if (leaf.view instanceof ChatView) {
-        const chatView = leaf.view as ChatView;
+        const chatView = leaf.view;
         chatView.addSelectionToChat(data);
         chatView.focusMessage();
     }
