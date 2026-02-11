@@ -231,7 +231,8 @@ export class RAGEngine {
       let masterContent = graphAnswer;
       if (data.references && Array.isArray(data.references)) {
           masterContent += "\n\n--- ORIGINAL REFERENCES (DATA LAYER) ---\n";
-          data.references.forEach((ref: any, index: number) => {
+          // CORRECCIÓN: Quitamos ': any' y dejamos que TS infiera el tipo desde la interfaz LightRagAPIResponse
+          data.references.forEach((ref, index) => {
               const docName = ref.file_path || `Source ${index + 1}`;
               masterContent += `[${index + 1}] ${docName}\n`;
           });
