@@ -5,10 +5,11 @@ export abstract class AbstractJsonRepository<T, M> {
   protected dataDir: string
   protected app: App
 
-  constructor(app: App, dataDir: string) {
+constructor(app: App, dataDir: string) {
     this.app = app
     this.dataDir = normalizePath(dataDir)
-    this.ensureDirectory()
+    // FIX: Use void operator to handle async call in constructor
+    void this.ensureDirectory()
   }
 
   private async ensureDirectory(): Promise<void> {
