@@ -2719,3 +2719,11 @@ button.nrlcmp-chat-input-model-select {
     font-size: 0.9em;
     color: var(--text-normal);
 }
+
+.nrlcmp-merge-warning p {
+    margin: 0;
+    margin-bottom: 8px; /* Espacio entre líneas */
+}
+.nrlcmp-merge-warning p:last-child {
+    margin-bottom: 0;
+}
