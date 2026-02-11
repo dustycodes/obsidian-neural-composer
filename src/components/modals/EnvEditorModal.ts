@@ -43,21 +43,19 @@ export class EnvEditorModal extends Modal {
       .setButtonText('Cancel')
       .onClick(() => this.close());
 
-    new ButtonComponent(buttonContainer)
+new ButtonComponent(buttonContainer)
       .setButtonText('Save & restart server')
       .setCta()
       .onClick(() => {
-        // Envolvemos la lógica async para cumplir con la regla de promesas flotantes (Void return)
-        void (async () => {
-            try {
-                new Notice("Saving and restarting...");
-                this.plugin.saveEnvAndRestart(this.content);
-                this.close();
-            } catch (error) {
-                new Notice("Failed to restart server.");
-                console.error(error);
-            }
-        })();
+        // FIX: Eliminamos el wrapper async/void porque saveEnvAndRestart ahora es síncrono.
+        try {
+            new Notice("Saving and restarting...");
+            this.plugin.saveEnvAndRestart(this.content);
+            this.close();
+        } catch (error) {
+            new Notice("Failed to restart server.");
+            console.error(error);
+        }
       });
   }
 
