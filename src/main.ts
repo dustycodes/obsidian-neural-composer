@@ -345,7 +345,7 @@ this.app.workspace.onLayoutReady(() => {
 
   // --- LIFECYCLE & SERVER MANAGEMENT ---
   
-  onunload() {
+onunload() {
     window.clearInterval(this.heartbeatInterval);
     this.timeoutIds.forEach((id) => clearTimeout(id));
     this.timeoutIds = [];
@@ -360,11 +360,13 @@ this.app.workspace.onLayoutReady(() => {
     this.ragEngineInitPromise = null;
     
     if (this.dbManager) {
-        this.dbManager.cleanup();
+        // FIX: Use void operator to handle the async cleanup promise
+        void this.dbManager.cleanup();
         this.dbManager = null;
     }
     if (this.mcpManager) {
-        this.mcpManager.cleanup();
+        // FIX: Use void operator here too if mcpManager.cleanup() is async
+        void this.mcpManager.cleanup();
         this.mcpManager = null;
     }
     this.stopLightRagServer();
