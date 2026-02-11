@@ -51,7 +51,7 @@ export class EnvEditorModal extends Modal {
         void (async () => {
             try {
                 new Notice("Saving and restarting...");
-                await this.plugin.saveEnvAndRestart(this.content);
+                this.plugin.saveEnvAndRestart(this.content);
                 this.close();
             } catch (error) {
                 new Notice("Failed to restart server.");
