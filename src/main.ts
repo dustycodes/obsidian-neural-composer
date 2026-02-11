@@ -68,8 +68,10 @@ export default class NeuralComposerPlugin extends Plugin {
     if (!this.settings.lightRagWorkDir) {
         // Safe casting to check for desktop adapter capabilities
         const adapter = this.app.vault.adapter;
-        // Check if getBasePath exists (Desktop only)
-        if (typeof (adapter as any).getBasePath === 'function') {
+        
+        // FIX: Cast to unknown then to the specific interface to avoid 'any'
+        // This satisfies the linter while checking for the desktop-only method
+        if (typeof (adapter as unknown as FileSystemAdapterWithBasePath).getBasePath === 'function') { 
             const vaultRoot = (adapter as unknown as FileSystemAdapterWithBasePath).getBasePath();
             const defaultPath = path.join(vaultRoot, '.neural_memory');
             
