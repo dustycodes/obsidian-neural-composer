@@ -1,11 +1,22 @@
 import { migrateFrom8To9 } from './8_to_9'
 
+// Definimos un tipo parcial para los modelos en el test
+type MockChatModel = {
+  id: string
+  model: string
+  providerType?: string
+  providerId?: string
+  [key: string]: unknown
+}
+
 type SettingsData = {
   version: number
   
-  chatModels?: any[]
+  // Fix: Replace any[] with a typed array
+  chatModels?: MockChatModel[]
   
-  [key: string]: any
+  // Fix: Replace any with unknown for type safety
+  [key: string]: unknown
 }
 
 describe('migrateFrom8To9', () => {
