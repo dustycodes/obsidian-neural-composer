@@ -371,7 +371,7 @@ export class NativeGraphView extends ItemView {
           targetX = visualData.x; targetY = visualData.y;
       }
 
-      this.sigmaInstance.getCamera().animate({ x: targetX, y: targetY, ratio: 0.15, angle: 0 }, { duration: 1500, easing: 'cubicInOut' });
+      void this.sigmaInstance.getCamera().animate({ x: targetX, y: targetY, ratio: 0.15, angle: 0 }, { duration: 1500, easing: 'cubicInOut' });
 
       // Reset styles
       this.graph.forEachNode(n => { 
