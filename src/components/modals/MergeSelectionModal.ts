@@ -24,21 +24,16 @@ export class MergeSelectionModal extends Modal {
         cls: 'nrlcmp-merge-instruction'
     });
 
-    // 2. Caja de Advertencia
+   // 2. Caja de Advertencia
     const warningBox = contentEl.createDiv({ cls: 'nrlcmp-merge-warning' });
     
-    // Párrafo 1: Advertencia de deshacer
-    // Usamos 'p' para que tenga su propio bloque y margen natural
+    // Párrafo 1: Advertencia de deshacer (Todo en negrita para énfasis)
     const p1 = warningBox.createEl("p", { cls: 'nrlcmp-warning-line' });
-    p1.createEl("strong", { text: "Note: " });
-    p1.appendText("This action ");
-    p1.createEl("strong", { text: "cannot be undone." });
+    p1.createEl("strong", { text: "Note: This action cannot be undone." });
 
-    // Párrafo 2: Advertencia de rendimiento
+    // Párrafo 2: Advertencia de rendimiento (Texto normal, frase completa)
     const p2 = warningBox.createEl("p", { cls: 'nrlcmp-warning-line' });
-    p2.appendText("Merging nodes with a high number of relations involves heavy processing and ");
-    p2.createEl("strong", { text: "may take a while." });
-    p2.appendText(" Please be patient.");
+    p2.setText("Merging nodes with a high number of relations involves heavy processing and may take a while. Please be patient.");
 
     // 3. Lista de Selección
     const listContainer = contentEl.createDiv({ cls: 'nrlcmp-merge-list' });
