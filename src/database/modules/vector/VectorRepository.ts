@@ -165,8 +165,14 @@ export class VectorRepository {
     const similaritySearchResults = await this.db
       .select({
         ...(() => {
-          
+          // Revert to destructuring to preserve Drizzle Type definitions
           const { embedding, ...rest } = getTableColumns(embeddingTable)
+          
+          // FIX: Use 'void' operator to mark the variable as intentionally ignored.
+          // This preserves the type inference for 'rest' (fixing the compilation error)
+          // while satisfying the 'no-unused-vars' linter rule.
+          void embedding
+          
           return rest
         })(),
         similarity,
