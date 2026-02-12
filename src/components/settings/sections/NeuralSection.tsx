@@ -28,11 +28,11 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
     settingsRef.current.empty();
     const container = settingsRef.current;
 
-    container.createEl('h3', { text: 'Neural backend (${BACKEND_NAME})' });
+    container.createEl('h3', { text: `Neural backend (${BACKEND_NAME})` });
 
     // 1. Auto-start
     new Setting(container)
-      .setName('Auto-start ${BACKEND_NAME} server')
+      .setName(`Auto-start ${BACKEND_NAME} server`)
       .setDesc('Automatically start the server when Obsidian opens.')
       .addToggle((toggle) =>
         toggle
@@ -44,7 +44,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
 
     // 2. Paths
     new Setting(container)
-      .setName('${BACKEND_NAME} command path')
+      .setName(`${BACKEND_NAME} command path`)
       .setDesc('Absolute path to the executable (e.g., lightrag-server.exe).')
       .addText((text) =>
         text
@@ -73,8 +73,8 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
 
     // 3. Graph Logic Model
     new Setting(container)
-      .setName('Graph logic model (${TERM_LLM})')
-      .setDesc('Select the model ${BACKEND_NAME} will use for indexing/reasoning.')
+      .setName(`Graph logic model (${TERM_LLM})`)
+      .setDesc(`Select the model ${BACKEND_NAME} will use for indexing/reasoning.`)
       .addDropdown((dropdown) => {
         plugin.settings.chatModels.forEach((model) => {
           dropdown.addOption(model.id, `${model.providerId} - ${model.model}`);
@@ -115,7 +115,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
     // 4. Language
     new Setting(container)
       .setName('Summary language')
-      .setDesc('Language used by ${BACKEND_NAME} for internal summaries.')
+      .setDesc(`Language used by ${BACKEND_NAME} for internal summaries.`)
       .addText((text) =>
         text
           .setPlaceholder('English')
@@ -145,7 +145,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
 
     new Setting(container)
       .setName('Use custom entity types')
-      .setDesc('Enable to define your own knowledge categories. Disable to use ${BACKEND_NAME} defaults.')
+      .setDesc(`Enable to define your own knowledge categories. Disable to use ${BACKEND_NAME} defaults.`)
       .addToggle((toggle) =>
         toggle
           .setValue(useCustomOntology)
@@ -181,7 +181,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
           .setDesc('Folder with representative notes to analyze.')
           .addText((text) =>
             text
-              .setPlaceholder('${FOLDER_DIR}')
+              .setPlaceholder(`${FOLDER_DIR}`)
               .setValue(plugin.settings.lightRagOntologyFolder)
               .onChange((value) => {
                  void plugin.setSettings({ ...plugin.settings, lightRagOntologyFolder: value });
@@ -271,7 +271,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
 
         // 2. API KEY
         new Setting(container)
-        .setName('Rerank ${TERM_API} key')
+        .setName(`Rerank ${TERM_API} key`)
         .setDesc('Leave empty for local open servers.')
         .addText((text) =>
             text
@@ -292,7 +292,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
             .setDesc('The full URL to the rerank endpoint (e.g. http://localhost:8000/v1/rerank).')
             .addText((text) =>
                 text
-                .setPlaceholder('${RERANK_ENDPOINT}')
+                .setPlaceholder(`${RERANK_ENDPOINT}`)
                 .setValue(plugin.settings.lightRagRerankHost || '') 
                 .onChange((value) => {
                     void (async () => {
@@ -305,10 +305,10 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
             // 4. BINDING
              new Setting(container)
             .setName('Binding type')
-            .setDesc('Internal binding type for ${BACKEND_NAME} (usually "cohere" for compatible local ${TERM_APIs}).')
+            .setDesc(`Internal binding type for ${BACKEND_NAME} (usually "cohere" for compatible local ${TERM_APIs}).`)
             .addText((text) =>
                 text
-                .setPlaceholder('${COHERE}')
+                .setPlaceholder(`${COHERE}`)
                 .setValue(plugin.settings.lightRagRerankBindingType || 'cohere') 
                 .onChange((value) => {
                     void (async () => {
@@ -340,7 +340,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
         .setClass('nrlcmp-env-setting')
         .addTextArea(text => {
             text
-                .setPlaceholder('${ADV_SETTINGS}')
+                .setPlaceholder(`${ADV_SETTINGS}`)
                 .setValue(plugin.settings.lightRagCustomEnv)
                 .onChange((value) => { // Removed async
                     void plugin.setSettings({ ...plugin.settings, lightRagCustomEnv: value });
@@ -351,7 +351,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
     // TEMPLATE BUTTON
     new Setting(advancedContainer)
         .setName('Load full configuration template')
-        .setDesc('Paste the full list of available ${BACKEND_NAME} variables (commented out) into the box above.')
+        .setDesc(`Paste the full list of available ${BACKEND_NAME} variables (commented out) into the box above.`)
         .addButton(btn => btn
             .setButtonText('Insert template')
             .onClick(() => { // Removed async
@@ -421,10 +421,10 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
 
     new Setting(container)
       .setName('Graph rendering engine')
-      .setDesc('Choose ${TWO_D} for performance/clarity or ${THREE_D} for immersion (requires ${GRAPH_UNIT}).')
+      .setDesc(`Choose ${TWO_D} for performance/clarity or ${THREE_D} for immersion (requires ${GRAPH_UNIT}).`)
       .addDropdown((dropdown) => {
-        dropdown.addOption('2d', '${TWO_D} - Fast & clean');
-        dropdown.addOption('3d', '${THREE_D} - Immersive - uses ${GRAPH_UNIT}');
+        dropdown.addOption('2d', `${TWO_D} - Fast & clean`);
+        dropdown.addOption('3d', `${THREE_D} - Immersive - uses ${GRAPH_UNIT}`);
         dropdown.setValue(plugin.settings.graphViewMode);
         dropdown.onChange((value) => { // Removed async
           void plugin.setSettings({
