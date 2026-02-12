@@ -302,7 +302,7 @@ const ragOptionsSchema = z.object({
   excludePatterns: z.array(z.string()).catch([]),
   includePatterns: z.array(z.string()).catch([]),
 })
-const NeuralComposerSettingsSchemaV1 = z.object({
+export const NeuralComposerSettingsSchemaV1 = z.object({ //ISSUE
   // Version
   version: z.literal(SETTINGS_SCHEMA_VERSION).catch(SETTINGS_SCHEMA_VERSION),
 
