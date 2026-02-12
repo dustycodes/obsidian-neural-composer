@@ -13,7 +13,7 @@ export const COHERE = 'cohere';
 export const ADV_SETTINGS ='MAX_TOTAL_TOKENS=30000\nLLM_TIMEOUT=180\n...'
 export const TWO_D ='2D';
 export const THREE_D ='3D';
-export const GRAPH_UNIT = 'GPU'
+export const GRAPH_UNIT = 'GPU';
 
 
 export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
