@@ -10,6 +10,7 @@ export const TERM_LLM = 'LLM';
 export const FOLDER_DIR = 'Main/Memories';
 export const RERANK_ENDPOINT = 'http://localhost:8000/v1/rerank';
 export const COHERE = 'cohere';
+export const ADV_SETTINGS ='MAX_TOTAL_TOKENS=30000\nLLM_TIMEOUT=180\n...'
 
 
 export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
@@ -336,7 +337,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
         .setClass('nrlcmp-env-setting')
         .addTextArea(text => {
             text
-                .setPlaceholder('MAX_TOTAL_TOKENS=30000\nLLM_TIMEOUT=180\n...')
+                .setPlaceholder('${ADV_SETTINGS}')
                 .setValue(plugin.settings.lightRagCustomEnv)
                 .onChange((value) => { // Removed async
                     void plugin.setSettings({ ...plugin.settings, lightRagCustomEnv: value });
