@@ -7,7 +7,7 @@ export const BACKEND_NAME = "LightRAG";
 export const TERM_API = 'API';
 export const TERM_APIs = 'APIs';
 export const TERM_LLM = 'LLM';
-export const FOLDER_DIR = 'Main/Memories'';
+export const FOLDER_DIR = 'Main/Memories';
 export const RERANK_ENDPOINT = 'http://localhost:8000/v1/rerank';
 export const COHERE = 'cohere';
 
