@@ -29,7 +29,7 @@ export class MergeSelectionModal extends Modal {
     
     // Párrafo 1: Advertencia de deshacer (Todo en negrita para énfasis)
     const p1 = warningBox.createEl("p", { cls: 'nrlcmp-warning-line' });
-    p1.createEl("strong", { text: "Note: This action cannot be undone." });
+    p1.createEl("strong", { text: "Note: this action cannot be undone." });
 
     // Párrafo 2: Advertencia de rendimiento (Texto normal, frase completa)
     const p2 = warningBox.createEl("p", { cls: 'nrlcmp-warning-line' });
