@@ -3,6 +3,12 @@ import { EnvEditorModal } from '../../modals/EnvEditorModal';
 import { useEffect, useRef, useState } from 'react';
 import NeuralComposerPlugin from '../../../main';
 
+export const BACKEND_NAME = "LightRAG";
+export const TERM_API = 'API';
+export const TERM_APIs = 'APIs';
+export const TERM_LLM = 'LLM';
+
+
 export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
   const settingsRef = useRef<HTMLDivElement>(null);
   
@@ -15,11 +21,11 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
     settingsRef.current.empty();
     const container = settingsRef.current;
 
-    container.createEl('h3', { text: 'Neural backend (LightRAG)' });
+    container.createEl('h3', { text: 'Neural backend (${BACKEND_NAME})' });
 
     // 1. Auto-start
     new Setting(container)
-      .setName('Auto-start LightRAG server')
+      .setName('Auto-start ${BACKEND_NAME} server')
       .setDesc('Automatically start the server when Obsidian opens.')
       .addToggle((toggle) =>
         toggle
@@ -31,7 +37,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
 
     // 2. Paths
     new Setting(container)
-      .setName('LightRAG command path')
+      .setName('${BACKEND_NAME} command path')
       .setDesc('Absolute path to the executable (e.g., lightrag-server.exe).')
       .addText((text) =>
         text
@@ -60,8 +66,8 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
 
     // 3. Graph Logic Model
     new Setting(container)
-      .setName('Graph logic model (LLM)')
-      .setDesc('Select the model LightRAG will use for indexing/reasoning.')
+      .setName('Graph logic model ($(TERM_LLM))')
+      .setDesc('Select the model ${BACKEND_NAME} will use for indexing/reasoning.')
       .addDropdown((dropdown) => {
         plugin.settings.chatModels.forEach((model) => {
           dropdown.addOption(model.id, `${model.providerId} - ${model.model}`);
@@ -102,7 +108,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
     // 4. Language
     new Setting(container)
       .setName('Summary language')
-      .setDesc('Language used by LightRAG for internal summaries.')
+      .setDesc('Language used by ${BACKEND_NAME} for internal summaries.')
       .addText((text) =>
         text
           .setPlaceholder('English')
@@ -132,7 +138,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
 
     new Setting(container)
       .setName('Use custom entity types')
-      .setDesc('Enable to define your own knowledge categories. Disable to use LightRAG defaults.')
+      .setDesc('Enable to define your own knowledge categories. Disable to use ${BACKEND_NAME} defaults.')
       .addToggle((toggle) =>
         toggle
           .setValue(useCustomOntology)
@@ -258,7 +264,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
 
         // 2. API KEY
         new Setting(container)
-        .setName('Rerank API key')
+        .setName('Rerank $(TERM_API) key')
         .setDesc('Leave empty for local open servers.')
         .addText((text) =>
             text
@@ -292,7 +298,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
             // 4. BINDING
              new Setting(container)
             .setName('Binding type')
-            .setDesc('Internal binding type for LightRAG (usually "cohere" for compatible local APIs).')
+            .setDesc('Internal binding type for ${BACKEND_NAME} (usually "cohere" for compatible local $(TERM_APIs)).')
             .addText((text) =>
                 text
                 .setPlaceholder('cohere')
@@ -338,7 +344,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
     // TEMPLATE BUTTON
     new Setting(advancedContainer)
         .setName('Load full configuration template')
-        .setDesc('Paste the full list of available LightRAG variables (commented out) into the box above.')
+        .setDesc('Paste the full list of available ${BACKEND_NAME} variables (commented out) into the box above.')
         .addButton(btn => btn
             .setButtonText('Insert template')
             .onClick(() => { // Removed async
