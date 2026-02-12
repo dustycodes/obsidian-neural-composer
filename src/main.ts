@@ -102,7 +102,7 @@ export default class NeuralComposerPlugin extends Plugin {
     this.statusBarEl.addClass('nrlcmp-status-bar-item');
     this.statusDotEl = this.statusBarEl.createSpan({ cls: 'nrlcmp-status-dot' });
     this.statusBarEl.createSpan({ text: 'Neural' });
-    setTooltip(this.statusBarEl, '$(BACKEND_NAME) server status');
+    setTooltip(this.statusBarEl, '${BACKEND_NAME} server status');
     
     this.statusBarEl.onclick = () => {
         void this.handleStatusBarClick();
@@ -111,7 +111,7 @@ export default class NeuralComposerPlugin extends Plugin {
     this.registerView(CHAT_VIEW_TYPE, (leaf) => new ChatView(leaf, this));
     this.registerView(APPLY_VIEW_TYPE, (leaf) => new ApplyView(leaf));
     
-    this.addRibbonIcon('brain-circuit', 'Open $(PLUGIN_NAME)', () => {
+    this.addRibbonIcon('brain-circuit', 'Open ${PLUGIN_NAME}', () => {
         void this.openChatView();
     });
 
@@ -159,7 +159,7 @@ export default class NeuralComposerPlugin extends Plugin {
     // --- QUICK RESTART COMMAND ---
     this.addCommand({
       id: 'restart-neural-backend',
-      name: 'Restart neural backend ($(BACKEND_NAME))',
+      name: 'Restart neural backend (${BACKEND_NAME})',
       callback: () => {
         this.restartLightRagServer();
       },
@@ -570,7 +570,7 @@ async startLightRagServer() {
     const workDir = this.settings.lightRagWorkDir;
 
     if (!workDir || !command) {
-        new Notice("Configure $(BACKEND_NAME) paths in settings.");
+        new Notice("Configure ${BACKEND_NAME} paths in settings.");
         return;
     }
 
@@ -582,7 +582,7 @@ async startLightRagServer() {
         return;
     }
 
-    new Notice("Starting $(BACKEND_NAME)...");
+    new Notice("Starting ${BACKEND_NAME}...");
     this.updateStatusUI('busy'); // Amarillo mientras arranca
 
     try {
@@ -604,14 +604,14 @@ async startLightRagServer() {
                     this.lastErrorTime = now;
                 }
                 else if (msg.includes("Invalid API key") || msg.includes("401")) {
-                    if (msg.includes("Rerank")) new Notice("Rerank error: invalid $(TERM_API) key.", 0);
-                    else new Notice("$(TERM_LLM_EMBED) error: Invalid $(TERM_API) key.", 0);
+                    if (msg.includes("Rerank")) new Notice("Rerank error: invalid ${TERM_API} key.", 0);
+                    else new Notice("${TERM_LLM_EMBED} error: Invalid ${TERM_API} key.", 0);
                     this.lastErrorTime = now;
                 }
                 else if (msg.includes("Quota") || msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED")) {
                     if (msg.includes("Rerank")) new Notice("Rerank quota exceeded.", 0);
-                    else if (msg.includes("google") || msg.includes("gemini")) new Notice("Gemini quota exceeded.\nReduce $(VAR_MAX_ASYNC) in settings.", 0);
-                    else new Notice("$(TERM_API) rate limit hit.", 0);
+                    else if (msg.includes("google") || msg.includes("gemini")) new Notice("Gemini quota exceeded.\nReduce ${VAR_MAX_ASYNC} in settings.", 0);
+                    else new Notice("${TERM_API} rate limit hit.", 0);
                     this.lastErrorTime = now;
                 }
             }
@@ -633,7 +633,7 @@ async startLightRagServer() {
                 const alive = await this.isPortInUse(9621);
                 if (alive) {
                     this.updateStatusUI('online'); // ¡Cambio a verde instantáneo!
-                    new Notice("$(BACKEND_NAME) activated");
+                    new Notice("${BACKEND_NAME} activated");
                     return;
                 }
             }
@@ -958,7 +958,7 @@ private async checkAndUpdateStatus() {
   private async handleStatusBarClick() {
       const isAlive = await this.isPortInUse(9621);
       if (!isAlive) {
-          new Notice("Starting $(BACKEND_NAME) from status bar...");
+          new Notice("Starting ${BACKEND_NAME} from status bar...");
           void this.startLightRagServer();
       } else {
           new Notice("System is already online.");

@@ -7,6 +7,7 @@ export const BACKEND_NAME = "LightRAG";
 export const TERM_API = 'API';
 export const TERM_APIs = 'APIs';
 export const TERM_LLM = 'LLM';
+export const FOLDER_DIR = 'Main/Memories'
 
 
 export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
@@ -66,7 +67,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
 
     // 3. Graph Logic Model
     new Setting(container)
-      .setName('Graph logic model ($(TERM_LLM))')
+      .setName('Graph logic model (${TERM_LLM})')
       .setDesc('Select the model ${BACKEND_NAME} will use for indexing/reasoning.')
       .addDropdown((dropdown) => {
         plugin.settings.chatModels.forEach((model) => {
@@ -174,7 +175,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
           .setDesc('Folder with representative notes to analyze.')
           .addText((text) =>
             text
-              .setPlaceholder('Main/Memories')
+              .setPlaceholder('${FOLDER_DIR}')
               .setValue(plugin.settings.lightRagOntologyFolder)
               .onChange((value) => {
                  void plugin.setSettings({ ...plugin.settings, lightRagOntologyFolder: value });
@@ -264,7 +265,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
 
         // 2. API KEY
         new Setting(container)
-        .setName('Rerank $(TERM_API) key')
+        .setName('Rerank ${TERM_API} key')
         .setDesc('Leave empty for local open servers.')
         .addText((text) =>
             text
@@ -298,7 +299,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
             // 4. BINDING
              new Setting(container)
             .setName('Binding type')
-            .setDesc('Internal binding type for ${BACKEND_NAME} (usually "cohere" for compatible local $(TERM_APIs)).')
+            .setDesc('Internal binding type for ${BACKEND_NAME} (usually "cohere" for compatible local ${TERM_APIs}).')
             .addText((text) =>
                 text
                 .setPlaceholder('cohere')

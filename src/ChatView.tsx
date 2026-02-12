@@ -41,7 +41,7 @@ export class ChatView extends ItemView {
   }
 
   getDisplayText() {
-    return '$(PLUGIN_NAME) chat'
+    return '${PLUGIN_NAME} chat'
   }
 
   async onOpen() {
