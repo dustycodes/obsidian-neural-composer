@@ -11,6 +11,9 @@ export const FOLDER_DIR = 'Main/Memories';
 export const RERANK_ENDPOINT = 'http://localhost:8000/v1/rerank';
 export const COHERE = 'cohere';
 export const ADV_SETTINGS ='MAX_TOTAL_TOKENS=30000\nLLM_TIMEOUT=180\n...'
+export const TWO_D ='2D';
+export const THREE_D ='3D';
+export const GRAPH_UNIT = 'GPU'
 
 
 export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
@@ -418,10 +421,10 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
 
     new Setting(container)
       .setName('Graph rendering engine')
-      .setDesc('Choose 2D for performance/clarity or 3D for immersion (requires GPU).')
+      .setDesc('Choose ${TWO_D} for performance/clarity or ${THREE_D} for immersion (requires ${GRAPH_UNIT}).')
       .addDropdown((dropdown) => {
-        dropdown.addOption('2d', '2D - Fast & clean');
-        dropdown.addOption('3d', '3D - Immersive - uses GPU');
+        dropdown.addOption('2d', '${TWO_D} - Fast & clean');
+        dropdown.addOption('3d', '${THREE_D} - Immersive - uses ${GRAPH_UNIT}');
         dropdown.setValue(plugin.settings.graphViewMode);
         dropdown.onChange((value) => { // Removed async
           void plugin.setSettings({
