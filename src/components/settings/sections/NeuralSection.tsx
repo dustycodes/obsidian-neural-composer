@@ -8,6 +8,7 @@ export const TERM_API = 'API';
 export const TERM_APIs = 'APIs';
 export const TERM_LLM = 'LLM';
 export const FOLDER_DIR = 'Main/Memories'
+export const RERANK_ENDPOINT = 'http://localhost:8000/v1/rerank'
 
 
 export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
@@ -286,7 +287,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
             .setDesc('The full URL to the rerank endpoint (e.g. http://localhost:8000/v1/rerank).')
             .addText((text) =>
                 text
-                .setPlaceholder('http://localhost:8000/v1/rerank')
+                .setPlaceholder('${RERANK_ENDPOINT}')
                 .setValue(plugin.settings.lightRagRerankHost || '') 
                 .onChange((value) => {
                     void (async () => {
