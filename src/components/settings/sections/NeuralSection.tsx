@@ -7,8 +7,9 @@ export const BACKEND_NAME = "LightRAG";
 export const TERM_API = 'API';
 export const TERM_APIs = 'APIs';
 export const TERM_LLM = 'LLM';
-export const FOLDER_DIR = 'Main/Memories'
-export const RERANK_ENDPOINT = 'http://localhost:8000/v1/rerank'
+export const FOLDER_DIR = 'Main/Memories'';
+export const RERANK_ENDPOINT = 'http://localhost:8000/v1/rerank';
+export const COHERE = 'cohere';
 
 
 export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
@@ -303,7 +304,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
             .setDesc('Internal binding type for ${BACKEND_NAME} (usually "cohere" for compatible local ${TERM_APIs}).')
             .addText((text) =>
                 text
-                .setPlaceholder('cohere')
+                .setPlaceholder('${COHERE}')
                 .setValue(plugin.settings.lightRagRerankBindingType || 'cohere') 
                 .onChange((value) => {
                     void (async () => {
