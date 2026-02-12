@@ -111,7 +111,7 @@ export default class NeuralComposerPlugin extends Plugin {
     this.registerView(CHAT_VIEW_TYPE, (leaf) => new ChatView(leaf, this));
     this.registerView(APPLY_VIEW_TYPE, (leaf) => new ApplyView(leaf));
     
-    this.addRibbonIcon('brain-circuit', 'Open ${PLUGIN_NAME}', () => {
+    this.addRibbonIcon('brain-circuit', `Open ${PLUGIN_NAME}`, () => {
         void this.openChatView();
     });
 
