@@ -17,6 +17,8 @@ import { SettingsProvider } from './contexts/settings-context'
 import NeuralComposerPlugin from './main'
 import { MentionableBlockData } from './types/mentionable'
 
+export const PLUGIN_NAME = "Neural Composer";
+
 export class ChatView extends ItemView {
   private root: Root | null = null
   private initialChatProps?: ChatProps
@@ -39,7 +41,7 @@ export class ChatView extends ItemView {
   }
 
   getDisplayText() {
-    return 'Neural Composer chat'
+    return '$(PLUGIN_NAME) chat'
   }
 
   async onOpen() {
