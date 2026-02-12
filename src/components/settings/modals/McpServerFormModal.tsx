@@ -14,6 +14,8 @@ import { ObsidianSetting } from '../../common/ObsidianSetting'
 import { ObsidianTextInput } from '../../common/ObsidianTextInput'
 import { ReactModal } from '../../common/ReactModal'
 
+export const PROTOCOL_NAME = "MCP";
+
 type McpServerFormComponentProps = {
   plugin: NeuralComposerPlugin
   onClose: () => void
@@ -137,7 +139,7 @@ function McpServerFormComponent({
         new Notice(error.message)
       } else {
         console.error(error)
-        new Notice('Failed to add MCP server.')
+        new Notice('Failed to add ${PROTOCOL_NAME} server.')
       }
     }
   }
