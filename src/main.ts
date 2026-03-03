@@ -438,13 +438,45 @@ onunload() {
         envContent += `CHUNK_SIZE=${this.settings.lightRagChunkSize}\n`;
         envContent += `CHUNK_OVERLAP_SIZE=${this.settings.lightRagChunkOverlap}\n\n`;
 
-        // LLM
+// LLM CONFIGURATION
         if (llmModelObj && llmProvider) {
             envContent += `# LLM Configuration\n`;
-            envContent += `LLM_BINDING=${llmProvider.id}\n`;
+            
+            // Lista de proveedores nativos que LightRAG conoce por nombre
+            const nativeProviders = ['openai', 'gemini', 'ollama', 'anthropic', 'azure'];
+            
+            // ¿Es un proveedor nativo o uno custom?
+            const isNative = nativeProviders.includes(llmProvider.id);
+            
+            if (isNative) {
+                // COMPORTAMIENTO ESTÁNDAR
+                envContent += `LLM_BINDING=${llmProvider.id}\n`;
+                
+                // Manejo específico de hosts nativos
+                if (llmProvider.id === 'ollama' && llmProvider.baseUrl) {
+                    envContent += `OLLAMA_HOST=${llmProvider.baseUrl}\n`;
+                } else if (llmProvider.id === 'openai' && llmProvider.baseUrl?.includes('localhost')) {
+                    // Caso raro de proxy local haciéndose pasar por OpenAI oficial
+                    envContent += `OPENAI_BASE_URL=${llmProvider.baseUrl}\n`;
+                }
+                
+            } else {
+                // COMPORTAMIENTO CUSTOM (FIX PARA ISSUE #8)
+                // Si es custom, asumimos protocolo OpenAI (estándar de la industria)
+                envContent += `LLM_BINDING=openai\n`; // Forzamos 'openai'
+                
+                if (llmProvider.baseUrl) {
+                    envContent += `OPENAI_BASE_URL=${llmProvider.baseUrl}\n`;
+                }
+                
+                // Importante: Escribir la clave aquí porque abajo el bloque genérico de API Keys 
+                // busca por ID ('MY_CUSTOM_ID') y no generaría 'OPENAI_API_KEY'.
+                if (llmProvider.apiKey) {
+                    envContent += `OPENAI_API_KEY=${llmProvider.apiKey}\n`;
+                }
+            }
+            
             envContent += `LLM_MODEL=${llmModelObj.model}\n`;
-            if (llmProvider.id === 'ollama' && llmProvider.baseUrl) envContent += `OLLAMA_HOST=${llmProvider.baseUrl}\n`;
-            else if (llmProvider.id === 'openai' && llmProvider.baseUrl?.includes('localhost')) envContent += `OPENAI_BASE_URL=${llmProvider.baseUrl}\n`;
         }
 
         // Embeddings
@@ -588,8 +620,20 @@ async startLightRagServer() {
     try {
         const envVars = { ...process.env };
         
-        this.serverProcess = spawn(command, ['--port', '9621', '--working-dir', workDir,'--workers', '1'], {
-            cwd: workDir,
+        // --- FIX: SANITIZE PATHS (ESPACIOS EN WINDOWS) ---
+        // Si la ruta tiene espacios y no tiene comillas, las agregamos.
+        const safeWorkDir = workDir.includes(' ') && !workDir.startsWith('"') 
+            ? `"${workDir}"` 
+            : workDir;
+            
+        const safeCommand = command.includes(' ') && !command.startsWith('"')
+            ? `"${command}"`
+            : command;
+        // ------------------------------------------------
+
+        // Usamos las variables sanitizadas en el comando y argumentos
+        this.serverProcess = spawn(safeCommand, ['--port', '9621', '--working-dir', safeWorkDir, '--workers', '1'], {
+            cwd: workDir, // cwd usa la ruta original (Node la maneja bien)
             shell: true,
             env: { ...envVars, PYTHONIOENCODING: 'utf-8', FORCE_COLOR: '1' }
         });
@@ -623,21 +667,20 @@ async startLightRagServer() {
      
         this.serverProcess.on('close', (code) => {
             this.serverProcess = null;
-            this.updateStatusUI('offline'); // Si se cierra solo, rojo
+            this.updateStatusUI('offline'); 
         });
 
         // --- DETECCIÓN REACTIVA (LINTER SAFE) ---
         void (async () => {
-            for (let i = 0; i < 15; i++) { // Intentar por 15 segundos
+            for (let i = 0; i < 15; i++) { 
                 await new Promise(r => setTimeout(r, 1000));
                 const alive = await this.isPortInUse(9621);
                 if (alive) {
-                    this.updateStatusUI('online'); // ¡Cambio a verde instantáneo!
+                    this.updateStatusUI('online'); 
                     new Notice(`${BACKEND_NAME} activated`);
                     return;
                 }
             }
-            // Si pasaron 15 segundos y no abrió el puerto:
             this.updateStatusUI('offline');
             new Notice("Server failed to respond in time.");
         })();
