@@ -22,6 +22,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
   // Local state for immediate UI reactivity
   const [currentRerankBinding, setCurrentRerankBinding] = useState(plugin.settings.lightRagRerankBinding);
   const [useCustomOntology, setUseCustomOntology] = useState(plugin.settings.useCustomEntityTypes);
+  const [useRemote, setUseRemote] = useState(plugin.settings.lightRagUseRemote);
 
   useEffect(() => {
     if (!settingsRef.current) return;
@@ -30,46 +31,84 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
 
     container.createEl('h3', { text: `Neural backend (${BACKEND_NAME})` });
 
-    // 1. Auto-start
+    // --- SERVER CONNECTION MODE ---
     new Setting(container)
-      .setName(`Auto-start ${BACKEND_NAME} server`)
-      .setDesc('Automatically start the server when Obsidian opens.')
+      .setName('Use remote server')
+      .setDesc('Connect to a remote LightRAG server instead of running one locally.')
       .addToggle((toggle) =>
         toggle
-          .setValue(plugin.settings.enableAutoStartServer)
+          .setValue(useRemote)
           .onChange((value) => {
-             void plugin.setSettings({ ...plugin.settings, enableAutoStartServer: value });
+            setUseRemote(value);
+            void plugin.setSettings({ ...plugin.settings, lightRagUseRemote: value });
           }),
       );
 
-    // 2. Paths
-    new Setting(container)
-      .setName(`${BACKEND_NAME} command path`)
-      .setDesc('Absolute path to the executable (e.g., lightrag-server.exe).')
-      .addText((text) =>
-        text
-          .setPlaceholder('D:\\...\\lightrag-server.exe')
-          .setValue(plugin.settings.lightRagCommand)
-          .onChange((value) => {
-             void plugin.setSettings({ ...plugin.settings, lightRagCommand: value });
-          }),
-      );
+    if (useRemote) {
+      // --- REMOTE MODE ---
+      new Setting(container)
+        .setName('Server URL')
+        .setDesc('Base URL of the remote LightRAG server (e.g., http://192.168.1.100:9621).')
+        .addText((text) =>
+          text
+            .setPlaceholder('http://your-server:9621')
+            .setValue(plugin.settings.lightRagServerUrl)
+            .onChange((value) => {
+              void plugin.setSettings({ ...plugin.settings, lightRagServerUrl: value });
+            }),
+        );
 
-    new Setting(container)
-      .setName('Graph data directory')
-      .setDesc('Absolute path to the folder containing your graph data.')
-      .addText((text) =>
-        text
-          .setPlaceholder('D:\\...\\cora_graph_memory')
-          .setValue(plugin.settings.lightRagWorkDir)
-          .onChange((value) => {
-            // Usamos una IIFE o bloque para agrupar lógica asíncrona dentro de void
-            void (async () => {
-                await plugin.setSettings({ ...plugin.settings, lightRagWorkDir: value });
-                plugin.updateEnvFile();
-            })();
-          }),
-      );
+      new Setting(container)
+        .setName('API key')
+        .setDesc('Optional authentication key for the remote server.')
+        .addText((text) =>
+          text
+            .setPlaceholder('Leave empty if not required')
+            .setValue(plugin.settings.lightRagApiKey)
+            .onChange((value) => {
+              void plugin.setSettings({ ...plugin.settings, lightRagApiKey: value });
+            }),
+        );
+    } else {
+      // --- LOCAL MODE ---
+      new Setting(container)
+        .setName(`Auto-start ${BACKEND_NAME} server`)
+        .setDesc('Automatically start the server when Obsidian opens.')
+        .addToggle((toggle) =>
+          toggle
+            .setValue(plugin.settings.enableAutoStartServer)
+            .onChange((value) => {
+               void plugin.setSettings({ ...plugin.settings, enableAutoStartServer: value });
+            }),
+        );
+
+      new Setting(container)
+        .setName(`${BACKEND_NAME} command path`)
+        .setDesc('Path to the lightrag-server executable.')
+        .addText((text) =>
+          text
+            .setPlaceholder('lightrag-server')
+            .setValue(plugin.settings.lightRagCommand)
+            .onChange((value) => {
+               void plugin.setSettings({ ...plugin.settings, lightRagCommand: value });
+            }),
+        );
+
+      new Setting(container)
+        .setName('Graph data directory')
+        .setDesc('Folder for the graph database and index files.')
+        .addText((text) =>
+          text
+            .setPlaceholder('.neural_memory')
+            .setValue(plugin.settings.lightRagWorkDir)
+            .onChange((value) => {
+              void (async () => {
+                  await plugin.setSettings({ ...plugin.settings, lightRagWorkDir: value });
+                  plugin.updateEnvFile();
+              })();
+            }),
+        );
+    }
 
     // 3. Graph Logic Model
     new Setting(container)
@@ -434,7 +473,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
         });
       });
 
-  }, [plugin.settings, currentRerankBinding, useCustomOntology]);
+  }, [plugin.settings, currentRerankBinding, useCustomOntology, useRemote]);
   
   return <div ref={settingsRef} />;
 };

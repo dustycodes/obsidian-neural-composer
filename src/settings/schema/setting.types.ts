@@ -71,6 +71,9 @@ export const NeuralComposerSettingsSchema = z.object({
   }),
 
   // --- NEURAL COMPOSER (CORE) ---
+  lightRagUseRemote: z.boolean().catch(false),
+  lightRagServerUrl: z.string().catch('http://localhost:9621'),
+  lightRagApiKey: z.string().catch(''),
   enableAutoStartServer: z.boolean().catch(false),
   lightRagCommand: z.string().catch('lightrag-server'),
   lightRagWorkDir: z.string().catch(''),
@@ -144,6 +147,9 @@ export const DEFAULT_SETTINGS: NeuralComposerSettings = {
   },
 
   // --- NEURAL DEFAULTS ---
+  lightRagUseRemote: false,
+  lightRagServerUrl: 'http://localhost:9621',
+  lightRagApiKey: '',
   enableAutoStartServer: false,
   lightRagCommand: 'lightrag-server',
   lightRagWorkDir: '',

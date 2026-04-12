@@ -69,6 +69,29 @@ export default class NeuralComposerPlugin extends Plugin {
   private statusDotEl: HTMLElement;
   private heartbeatInterval: number;
 
+  /** Returns true if the user has enabled remote server mode. */
+  isRemoteServer(): boolean {
+    return this.settings.lightRagUseRemote
+  }
+
+  /** Extracts the port number from the configured server URL, with safe fallback. */
+  private getServerPort(): number {
+    try {
+      return parseInt(new URL(this.settings.lightRagServerUrl).port) || 9621
+    } catch {
+      return 9621
+    }
+  }
+
+  /** Returns headers for LightRAG API calls, including auth if configured. */
+  private getLightRagHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {}
+    if (this.settings.lightRagApiKey) {
+      headers['Authorization'] = `Bearer ${this.settings.lightRagApiKey}`
+    }
+    return headers
+  }
+
   async onload() {
     await this.loadSettings();
 
@@ -230,7 +253,7 @@ export default class NeuralComposerPlugin extends Plugin {
 
     // --- AGGRESSIVE AUTO-START ---
 this.app.workspace.onLayoutReady(() => {
-        if (this.settings.enableAutoStartServer) {
+        if (this.settings.enableAutoStartServer && !this.isRemoteServer()) {
             void this.startLightRagServer();
         }
         // --- LATIDO LEGAL Y SEGURO ---
@@ -255,8 +278,9 @@ this.app.workspace.onLayoutReady(() => {
     while (isBusy) {
         try {
             const response = await requestUrl({
-                url: "http://localhost:9621/documents/pipeline_status",
-                method: "GET"
+                url: `${this.settings.lightRagServerUrl}/documents/pipeline_status`,
+                method: "GET",
+                headers: this.getLightRagHeaders()
             });
             
             const status = response.json;
@@ -427,8 +451,8 @@ onunload() {
         envContent += `# You can edit this file manually before restarting.\n\n`;
         
         envContent += `WORKING_DIR=${workDir}\n`;
-        envContent += `HOST=127.0.0.1\n`;
-        envContent += `PORT=9621\n`;
+        envContent += `HOST=0.0.0.0\n`;
+        envContent += `PORT=${this.getServerPort()}\n`;
         envContent += `SUMMARY_LANGUAGE=${this.settings.lightRagSummaryLanguage || 'English'}\n`;
         
         // --- TUNING VARS ---
@@ -598,6 +622,11 @@ onunload() {
   }
 
 async startLightRagServer() {
+    if (this.isRemoteServer()) {
+        void this.checkAndUpdateStatus();
+        return;
+    }
+
     const command = this.settings.lightRagCommand;
     const workDir = this.settings.lightRagWorkDir;
 
@@ -608,7 +637,7 @@ async startLightRagServer() {
 
     this.updateEnvFile();
 
-    const isAlive = await this.isPortInUse(9621);
+    const isAlive = await this.isPortInUse(this.getServerPort());
     if (isAlive) {
         this.updateStatusUI('online'); // Si ya está vivo, lo ponemos verde
         return;
@@ -632,7 +661,7 @@ async startLightRagServer() {
         // ------------------------------------------------
 
         // Usamos las variables sanitizadas en el comando y argumentos
-        this.serverProcess = spawn(safeCommand, ['--port', '9621', '--working-dir', safeWorkDir, '--workers', '1'], {
+        this.serverProcess = spawn(safeCommand, ['--port', `${this.getServerPort()}`, '--working-dir', safeWorkDir, '--workers', '1'], {
             cwd: workDir, // cwd usa la ruta original (Node la maneja bien)
             shell: true,
             env: { ...envVars, PYTHONIOENCODING: 'utf-8', FORCE_COLOR: '1' }
@@ -672,11 +701,11 @@ async startLightRagServer() {
 
         // --- DETECCIÓN REACTIVA (LINTER SAFE) ---
         void (async () => {
-            for (let i = 0; i < 15; i++) { 
+            for (let i = 0; i < 15; i++) {
                 await new Promise(r => setTimeout(r, 1000));
-                const alive = await this.isPortInUse(9621);
+                const alive = await this.isPortInUse(this.getServerPort());
                 if (alive) {
-                    this.updateStatusUI('online'); 
+                    this.updateStatusUI('online');
                     new Notice(`${BACKEND_NAME} activated`);
                     return;
                 }
@@ -702,6 +731,11 @@ async startLightRagServer() {
     if (!validationResult.success) {
       new Notice('Invalid settings');
       return;
+    }
+    // If switching to remote mode, stop any running local server
+    if (newSettings.lightRagUseRemote && !this.settings.lightRagUseRemote) {
+      this.stopLightRagServer();
+      void this.checkAndUpdateStatus();
     }
     this.settings = newSettings;
     await this.saveData(newSettings);
@@ -957,15 +991,16 @@ async activateChatView(chatProps?: ChatProps, openNewChat = false) {
 
 private async checkAndUpdateStatus() {
       // Si el proceso no existe y no está el auto-start, está offline
-      if (!this.settings.enableAutoStartServer && !this.serverProcess) {
+      if (!this.isRemoteServer() && !this.settings.enableAutoStartServer && !this.serverProcess) {
           this.updateStatusUI('offline');
           return;
       }
 
       try {
           const response = await requestUrl({
-              url: "http://localhost:9621/health",
+              url: `${this.settings.lightRagServerUrl}/health`,
               method: "GET",
+              headers: this.getLightRagHeaders(),
               throw: false
           });
           
@@ -999,7 +1034,12 @@ private async checkAndUpdateStatus() {
   }
 
   private async handleStatusBarClick() {
-      const isAlive = await this.isPortInUse(9621);
+      if (this.isRemoteServer()) {
+          new Notice(`Checking remote ${BACKEND_NAME} server...`);
+          void this.checkAndUpdateStatus();
+          return;
+      }
+      const isAlive = await this.isPortInUse(this.getServerPort());
       if (!isAlive) {
           new Notice(`Starting ${BACKEND_NAME} from status bar...`);
           void this.startLightRagServer();

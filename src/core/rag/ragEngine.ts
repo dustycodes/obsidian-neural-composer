@@ -73,6 +73,14 @@ export class RAGEngine {
     })
   }
 
+  private getLightRagHeaders(contentType = 'application/json'): Record<string, string> {
+    const headers: Record<string, string> = { 'Content-Type': contentType }
+    if (this.settings.lightRagApiKey) {
+      headers['Authorization'] = `Bearer ${this.settings.lightRagApiKey}`
+    }
+    return headers
+  }
+
   // Correct: Returns Promise<void> directly without async/await overhead
   updateVaultIndex(
     options: { reindexAll: boolean } = { reindexAll: false },
@@ -87,11 +95,11 @@ export class RAGEngine {
     const safeName = description && description.trim() ? description : `Note_${Date.now()}.md`;
     try {
       const response = await requestUrl({
-          url: "http://localhost:9621/documents/texts",
+          url: `${this.settings.lightRagServerUrl}/documents/texts`,
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: this.getLightRagHeaders(),
           body: JSON.stringify({ "texts": [content], "file_sources": [safeName] }),
-          throw: false 
+          throw: false
       });
 
       if (response.status >= 400) {
@@ -124,12 +132,10 @@ export class RAGEngine {
       bodyBuffer.set(postBuffer, preBuffer.length + fileData.byteLength);
 
       const response = await requestUrl({
-        url: "http://localhost:9621/documents/upload",
+        url: `${this.settings.lightRagServerUrl}/documents/upload`,
         method: "POST",
-        headers: {
-            "Content-Type": `multipart/form-data; boundary=${boundary}`
-        },
-        body: bodyBuffer.buffer, 
+        headers: this.getLightRagHeaders(`multipart/form-data; boundary=${boundary}`),
+        body: bodyBuffer.buffer,
         throw: false
       });
 
@@ -183,10 +189,10 @@ export class RAGEngine {
     // FIX: Typed return promise to avoid implicit 'any' from response.json
     const performQuery = async (): Promise<LightRagAPIResponse> => {
         const response = await requestUrl({
-            url: "http://localhost:9621/query",
+            url: `${this.settings.lightRagServerUrl}/query`,
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
+            headers: this.getLightRagHeaders(),
+            body: JSON.stringify({
                 query: query, mode: "hybrid", stream: false, only_need_context: false
             }),
             throw: false
