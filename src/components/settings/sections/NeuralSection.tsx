@@ -34,7 +34,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
     // --- SERVER CONNECTION MODE ---
     new Setting(container)
       .setName('Use remote server')
-      .setDesc('Connect to a remote LightRAG server instead of running one locally.')
+      .setDesc('Connect to a remote ${BACKEND_NAME} server instead of running one locally.')
       .addToggle((toggle) =>
         toggle
           .setValue(useRemote)
@@ -51,7 +51,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
         .setDesc('Base URL of the remote LightRAG server (e.g., http://192.168.1.100:9621).')
         .addText((text) =>
           text
-            .setPlaceholder('http://your-server:9621')
+            .setPlaceholder('http://your.server:9621')
             .setValue(plugin.settings.lightRagServerUrl)
             .onChange((value) => {
               void plugin.setSettings({ ...plugin.settings, lightRagServerUrl: value });
@@ -87,7 +87,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
         .setDesc('Path to the lightrag-server executable.')
         .addText((text) =>
           text
-            .setPlaceholder('lightrag-server')
+            .setPlaceholder('Lightrag server')
             .setValue(plugin.settings.lightRagCommand)
             .onChange((value) => {
                void plugin.setSettings({ ...plugin.settings, lightRagCommand: value });
