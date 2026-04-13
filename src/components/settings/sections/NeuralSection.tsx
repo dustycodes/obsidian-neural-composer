@@ -14,6 +14,7 @@ export const ADV_SETTINGS ='MAX_TOTAL_TOKENS=30000\nLLM_TIMEOUT=180\n...'
 export const TWO_D ='2D';
 export const THREE_D ='3D';
 export const GRAPH_UNIT = 'GPU';
+export const YOUR_SERVER = 'http://your-server:9621'
 
 
 export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
@@ -51,7 +52,7 @@ export const NeuralSection = ({ plugin }: { plugin: NeuralComposerPlugin }) => {
         .setDesc('Base URL of the remote LightRAG server (e.g., http://192.168.1.100:9621).')
         .addText((text) =>
           text
-            .setPlaceholder('http://your.server:9621')
+            .setPlaceholder(`${YOUR_SERVER}`)
             .setValue(plugin.settings.lightRagServerUrl)
             .onChange((value) => {
               void plugin.setSettings({ ...plugin.settings, lightRagServerUrl: value });
