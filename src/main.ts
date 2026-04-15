@@ -503,10 +503,29 @@ onunload() {
             envContent += `LLM_MODEL=${llmModelObj.model}\n`;
         }
 
-        // Embeddings
+// Embeddings (Smart Mapping)
         if (embedModelObj && embedProvider) {
             envContent += `\n# Embedding Configuration\n`;
-            envContent += `EMBEDDING_BINDING=${embedProvider.id}\n`;
+            
+            const nativeProviders =['openai', 'gemini', 'ollama', 'anthropic', 'azure'];
+            const isNativeEmbed = nativeProviders.includes(embedProvider.id);
+
+            if (isNativeEmbed) {
+                // Comportamiento Estándar
+                envContent += `EMBEDDING_BINDING=${embedProvider.id}\n`;
+            } else {
+                // Comportamiento Custom: Disfrazarlo de API compatible con OpenAI
+                envContent += `EMBEDDING_BINDING=openai\n`;
+                
+                if (embedProvider.baseUrl) {
+                    envContent += `OPENAI_BASE_URL=${embedProvider.baseUrl}\n`;
+                }
+                // Inyectamos la clave aquí directamente para que no quede vacía
+                if (embedProvider.apiKey) {
+                    envContent += `OPENAI_API_KEY=${embedProvider.apiKey}\n`;
+                }
+            }
+
             envContent += `EMBEDDING_MODEL=${embedModelObj.model}\n`;
             envContent += `EMBEDDING_DIM=${embedModelObj.dimension || 1024}\n`;
             envContent += `MAX_TOKEN_SIZE=8192\n`;
