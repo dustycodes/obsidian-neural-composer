@@ -451,7 +451,7 @@ onunload() {
         envContent += `# You can edit this file manually before restarting.\n\n`;
         
         envContent += `WORKING_DIR=${workDir}\n`;
-        envContent += `HOST=0.0.0.0\n`;
+        envContent += `HOST=127.0.0.1\n`;
         envContent += `PORT=${this.getServerPort()}\n`;
         envContent += `SUMMARY_LANGUAGE=${this.settings.lightRagSummaryLanguage || 'English'}\n`;
         
