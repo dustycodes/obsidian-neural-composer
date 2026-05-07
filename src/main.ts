@@ -125,6 +125,26 @@ export default class NeuralComposerPlugin extends Plugin {
     }
   }
 
+  /** Best-effort terminate OS processes LISTEN-ing on LightRAG's TCP port (local server only). */
+  private terminateListenersOnConfiguredPort(): void {
+    if (process.platform === 'win32') return;
+
+    const port = this.getServerPort();
+    try {
+      execSync(
+        [
+          `pids=$(lsof -nP -iTCP:${port} -sTCP:LISTEN -t 2>/dev/null | sort -u);`,
+          `if [ -n "$pids" ]; then`,
+          `  kill -TERM $pids 2>/dev/null || true`,
+          `fi`,
+        ].join(' '),
+        { shell: '/bin/sh', stdio: 'ignore' },
+      );
+    } catch {
+      /* Missing lsof / nothing listening — ok */
+    }
+  }
+
   /** Returns headers for LightRAG API calls, including auth if configured. */
   private getLightRagHeaders(): Record<string, string> {
     const headers: Record<string, string> = {}
@@ -370,6 +390,10 @@ export default class NeuralComposerPlugin extends Plugin {
 
     this.addSettingTab(new NeuralComposerSettingTab(this.app, this));
 
+    this.registerDomEvent(window, 'beforeunload', () => {
+      this.stopLightRagServer();
+    });
+
     // --- AGGRESSIVE AUTO-START ---
 this.app.workspace.onLayoutReady(() => {
         if (this.settings.enableAutoStartServer && !this.isRemoteServer()) {
@@ -526,20 +550,32 @@ onunload() {
   }
 
   public stopLightRagServer() {
-    if (this.serverProcess) {
-        this.serverProcess.kill();
-        this.serverProcess = null;
+    if (this.serverProcess && !this.serverProcess.killed) {
+      try {
+        this.serverProcess.kill('SIGTERM');
+      } catch {
+        //
+      }
     }
+    this.serverProcess = null;
+
+    if (this.isRemoteServer()) {
+      this.updateStatusUI('offline');
+      return;
+    }
+
     try {
-        if (process.platform === 'win32') {
-            // Force kill tree
-            execSync('taskkill /F /IM lightrag-server.exe /T', { stdio: 'ignore' });
-        }
+      if (process.platform === 'win32') {
+        execSync('taskkill /F /IM lightrag-server.exe /T', { stdio: 'ignore' });
+      } else if (this.settings.enableAutoStartServer) {
+        /* After shell-based spawns or missed `ChildProcess.pid`, stray uv/Python can persist; PID-less port teardown covers local auto-started servers. */
+        this.terminateListenersOnConfiguredPort();
+      }
     } catch {
-        // Ignore kill errors if process not found
+      //
     }
-    this.updateStatusUI('offline');  
-}
+    this.updateStatusUI('offline');
+  }
 
   public restartLightRagServer() {
     new Notice("Restarting system backend...");
@@ -825,24 +861,48 @@ async startLightRagServer() {
 
     try {
 
-        // --- FIX: SANITIZE PATHS (ESPACIOS EN WINDOWS) ---
-        // Si la ruta tiene espacios y no tiene comillas, las agregamos.
-        const safeWorkDir = workDir.includes(' ') && !workDir.startsWith('"') 
-            ? `"${workDir}"` 
-            : workDir;
-            
-        const safeCommand = command.includes(' ') && !command.startsWith('"')
-            ? `"${command}"`
-            : command;
-        // ------------------------------------------------
+        const portStr = `${this.getServerPort()}`;
+        /** Strip wrapping quotes added for display only (single executable path must not go through `/bin/sh` or `kill()` often stops the shell, not uvicorn/Python). */
+        const rawCmd = command.trim();
+        let exePath = rawCmd;
+        if (
+          (exePath.startsWith('"') && exePath.endsWith('"')) ||
+          (exePath.startsWith("'") && exePath.endsWith("'"))
+        ) {
+          exePath = exePath.slice(1, -1);
+        }
 
-        // Usamos las variables sanitizadas en el comando y argumentos
-        this.serverProcess = spawn(safeCommand, ['--port', `${this.getServerPort()}`, '--working-dir', safeWorkDir, '--workers', '1'], {
-            cwd: workDir, // cwd usa la ruta original (Node la maneja bien)
-            shell: true,
-            // `.env` wins over inherited Obsidian/shell (LightRAG loads_dotenv with override=False)
-            env: this.buildLightRagChildProcessEnv(workDir),
-        });
+        /** `conda run -n foo lightrag-server` and similar need a shell; a plain path uses `spawn` directly. */
+        const spawnViaShell = /\s/.test(exePath);
+        /** When using `shell:true`, quoting is still required inside the emitted command line if paths contain spaces. */
+        const workDirArgv =
+          workDir.includes(' ') && !workDir.includes('"')
+            ? `"${workDir}"`
+            : workDir;
+        const shareArgs =
+          spawnViaShell ?
+            ['--port', portStr, '--working-dir', workDirArgv, '--workers', '1']
+          : ['--port', portStr, '--working-dir', workDir, '--workers', '1'];
+        const childEnv = this.buildLightRagChildProcessEnv(workDir);
+
+        this.serverProcess =
+          spawnViaShell ?
+            spawn(
+              rawCmd.includes(' ') && !rawCmd.startsWith('"')
+                ? `"${rawCmd}"`
+                : rawCmd,
+              shareArgs,
+              {
+                  cwd: workDir,
+                  shell: true,
+                  env: childEnv,
+              },
+            )
+          : spawn(exePath, shareArgs, {
+              cwd: workDir,
+              shell: false,
+              env: childEnv,
+            });
 
         this.serverProcess.stderr?.on('data', (data) => {
             const msg = data.toString();
