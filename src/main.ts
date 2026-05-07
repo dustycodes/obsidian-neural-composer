@@ -20,6 +20,7 @@ import { parseNeuralComposerSettings } from './settings/schema/settings';
 import { NeuralComposerSettingTab } from './settings/SettingTab';
 import { getMentionableBlockData } from './utils/obsidian';
 import { VectorManager } from './database/modules/vector/VectorManager';
+import type { LLMProvider } from './types/provider.types';
 
 export const PLUGIN_NAME = "Neural Composer";
 export const BACKEND_NAME = "LightRAG";
@@ -90,6 +91,64 @@ export default class NeuralComposerPlugin extends Plugin {
       headers['Authorization'] = `Bearer ${this.settings.lightRagApiKey}`
     }
     return headers
+  }
+
+  /**
+   * Map Neural Composer provider → LightRAG `LLM_BINDING` / `EMBEDDING_BINDING`.
+   * Important: provider `id` is user-defined (`ollama-local`, `bedrock-mantle`), but LightRAG
+   * selects client code by protocol (`ollama`, `openai`, …), which aligns with provider `type`.
+   */
+  private lightRagBindingForProvider(provider: LLMProvider): string | null {
+    switch (provider.type) {
+      case 'openai':
+        return 'openai';
+      case 'ollama':
+        return 'ollama';
+      case 'gemini':
+        return 'gemini';
+      case 'azure-openai':
+        return 'azure_openai';
+      default: {
+        const legacyNativeIds = new Set([
+          'openai',
+          'gemini',
+          'ollama',
+          'anthropic',
+          'azure',
+        ]);
+        if (legacyNativeIds.has(provider.id)) return provider.id;
+        return null;
+      }
+    }
+  }
+
+  /**
+   * Map Neural Composer chat/embedding model `providerType` → LightRAG binding.
+   * Returns `null` for `openai-compatible` and `anthropic` so we fall back to provider id / compat logic.
+   */
+  private lightRagBindingFromNcModelProviderType(providerType: string): string | null {
+    switch (providerType) {
+      case 'ollama':
+        return 'ollama';
+      case 'gemini':
+        return 'gemini';
+      case 'azure-openai':
+        return 'azure_openai';
+      case 'openai':
+      case 'lm-studio':
+      case 'deepseek':
+      case 'perplexity':
+      case 'groq':
+      case 'mistral':
+      case 'openrouter':
+      case 'morph':
+        return 'openai';
+      case 'openai-compatible':
+      case 'anthropic':
+        return null;
+      default:
+        return null;
+    }
   }
 
   /**
@@ -457,8 +516,11 @@ onunload() {
     if (!workDir) return "";
 
     try {
-        const targetLlmId = this.settings.lightRagModelId || this.settings.chatModelId;
-        const embeddingId = this.settings.lightRagEmbeddingModelId || this.settings.embeddingModelId;
+        const targetLlmId =
+            this.settings.lightRagModelId?.trim() || this.settings.chatModelId;
+        const embeddingId =
+            this.settings.lightRagEmbeddingModelId?.trim() ||
+            this.settings.embeddingModelId;
         
         const llmModelObj = this.settings.chatModels.find(m => m.id === targetLlmId);
         const embedModelObj = this.settings.embeddingModels.find(m => m.id === embeddingId);
@@ -485,16 +547,16 @@ onunload() {
         if (llmModelObj && llmProvider) {
             envContent += `# LLM Configuration\n`;
             
-            // Lista de proveedores nativos que LightRAG conoce por nombre
-            const nativeProviders = ['openai', 'gemini', 'ollama', 'anthropic', 'azure'];
-            
-            // ¿Es un proveedor nativo o uno custom?
-            const isNative = nativeProviders.includes(llmProvider.id);
-            
-            if (isNative) {
-                envContent += `LLM_BINDING=${llmProvider.id}\n`;
+            const lrBinding =
+                (llmModelObj &&
+                    this.lightRagBindingFromNcModelProviderType(
+                        llmModelObj.providerType,
+                    )) ?? this.lightRagBindingForProvider(llmProvider);
+
+            if (lrBinding !== null) {
+                envContent += `LLM_BINDING=${lrBinding}\n`;
                 if (llmProvider.baseUrl) {
-                    const llmHost = llmProvider.id === 'openai'
+                    const llmHost = lrBinding === 'openai'
                         ? this.normalizeOpenAiCompatBindingHost(llmProvider.baseUrl)
                         : llmProvider.baseUrl;
                     envContent += `LLM_BINDING_HOST=${llmHost}\n`;
@@ -520,13 +582,16 @@ onunload() {
         if (embedModelObj && embedProvider) {
             envContent += `\n# Embedding Configuration\n`;
             
-            const nativeProviders =['openai', 'gemini', 'ollama', 'anthropic', 'azure'];
-            const isNativeEmbed = nativeProviders.includes(embedProvider.id);
+            const embedBinding =
+                (embedModelObj &&
+                    this.lightRagBindingFromNcModelProviderType(
+                        embedModelObj.providerType,
+                    )) ?? this.lightRagBindingForProvider(embedProvider);
 
-            if (isNativeEmbed) {
-                envContent += `EMBEDDING_BINDING=${embedProvider.id}\n`;
+            if (embedBinding !== null) {
+                envContent += `EMBEDDING_BINDING=${embedBinding}\n`;
                 if (embedProvider.baseUrl) {
-                    const embedHost = embedProvider.id === 'openai'
+                    const embedHost = embedBinding === 'openai'
                         ? this.normalizeOpenAiCompatBindingHost(embedProvider.baseUrl)
                         : embedProvider.baseUrl;
                     envContent += `EMBEDDING_BINDING_HOST=${embedHost}\n`;
