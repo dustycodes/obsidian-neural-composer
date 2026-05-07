@@ -45,6 +45,30 @@ const TEXT_BASED_EXTENSIONS = [
     'css', 'scss', 'less'
 ];
 
+/**
+ * Parses simple KEY=value lines from our generated `.env`.
+ * Outer matching quotes on values are stripped (handles ENTITY_TYPES='[...]').
+ */
+function parseLightRagDotEnv(contents: string): Record<string, string> {
+    const out: Record<string, string> = {};
+    for (const line of contents.split(/\r?\n/)) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        const eq = trimmed.indexOf('=');
+        if (eq <= 0) continue;
+        const key = trimmed.slice(0, eq).trim();
+        let value = trimmed.slice(eq + 1).trim();
+        if (
+            (value.startsWith('"') && value.endsWith('"')) ||
+            (value.startsWith("'") && value.endsWith("'"))
+        ) {
+            value = value.slice(1, -1);
+        }
+        out[key] = value;
+    }
+    return out;
+}
+
 // Definition for internal use, as 'Adapter' is not exported directly
 interface FileSystemAdapterWithBasePath {
     getBasePath: () => string;
@@ -73,6 +97,23 @@ export default class NeuralComposerPlugin extends Plugin {
   /** Returns true if the user has enabled remote server mode. */
   isRemoteServer(): boolean {
     return this.settings.lightRagUseRemote
+  }
+
+  /** Merge `.neural_memory/.env` into the subprocess env so it wins over inherited shell vars. */
+  private buildLightRagChildProcessEnv(workDir: string): NodeJS.ProcessEnv {
+    const merged: NodeJS.ProcessEnv = { ...process.env };
+    try {
+      const envPath = path.join(workDir, '.env');
+      if (fs.existsSync(envPath)) {
+        const parsed = parseLightRagDotEnv(fs.readFileSync(envPath, 'utf8'));
+        Object.assign(merged, parsed);
+      }
+    } catch (e) {
+      console.error('[Neural Composer] Failed to merge .env for LightRAG child:', e);
+    }
+    merged.PYTHONIOENCODING = 'utf-8';
+    merged.FORCE_COLOR = '1';
+    return merged;
   }
 
   /** Extracts the port number from the configured server URL, with safe fallback. */
@@ -750,8 +791,7 @@ async startLightRagServer() {
     this.updateStatusUI('busy'); // Amarillo mientras arranca
 
     try {
-        const envVars = { ...process.env };
-        
+
         // --- FIX: SANITIZE PATHS (ESPACIOS EN WINDOWS) ---
         // Si la ruta tiene espacios y no tiene comillas, las agregamos.
         const safeWorkDir = workDir.includes(' ') && !workDir.startsWith('"') 
@@ -767,7 +807,8 @@ async startLightRagServer() {
         this.serverProcess = spawn(safeCommand, ['--port', `${this.getServerPort()}`, '--working-dir', safeWorkDir, '--workers', '1'], {
             cwd: workDir, // cwd usa la ruta original (Node la maneja bien)
             shell: true,
-            env: { ...envVars, PYTHONIOENCODING: 'utf-8', FORCE_COLOR: '1' }
+            // `.env` wins over inherited Obsidian/shell (LightRAG loads_dotenv with override=False)
+            env: this.buildLightRagChildProcessEnv(workDir),
         });
 
         this.serverProcess.stderr?.on('data', (data) => {
