@@ -92,6 +92,25 @@ export default class NeuralComposerPlugin extends Plugin {
     return headers
   }
 
+  /**
+   * LightRAG's OpenAI client passes `base_url` to the SDK such that requests go to `{base_url}/embeddings`.
+   * For OpenAI that base must include `/v1`. Ollama's compatible API is rooted at `:11434/v1`; a bare
+   * `http://localhost:11434` produces 404s on `/embeddings`.
+   */
+  private normalizeOpenAiCompatBindingHost(host: string): string {
+    try {
+      const u = new URL(host)
+      if (u.port !== '11434') return host
+      const pathTrim = u.pathname.replace(/\/+$/, '') || '/'
+      if (pathTrim === '/' || pathTrim === '') {
+        return `${u.origin}/v1`
+      }
+      return host
+    } catch {
+      return host
+    }
+  }
+
   async onload() {
     await this.loadSettings();
 
@@ -475,7 +494,10 @@ onunload() {
             if (isNative) {
                 envContent += `LLM_BINDING=${llmProvider.id}\n`;
                 if (llmProvider.baseUrl) {
-                    envContent += `LLM_BINDING_HOST=${llmProvider.baseUrl}\n`;
+                    const llmHost = llmProvider.id === 'openai'
+                        ? this.normalizeOpenAiCompatBindingHost(llmProvider.baseUrl)
+                        : llmProvider.baseUrl;
+                    envContent += `LLM_BINDING_HOST=${llmHost}\n`;
                 }
                 if (llmProvider.apiKey) {
                     envContent += `LLM_BINDING_API_KEY=${llmProvider.apiKey}\n`;
@@ -484,7 +506,7 @@ onunload() {
                 // Custom provider - assume OpenAI-compatible protocol
                 envContent += `LLM_BINDING=openai\n`;
                 if (llmProvider.baseUrl) {
-                    envContent += `LLM_BINDING_HOST=${llmProvider.baseUrl}\n`;
+                    envContent += `LLM_BINDING_HOST=${this.normalizeOpenAiCompatBindingHost(llmProvider.baseUrl)}\n`;
                 }
                 if (llmProvider.apiKey) {
                     envContent += `LLM_BINDING_API_KEY=${llmProvider.apiKey}\n`;
@@ -504,7 +526,10 @@ onunload() {
             if (isNativeEmbed) {
                 envContent += `EMBEDDING_BINDING=${embedProvider.id}\n`;
                 if (embedProvider.baseUrl) {
-                    envContent += `EMBEDDING_BINDING_HOST=${embedProvider.baseUrl}\n`;
+                    const embedHost = embedProvider.id === 'openai'
+                        ? this.normalizeOpenAiCompatBindingHost(embedProvider.baseUrl)
+                        : embedProvider.baseUrl;
+                    envContent += `EMBEDDING_BINDING_HOST=${embedHost}\n`;
                 }
                 if (embedProvider.apiKey) {
                     envContent += `EMBEDDING_BINDING_API_KEY=${embedProvider.apiKey}\n`;
@@ -513,7 +538,7 @@ onunload() {
                 // Custom provider - assume OpenAI-compatible protocol
                 envContent += `EMBEDDING_BINDING=openai\n`;
                 if (embedProvider.baseUrl) {
-                    envContent += `EMBEDDING_BINDING_HOST=${embedProvider.baseUrl}\n`;
+                    envContent += `EMBEDDING_BINDING_HOST=${this.normalizeOpenAiCompatBindingHost(embedProvider.baseUrl)}\n`;
                 }
                 if (embedProvider.apiKey) {
                     envContent += `EMBEDDING_BINDING_API_KEY=${embedProvider.apiKey}\n`;
